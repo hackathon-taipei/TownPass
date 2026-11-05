@@ -16,4 +16,7 @@ $Versions = @{
 
 # Where the isolated toolchain lives. Outside the repo so several clones share it,
 # and separate from anything the user already installed.
-$ToolsRoot = if ($env:TOWNPASS_TOOLS) { $env:TOWNPASS_TOOLS } else { Join-Path $env:LOCALAPPDATA 'townpass-dev' }
+# NOT under %LOCALAPPDATA%/%APPDATA%: when this runs inside a packaged (MSIX) app - e.g. an AI
+# assistant in the Claude desktop app - Windows silently redirects new AppData files into a
+# private per-app folder, so the tools would be invisible to your own terminals.
+$ToolsRoot = if ($env:TOWNPASS_TOOLS) { $env:TOWNPASS_TOOLS } else { Join-Path $env:USERPROFILE '.townpass-dev' }

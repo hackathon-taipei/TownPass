@@ -1,4 +1,5 @@
-# Installs the project's toolchain into ONE isolated folder (default %LOCALAPPDATA%\townpass-dev).
+# Installs the project's toolchain into ONE isolated folder (default %USERPROFILE%\.townpass-dev;
+# tools\versions.ps1 explains why it must not be under AppData).
 #   powershell -ExecutionPolicy Bypass -File tools\setup-windows.ps1
 #
 # - No admin rights, no winget, no global PATH/JAVA_HOME changes, no Android Studio needed.
@@ -126,5 +127,5 @@ Write-Host @"
 Every new terminal:   . .\tools\dev-shell.ps1      then everything uses the pinned versions
 Check:                powershell -ExecutionPolicy Bypass -File tools\doctor.ps1
 VS Code with the env: powershell -ExecutionPolicy Bypass -File tools\code.ps1
-Remove everything:    Remove-Item -Recurse -Force "$R"
+Remove everything:    Remove-Item -LiteralPath "\\?\$R" -Recurse -Force
 "@ -ForegroundColor Yellow

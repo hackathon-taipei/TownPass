@@ -47,7 +47,8 @@
 
 ### ADR-010 隔離的開發環境 ✅
 - **背景**：隊友電腦可能已有不同版本的 Node／Java／Flutter／Android SDK。
-- **決策**：所有工具裝在 `%LOCALAPPDATA%\townpass-dev`（可用 `TOWNPASS_TOOLS` 改），版本鎖在 `tools/versions.ps1`；`tools/dev-shell.ps1` 只對目前終端機設定 PATH 與環境變數。不改系統 PATH、不需管理員、不需 Android Studio。
+- **決策**：所有工具裝在 `%USERPROFILE%\.townpass-dev`（可用 `TOWNPASS_TOOLS` 改），版本鎖在 `tools/versions.ps1`；`tools/dev-shell.ps1` 只對目前終端機設定 PATH 與環境變數。不改系統 PATH、不需管理員、不需 Android Studio。
+- **刻意不放 `AppData`**：在封裝式（MSIX）應用程式裡執行時（例如 Claude 桌面版的 AI 代為安裝），Windows 會把新建在 `AppData` 的檔案悄悄轉存到該應用程式的私有資料夾，你自己的終端機看不到；uv 的連結也會因此壞掉。實測發生過，故改到使用者目錄。
 - **後果**：與既有安裝互不影響；刪資料夾即移除。缺點：約 10 GB；Flutter 的 `flutter config` 設定仍是使用者全域（我們不呼叫它）。
 
 ### ADR-011 授權：自寫部分 AGPL-3.0，上游維持 GPL-3.0 ✅

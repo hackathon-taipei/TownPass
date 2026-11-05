@@ -7,7 +7,8 @@
 ```powershell
 powershell -ExecutionPolicy Bypass -File tools\setup-windows.ps1
 ```
-- 預設裝到 `%LOCALAPPDATA%\townpass-dev`；要換位置先設 `$env:TOWNPASS_TOOLS = 'D:\townpass-dev'`
+- 預設裝到 `%USERPROFILE%\.townpass-dev`；要換位置先設 `$env:TOWNPASS_TOOLS = 'D:\townpass-dev'`（**不要**選 `AppData` 底下，見 §5）
+- 過程記錄在 `%USERPROFILE%\.townpass-dev\setup.log`，失敗時看這個檔案
 - 可重複執行：已完成的步驟會跳過
 - 只用實體手機、不要模擬器：加 `-SkipEmulator`（省約 2 GB）
 
@@ -33,12 +34,15 @@ VS Code（讓終端機與 Flutter 外掛都用隔離版本）：`powershell -Exe
 
 ## 4. 移除
 ```powershell
-Remove-Item -Recurse -Force "$env:LOCALAPPDATA\townpass-dev"
+Remove-Item -LiteralPath "\\?\$env:USERPROFILE\.townpass-dev" -Recurse -Force   # \\?\ 處理 Flutter 的超長路徑
 ```
 
 ## 5. 已知問題
 | 狀況 | 處理 |
 |---|---|
+| 讓 AI（如 Claude 桌面版）代為安裝後，自己的終端機找不到工具 | 封裝式應用程式會把新建在 `AppData` 的檔案轉存到私有資料夾。預設路徑已避開 `AppData`；自訂 `TOWNPASS_TOOLS` 時也不要放在 `AppData` 底下 |
+| 從 Git Bash 執行腳本 | 腳本已用完整路徑呼叫 Windows 的 `curl.exe`／`tar.exe`（Git Bash 自帶的 tar 不認得 `C:`） |
+| Flutter clone 出現 `Filename too long` | 腳本已用 `core.longpaths`；若仍失敗，刪掉 `flutter` 資料夾重跑 |
 | 「應用程式控制原則已封鎖此檔案」（Windows 智慧型應用程式控制） | 後端用 `uv run python -m uvicorn ...`，不要直接執行 `.venv\Scripts\*.exe` |
 | Gradle「Unable to delete directory … build\」 | `android\gradlew --stop`，刪掉 `build\app\intermediates\assets` 再打包 |
 | 模擬器打不開網頁 `ERR_CLEARTEXT_NOT_PERMITTED` | 用 debug 版 App（已允許 http）；網址用 `10.0.2.2` |

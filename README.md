@@ -18,7 +18,7 @@
 ## 快速開始
 
 ```bash
-powershell -ExecutionPolicy Bypass -File tools/setup-windows.ps1   # 第一次：工具全部裝進 %LOCALAPPDATA%\townpass-dev，不影響既有安裝
+powershell -ExecutionPolicy Bypass -File tools/setup-windows.ps1   # 第一次：工具全部裝進 %USERPROFILE%\.townpass-dev，不影響既有安裝
 . .\tools\dev-shell.ps1                                           # 每個新終端機：只在這個終端機啟用
 powershell -ExecutionPolicy Bypass -File tools/doctor.ps1          # 檢查環境
 ```
