@@ -127,5 +127,6 @@ Write-Host @"
 Every new terminal:   . .\tools\dev-shell.ps1      then everything uses the pinned versions
 Check:                powershell -ExecutionPolicy Bypass -File tools\doctor.ps1
 VS Code with the env: powershell -ExecutionPolicy Bypass -File tools\code.ps1
+Built this repo before with another Flutter? Run once: powershell -ExecutionPolicy Bypass -File tools\clean.ps1
 Remove everything:    Remove-Item -LiteralPath "\\?\$R" -Recurse -Force
 "@ -ForegroundColor Yellow
