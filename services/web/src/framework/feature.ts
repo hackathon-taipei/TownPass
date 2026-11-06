@@ -18,6 +18,8 @@ export interface FeatureItem {
   tags?: string[]
   /** extra words people might type (synonyms, district names, ...) */
   keywords?: string[]
+  /** longer plain text (address, hours, notices...) - searchable, and usable as context by add-ons such as RAG */
+  text?: string
   to: RouteLocationRaw
 }
 

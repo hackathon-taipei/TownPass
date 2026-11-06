@@ -50,7 +50,7 @@ function __itemDoc(f: Feature, it: FeatureItem): SearchDoc {
     title: it.title,
     subtitle: it.subtitle,
     tags: it.tags,
-    text: [it.subtitle, ...(it.tags ?? []), ...(it.keywords ?? []), f.title].filter(Boolean).join(' '),
+    text: [it.subtitle, ...(it.tags ?? []), ...(it.keywords ?? []), it.text, f.title].filter(Boolean).join(' '),
     to: it.to,
   }
 }

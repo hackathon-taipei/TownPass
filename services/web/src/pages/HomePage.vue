@@ -11,7 +11,7 @@ import { featureEntry, features } from '@/framework'
 import { featureEntryRoute, useAssistant } from '@/modules/assistant'
 import { recent } from '@/modules/recent'
 import { buildSearchIndex } from '@/modules/search'
-import { profile } from '@/modules/session'
+import { appUserName, loadAppUserName } from '@/modules/env'
 import { ChatComposer, ChatThread, FeatureGrid, PageContainer, RecentStrip, type GridItem } from '@/ui'
 
 const router = useRouter()
@@ -35,6 +35,7 @@ const openSuggestion = (featureId: string) => {
 }
 
 onMounted(async () => {
+  void loadAppUserName()
   await buildSearchIndex()
   if (typeof route.query.q === 'string' && route.query.q) submit(route.query.q) // deep link: #/?q=公園
 })
@@ -43,7 +44,7 @@ onMounted(async () => {
 <template>
   <PageContainer>
     <section class="pt-5 pb-3">
-      <p class="text-sm text-grey-500">{{ profile?.name ? `嗨，${profile.name}` : '嗨！' }}</p>
+      <p class="text-sm text-grey-500">{{ appUserName ? `嗨，${appUserName}` : '嗨！' }}</p>
       <h1 class="mt-1 text-h1 leading-tight font-bold text-grey-900">今天想找什麼資訊？</h1>
     </section>
 
