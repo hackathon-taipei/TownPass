@@ -106,7 +106,7 @@ if ($CheckOnly) {
   $env:npm_config_confirm_modules_purge = 'false'
   Push-Location services\web
   # $PID in the log names: two start.ps1 running at once must not fight over the same file
-  & pnpm install --frozen-lockfile *> "$env:TEMP\townpass-$PID-web.log"
+  & pnpm install --frozen-lockfile --config.confirmModulesPurge=false *> "$env:TEMP\townpass-$PID-web.log"
   if ($LASTEXITCODE -eq 0) { Ok 'web (pnpm)' } else { Fail "web install failed, see $env:TEMP\townpass-$PID-web.log" }
   Pop-Location
   # uv sync + a check that Python really runs in the venv (Smart App Control can block it)
