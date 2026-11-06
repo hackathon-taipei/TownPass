@@ -50,7 +50,10 @@ if (-not (Get-Command gh -ErrorAction SilentlyContinue)) {
   if ($LASTEXITCODE -ne 0) {
     Ask 'Log in to GitHub: gh auth login --web --git-protocol https   (then run this script again)'
   } else {
-    if (-not $CheckOnly) { & gh auth setup-git *> $null }
+    if (-not $CheckOnly) {
+      & gh auth setup-git *> $null
+      & gh repo set-default $Repo *> $null # this is a fork: without this, gh pr create can target the official upstream
+    }
     $login = & gh api user --jq .login 2>$null
     $permission = & gh repo view $Repo --json viewerPermission --jq .viewerPermission 2>$null
     Ok "logged in as $login, permission on $Repo`: $permission"
