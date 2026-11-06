@@ -45,6 +45,10 @@ session for the implementation, and keep this one for checking.
    `isolation: "worktree"`). Its brief needs: the ticket URL, the branch, 範圍, 合約, 驗收標準,
    what already exists and must be reused, and the report it must return (files changed, commands
    run with results, deviations, anything unverified). It may not merge or edit outside 範圍.
+   A fresh worktree has no dependencies: the subagent first installs what it needs (`pnpm install
+   --frozen-lockfile` in `services/web`; `powershell -ExecutionPolicy Bypass -File tools\backend-venv.ps1`
+   for the backend) and branches with `git switch --no-track -c <branch> origin/main` (no tracking of
+   `origin/main`). The main agent pushes with `git push -u origin HEAD`.
 4. **Check its work yourself. Its report is a claim, not proof.**
    - Read the whole diff against 範圍, 合約 and each 驗收標準
    - Run every command in 驗證方式 again yourself

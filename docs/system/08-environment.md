@@ -19,6 +19,8 @@ powershell -ExecutionPolicy Bypass -File tools\setup-windows.ps1
 . .\tools\dev-shell.ps1        # 注意前面的「點 + 空格」；提示字元會變成 (townpass)
 powershell -ExecutionPolicy Bypass -File tools\doctor.ps1   # 檢查（每個工具都必須來自隔離資料夾）
 ```
+`dev-shell.ps1` 若被拒絕（執行原則錯誤），先執行 `Set-ExecutionPolicy -Scope Process Bypass`（只影響這個終端機）再重試。
+
 VS Code（讓終端機與 Flutter 外掛都用隔離版本）：`powershell -ExecutionPolicy Bypass -File tools\code.ps1`
 
 ## 3. 內容與版本（`tools/versions.ps1` 是唯一來源）
@@ -52,6 +54,8 @@ Remove-Item -LiteralPath "\\?\$env:USERPROFILE\.townpass-dev" -Recurse -Force   
 | **Windows 使用者名稱或專案路徑有中文**：模擬器一啟動就結束（exit 5，log 裡路徑變成 `C:\Users\?…`）、Gradle 說 `Your project path contains non-ASCII characters`、`ShaderCompilerException`、Kotlin `Could not close incremental caches` | Android 工具鏈不支援非 ASCII 路徑。① 工具：`New-Item -ItemType Junction C:\townpass-dev -Target "$env:USERPROFILE\.townpass-dev"`，每個終端機先 `$env:TOWNPASS_TOOLS='C:\townpass-dev'` 再 `. .\tools\dev-shell.ps1`；把 `android-user\avd\townpass.ini` 的 `path=` 改成 `C:\townpass-dev\android-user\avd\townpass.avd`。② 專案：`subst T: "<專案路徑>"`（重開機後要再執行一次），在 `T:\` 裡 `flutter pub get` 再 `flutter run`。③ 在 `C:\townpass-dev\gradle\gradle.properties` 加 `kotlin.incremental=false`（專案在 `T:`、套件在 `C:`，Kotlin 增量快取無法跨磁碟） |
 | Gradle「Unable to delete directory … build\」 | `tools\clean.ps1`（見上一列），再 `flutter pub get`；確認看到 `Built build` 才安裝，否則裝到的是舊版 |
 | 模擬器打不開網頁 `ERR_CLEARTEXT_NOT_PERMITTED` | 用 debug 版 App（已允許 http）；網址用 `localhost` 搭配 `adb reverse`（`07-testing.md` §5），不要用 `10.0.2.2` |
+| `. .\tools\dev-shell.ps1` 出現執行原則（execution policy）錯誤 | 先執行 `Set-ExecutionPolicy -Scope Process Bypass`（只影響這個終端機，關掉就恢復），再重新載入 |
+| `uv run python` 出現 `os error 4551`，但 `uv sync` 顯示成功（智慧型應用程式控制擋下 uv 管理的 Python 所建的 `.venv`） | 執行 `powershell -ExecutionPolicy Bypass -File tools\backend-venv.ps1`：偵測到 4551 會改用已簽章的 python.org Python（`%LOCALAPPDATA%\Programs\Python\Python3*` 或 `%ProgramFiles%\Python3*`）重建 `.venv`。找不到（結束碼 2）就從 python.org 安裝 Python 3.12 以上，再跑一次。`tools\start.ps1` 會自動呼叫它 |
 | 你另外裝過 Android Studio | Flutter 可能改用 Android Studio 內建的 JDK，一樣可以打包，不影響 |
 | 你曾執行過 `flutter config --jdk-dir …` | 那是使用者全域設定，Flutter 會優先使用它；不需要的話 `flutter config --jdk-dir=""` |
 | Mac／Linux 隊友 | 不提供安裝腳本：照 `tools/versions.ps1` 的版本自行安裝，再手動走 `tools/start.ps1` 的步驟 |

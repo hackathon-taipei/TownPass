@@ -57,6 +57,19 @@ if (-not (Get-Command gh -ErrorAction SilentlyContinue)) {
     $login = & gh api user --jq .login 2>$null
     $permission = & gh repo view $Repo --json viewerPermission --jq .viewerPermission 2>$null
     Ok "logged in as $login, permission on $Repo`: $permission"
+    if (-not $CheckOnly -and $login) {
+      # a fresh clone on a machine without a global git identity can't commit: set a repo-local one
+      # (worktrees share the repo config, so they inherit it)
+      $email = (& git config user.email 2>$null)
+      if (-not $email) {
+        $uid = & gh api user --jq .id 2>$null
+        if ($uid) {
+          & git config user.name $login
+          & git config user.email "$uid+$login@users.noreply.github.com"
+          Ok "git identity (this repo only): $login <$uid+$login@users.noreply.github.com>"
+        } else { Warn 'no git identity and could not read the GitHub id: set git user.name and user.email before committing' }
+      }
+    }
     if ($permission -notin 'ADMIN', 'MAINTAIN', 'WRITE') {
       Ask "Ask the repo owner to add '$login' to $Repo with write access: you can't push branches yet"
     }
@@ -92,20 +105,23 @@ if ($CheckOnly) {
   # no prompt when node_modules came from another pnpm store
   $env:npm_config_confirm_modules_purge = 'false'
   Push-Location services\web
-  & pnpm install --frozen-lockfile *> "$env:TEMP\townpass-web.log"
-  if ($LASTEXITCODE -eq 0) { Ok 'web (pnpm)' } else { Fail "web install failed, see $env:TEMP\townpass-web.log" }
+  # $PID in the log names: two start.ps1 running at once must not fight over the same file
+  & pnpm install --frozen-lockfile *> "$env:TEMP\townpass-$PID-web.log"
+  if ($LASTEXITCODE -eq 0) { Ok 'web (pnpm)' } else { Fail "web install failed, see $env:TEMP\townpass-$PID-web.log" }
   Pop-Location
-  Push-Location services\backend
-  & uv sync *> "$env:TEMP\townpass-backend.log"
-  if ($LASTEXITCODE -eq 0) { Ok 'backend (uv)' } else { Fail "backend install failed, see $env:TEMP\townpass-backend.log" }
-  Pop-Location
-  & flutter pub get *> "$env:TEMP\townpass-app.log"
-  if ($LASTEXITCODE -eq 0) { Ok 'app (flutter pub)' } else { Fail "app install failed, see $env:TEMP\townpass-app.log" }
+  # uv sync + a check that Python really runs in the venv (Smart App Control can block it)
+  & powershell -ExecutionPolicy Bypass -File "$PSScriptRoot\backend-venv.ps1" *> "$env:TEMP\townpass-$PID-backend.log"
+  $venvCode = $LASTEXITCODE
+  if ($venvCode -eq 0) { Ok 'backend (uv)' }
+  elseif ($venvCode -eq 2) { Ask "Backend Python is blocked by Windows and no signed Python was found: install Python from https://www.python.org/downloads/windows/, then run this script again (details: $env:TEMP\townpass-$PID-backend.log)" }
+  else { Fail "backend install failed, see $env:TEMP\townpass-$PID-backend.log" }
+  & flutter pub get *> "$env:TEMP\townpass-$PID-app.log"
+  if ($LASTEXITCODE -eq 0) { Ok 'app (flutter pub)' } else { Fail "app install failed, see $env:TEMP\townpass-$PID-app.log" }
   if (-not (Test-Path 'lib\gen\assets.gen.dart')) {
     # --force-jit: the default AOT build script can't read/write paths with non-ASCII characters
     # (e.g. a Chinese Windows user name), see docs/system/08-environment.md §5
-    & dart run build_runner build --force-jit *> "$env:TEMP\townpass-gen.log"
-    if ($LASTEXITCODE -eq 0) { Ok 'app generated code' } else { Fail "build_runner failed, see $env:TEMP\townpass-gen.log" }
+    & dart run build_runner build --force-jit *> "$env:TEMP\townpass-$PID-gen.log"
+    if ($LASTEXITCODE -eq 0) { Ok 'app generated code' } else { Fail "build_runner failed, see $env:TEMP\townpass-$PID-gen.log" }
   }
   & node tools\check-arch.mjs *> $null
   if ($LASTEXITCODE -eq 0) { Ok 'architecture check' } else { Fail 'architecture check failed: node tools/check-arch.mjs' }

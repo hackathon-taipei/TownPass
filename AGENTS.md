@@ -18,7 +18,7 @@ Follow `.claude/skills/townpass-start/SKILL.md`: run `tools/start.ps1`, read the
 | `docs/system/` | **Architecture and tech stack (`10-architecture.md`), specs, decisions, glossary, layer rules, testing, add-ons** - read README there first |
 | `docs/tickets/` | Ticket template + example; tickets themselves are GitHub issues labelled `ticket` |
 | `.claude/skills/` | `townpass-ui`, `townpass-feature`, `townpass-ticket` - workflows (plain markdown, any AI can read them) |
-| `tools/` | `start.ps1` (one command to get ready), isolated toolchain (`setup-windows.ps1`, `dev-shell.ps1`, `doctor.ps1`), `check-arch.mjs`, `check-docs.mjs` |
+| `tools/` | `start.ps1` (one command to get ready), isolated toolchain (`setup-windows.ps1`, `dev-shell.ps1`, `doctor.ps1`, `backend-venv.ps1`), `check-arch.mjs`, `check-docs.mjs` |
 
 ## Non-negotiable rules
 1. **Layers:** presentation → logic → data, calls only go down. Modules are used only through their public interface (`index.ts` / package `__init__.py`). Helpers inside an interface are named `__xxx` and are private. → `docs/system/05-logic-layer.md`
