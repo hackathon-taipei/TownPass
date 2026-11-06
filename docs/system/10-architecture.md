@@ -57,7 +57,7 @@ TownPass/
 ├─ AGENTS.md / CLAUDE.md     給 AI 的規則
 ├─ .claude/skills/           townpass-start、townpass-ticket、townpass-feature、townpass-ui
 ├─ .github/                  CI、Pages 部署、工單與 PR 範本
-├─ tools/                    start.ps1、setup-windows.ps1、dev-shell.ps1、doctor.ps1、clean.ps1、
+├─ tools/                    start.ps1、setup-windows.ps1、dev-shell.ps1、doctor.ps1、backend-venv.ps1、clean.ps1、
 │                            versions.ps1、check-arch.mjs、check-docs.mjs
 ├─ data/SOURCES.md           開放資料與出處
 ├─ docs/

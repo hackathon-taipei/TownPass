@@ -30,7 +30,7 @@ powershell -ExecutionPolicy Bypass -File tools\start.ps1
 ```
 依序：檢查工具（缺了自動裝，約 10 GB、20–40 分鐘）→ 檢查 GitHub 登入與權限 → 同步 `main` → 裝依賴 → 列出工單。**不會丟掉任何未提交的工作**，隨時可以重跑。環境細節與排錯：[08-environment.md](system/08-environment.md)。
 
-每個新的 PowerShell 終端機先執行：`. .\tools\dev-shell.ps1`
+每個新的 PowerShell 終端機先執行：`. .\tools\dev-shell.ps1`（若被拒絕（執行原則錯誤），先執行 `Set-ExecutionPolicy -Scope Process Bypass`（只影響這個終端機）再重試）
 
 ### 3. 保持雲端與地端同步
 | 什麼時候 | 做什麼 |
@@ -69,7 +69,7 @@ git switch -c t-<編號>-<名稱>
 沒有工單時由派發者開（`townpass-ticket` skill 的 A 節）。
 
 ### 6. 實作（子代理）
-主代理把工單網址、分支、範圍、合約、驗收標準、可重用的東西交給子代理（Claude Code：Agent 工具 + `isolation: "worktree"`）。子代理照分層規則實作、寫測試，然後回報：改了哪些檔案、跑了哪些指令與結果、偏離、沒驗證到的部分。
+主代理把工單網址、分支、範圍、合約、驗收標準、可重用的東西交給子代理（Claude Code：Agent 工具 + `isolation: "worktree"`）。子代理的 worktree 一開始沒有依賴，先裝需要的：網頁 `cd services/web; pnpm install --frozen-lockfile`、後端 `powershell -ExecutionPolicy Bypass -File tools\backend-venv.ps1`（Windows 智慧型應用程式控制擋住 uv 的 Python 時會自動改用 python.org 的簽章版）。分支用 `git switch --no-track -c <分支> origin/main` 開（不要追蹤 `origin/main`）；推送由主代理做：`git push -u origin HEAD`。子代理照分層規則實作、寫測試，然後回報：改了哪些檔案、跑了哪些指令與結果、偏離、沒驗證到的部分。
 
 ### 7. 檢查（主代理親自做）
 **子代理的回報只是說法，不是證據。** 讀完整 diff，對照工單的範圍、合約、每條驗收標準，然後自己重跑：
@@ -148,9 +148,10 @@ git switch main; git pull --ff-only origin main
 | 同一輪的工單要獨立 | 開工前定好合約；有依賴的放下一輪；資料夾不重疊 |
 | 一張工單只給一個主代理 | 先認領（第 5 步）再開工 |
 | 每個主代理一個資料夾 | **絕不共用同一個 checkout**。另外 clone 一份：`git clone https://github.com/hackathon-taipei/TownPass.git TownPass-b`，再各跑一次 `tools\start.ps1`（工具共用，依賴各裝一份） |
-| 每個子代理一個 worktree、一個分支 | 一張工單一個 PR，檢查和退回比較容易 |
+| 每個子代理一個 worktree、一個分支 | 一張工單一個 PR，檢查和退回比較容易。worktree 沒有依賴：先 `pnpm install --frozen-lockfile`（`services/web`）、`powershell -ExecutionPolicy Bypass -File tools\backend-venv.ps1`（後端）；分支用 `git switch --no-track -c <分支> origin/main`，由主代理 `git push -u origin HEAD` |
 | 前端埠 | 5173 被占用時 Vite 會自動換埠，看終端機顯示的網址 |
 | 後端埠 | 第二個資料夾用 `--port 8001`，前端開發時設 `VITE_API_BASE=http://localhost:8001` |
+| 實測 | 演練時用兩個 clone 同時跑了四個伺服器（兩份網頁、兩份後端），互不干擾；`tools\start.ps1` 的 log 檔名含行程編號，可同時執行 |
 | 模擬器和打包 App | 同一時間只讓一個 AI 使用，Gradle 會鎖目錄 |
 | 同時執行量 | 每個主代理先開 2 到 3 個子代理，看電腦負荷再加 |
 | 沒有子代理的工具 | 另開一個 session 實作，原本的 session 負責檢查 |
@@ -176,7 +177,7 @@ TownPass App (Flutter)                       ← 只改：登記服務入口、�
 
 ## 本機執行指令
 
-每個新終端機先啟用隔離環境（[說明](system/08-environment.md)）：`. .\tools\dev-shell.ps1`
+每個新終端機先啟用隔離環境（[說明](system/08-environment.md)）：`. .\tools\dev-shell.ps1`（若被拒絕（執行原則錯誤），先執行 `Set-ExecutionPolicy -Scope Process Bypass`（只影響這個終端機）再重試）
 
 ```bash
 # 網頁（瀏覽器開發，bridge 自動用 mock）
