@@ -1,4 +1,5 @@
 """TownPass microservice backend (wiring only - add features in features/, don't edit this file).
+# drill: code change without docs, to prove the docs check fails (issue 11)
 
 Run locally:  uv run python -m uvicorn townpass_backend.main:app --reload --host 0.0.0.0 --port 8000
 API docs:     http://localhost:8000/docs   (the API contract for the frontend)
