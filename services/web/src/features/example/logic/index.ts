@@ -6,7 +6,7 @@ import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter, type RouteLocationRaw } from 'vue-router'
 import { featureRoute, type FeatureItem } from '@/framework'
 import { openMap, shareLink } from '@/modules/env'
-import { getPlace, listPlaces, type Place } from '../data'
+import { getPlace, imagesOfPlace, listPlaces, type Place } from '../data'
 
 export type { Place }
 
@@ -67,6 +67,9 @@ function __toSearchItem(p: Place): FeatureItem {
     tags: p.tags,
     keywords: [p.district, p.category],
     text: [`地址：${p.address}`, `開放時間：${p.hours}`, ...p.notices.map((n) => `${n.title}：${n.body}`)].join('\n'),
+    geo: { lat: p.lat, lng: p.lng },
+    images: imagesOfPlace(p.id),
+    source: '（範例）臺北市公園基本資料',
     to: placeDetailRoute(p.id),
   }
 }

@@ -1,13 +1,16 @@
 <script setup lang="ts">
 /** @component RG-P01 RagLabPage — 裝置端 RAG 實驗頁（硬體檢查、下載模型、提問） */
-import { computed, onMounted, ref } from 'vue'
+import { computed, defineAsyncComponent, onMounted, ref } from 'vue'
 import { Download } from 'lucide-vue-next'
 import { BaseButton, ChatComposer, EmptyState, PageContainer, type InfoRow } from '@/ui'
-import { useRag, type ModelKey, type RagAnswer } from '../index'
+import { DeviceModelCard as loadDeviceModelCard, EMBEDDING_MODEL, useModel, type ModelKey } from '@/addons/model'
+import { useRag, type RagAnswer } from '../index'
 import AnswerCard from './AnswerCard.vue'
-import DeviceModelCard from './DeviceModelCard.vue'
 
-const { status, progress, message, hardware, choice, docsCount, offlineReady, disclosure, inspect, prepare, ask } = useRag()
+const DeviceModelCard = defineAsyncComponent(loadDeviceModelCard)
+
+const { status, docsCount, error: prepareError, inspect, prepare, ask } = useRag()
+const { progress, message, hardware, choice, disclosure, isOffline } = useModel()
 const override = ref<'auto' | ModelKey>('auto')
 const query = ref('')
 const answering = ref(false)
@@ -26,9 +29,6 @@ const hwRows = computed<InfoRow[]>(() => {
     { label: '可用空間', value: h.freeStorageMB === null ? '無法得知' : `${h.freeStorageMB} MB` },
   ]
 })
-const isOffline = computed(
-  () => !!choice.value && offlineReady.value.includes('Xenova/multilingual-e5-small') && (choice.value.key === 'none' || offlineReady.value.includes(choice.value.id)),
-)
 const busy = computed(() => ['probing', 'downloading', 'indexing'].includes(status.value))
 const MODE_LABEL = { llm: '模型生成', extractive: '摘錄（未使用語言模型）', guarded: '模型回答未通過檢查，改顯示資料原文' } as const
 const examples = [{ label: '公園可以帶寵物嗎？' }, { label: '哪裡可以自習？' }, { label: '運動中心幾點開？' }]
@@ -74,12 +74,13 @@ onMounted(() => inspect(ov()))
 
       <div v-if="status !== 'ready'" class="space-y-2">
         <BaseButton block :icon="Download" :loading="busy" @click="prepare(ov())">
-          {{ isOffline ? '載入模型' : `下載並載入（約 ${(choice?.sizeMB ?? 0) + 118} MB，只需一次）` }}
+          {{ isOffline ? '載入模型' : `下載並載入（約 ${(choice?.sizeMB ?? 0) + EMBEDDING_MODEL.sizeMB} MB，只需一次）` }}
         </BaseButton>
         <div v-if="busy" class="h-2 overflow-hidden rounded-full bg-grey-100">
           <div class="h-full bg-primary-500 transition-all" :style="{ width: `${Math.round(progress * 100)}%` }" />
         </div>
-        <p v-if="message" class="text-sm" :class="status === 'error' ? 'text-warn-200' : 'text-grey-500'">{{ message }}</p>
+        <p v-if="status === 'error'" class="text-sm text-warn-200">{{ prepareError }}</p>
+        <p v-else-if="message" class="text-sm text-grey-500">{{ message }}</p>
       </div>
       <p v-else class="text-sm text-grey-500">已就緒：App 內資料已切成 {{ docsCount }} 個片段並向量化；{{ choice!.key === 'none' ? '只做檢索與摘錄（不使用語言模型）' : `${choice!.label} 在手機上執行` }}。</p>
 

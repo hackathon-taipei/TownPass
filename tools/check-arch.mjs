@@ -17,10 +17,6 @@
  *   B5 another backend feature is used only through its package root
  *   B6 backend "__" names are never imported or called from another module
  *   W10 add-ons (src/addons/x/) are optional: core (framework/, app/, modules/, ui/, platform/, main.ts,
- *       App.vue) never imports them; features/pages reach them only through @/addons/x (index)
- *   B7 backend add-ons (townpass_backend/addons/x/) are never imported by core (main.py, db.py,
- *       config.py, features/__init__.py); others use only the package root townpass_backend.addons.x
- *   W10 add-ons (src/addons/x/) are optional: core (framework/, app/, modules/, ui/, platform/, main.ts,
  *       App.vue) never imports them; features/pages may, but only through @/addons/x (index)
  *   B7 backend add-ons (townpass_backend/addons/x/) are never imported by core (main.py, db.py,
  *       config.py, features/__init__.py); others use only the package root townpass_backend.addons.x

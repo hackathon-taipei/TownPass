@@ -11,7 +11,7 @@ import { featureEntry, features } from '@/framework'
 import { featureEntryRoute, useAssistant } from '@/modules/assistant'
 import { recent } from '@/modules/recent'
 import { buildSearchIndex } from '@/modules/search'
-import { appUserName, loadAppUserName } from '@/modules/env'
+import { appUserName, canSpeak, loadAppUserName, speak } from '@/modules/env'
 import { ChatComposer, ChatThread, FeatureGrid, PageContainer, RecentStrip, type GridItem } from '@/ui'
 
 const router = useRouter()
@@ -25,7 +25,7 @@ const gridItems = computed<GridItem[]>(() =>
 )
 
 function submit(text: string) {
-  ask(text)
+  void ask(text)
   query.value = ''
 }
 const pickQuick = (i: number) => router.push(quickActions.value[i]!.to)
@@ -56,7 +56,7 @@ onMounted(async () => {
         <RouterLink v-if="isDev" to="/dev/ui" class="inline-flex items-center gap-1"><Palette class="size-3.5" />UI 元件</RouterLink>
       </nav>
     </div>
-    <ChatThread v-else :messages="messages" class="pt-2" @suggest="openSuggestion" />
+    <ChatThread v-else :messages="messages" :speakable="canSpeak" class="pt-2" @suggest="openSuggestion" @speak="speak" />
 
     <template #bottom>
       <ChatComposer v-model="query" :quick-actions="quickActions" :ready="ready" @submit="submit" @pick="pickQuick" />

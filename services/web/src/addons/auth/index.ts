@@ -4,7 +4,7 @@
  * Signs the TownPass app user in to OUR backend: reads only `id` + `realName` from the app,
  * exchanges them for a token at POST /auth/login, then every api() call sends it.
  * The framework never imports this. Turn it on only after the team has written the test plan
- * and demo script for the feature that needs login (handbook: addons/auth).
+ * and demo script for the feature that needs login. Guide: README.md in this folder.
  *
  * Enable (web):
  *   1. In the feature that needs login, logic layer:  `await requireUser()` before the protected action

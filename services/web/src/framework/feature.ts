@@ -8,6 +8,7 @@
  */
 import type { Component } from 'vue'
 import type { RouteLocationRaw, RouteRecordRaw } from 'vue-router'
+import type { AssistantProvider, GeoPoint, ItemImage, ToolDefinition } from './tool'
 
 /** Something the chat box can answer with: a card that links to a detail page. */
 export interface FeatureItem {
@@ -20,6 +21,15 @@ export interface FeatureItem {
   keywords?: string[]
   /** longer plain text (address, hours, notices...) - searchable, and usable as context by add-ons such as RAG */
   text?: string
+  /** where it is -> the chat box can mark it on a map (show_map) */
+  geo?: GeoPoint
+  /** pictures that belong to it, e.g. a document's figures -> shown in the chat box (show_image) */
+  images?: ItemImage[]
+  /** for roadworks, events...: ISO dates (YYYY-MM-DD); finished items are left off the map */
+  validFrom?: string
+  validTo?: string
+  /** where the content comes from, shown next to original text and images */
+  source?: string
   to: RouteLocationRaw
 }
 
@@ -49,6 +59,10 @@ export interface Feature {
   quickActions?: { label: string; to: RouteLocationRaw }[]
   /** searchable content; may fetch from the backend (called once at startup) */
   searchItems?: () => FeatureItem[] | Promise<FeatureItem[]>
+  /** things the chat box can do for this feature; see framework/tool.ts */
+  tools?: ToolDefinition[]
+  /** optional smarter chat answers, e.g. from the agent add-on; see docs/system/09-addons.md */
+  assistant?: AssistantProvider
   /** open data used by this feature -> listed on the 資料來源 page */
   sources?: DataSource[]
   /** lower = earlier on the home screen */

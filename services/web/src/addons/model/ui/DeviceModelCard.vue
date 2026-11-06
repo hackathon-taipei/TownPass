@@ -1,5 +1,5 @@
 <script setup lang="ts">
-/** @component RG-C01 DeviceModelCard — 手機硬體、選用模型與理由、模型揭露 */
+/** @component ML-C01 DeviceModelCard — 手機硬體、選用模型與理由、模型揭露 */
 import { Cpu } from 'lucide-vue-next'
 import { BaseCard, BaseChip, BaseTag, ChipRail, InfoTable, type InfoRow } from '@/ui'
 

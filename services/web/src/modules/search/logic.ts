@@ -4,7 +4,7 @@
  */
 import { ref } from 'vue'
 import { featureEntry, features, type Feature, type FeatureItem } from '@/framework'
-import { addDocs, queryDocs, resetDocs, type SearchDoc } from './data'
+import { addDocs, allDocs, queryDocs, resetDocs, type SearchDoc } from './data'
 
 export type { SearchDoc }
 
@@ -30,6 +30,9 @@ export function search(query: string, limit = 8): SearchDoc[] {
   return queryDocs(query, limit)
 }
 
+/** Every indexed document; used to put all located items on a map. */
+export const searchDocuments = (): SearchDoc[] => allDocs()
+
 function __featureDoc(f: Feature): SearchDoc {
   return {
     key: `f:${f.id}`,
@@ -50,6 +53,11 @@ function __itemDoc(f: Feature, it: FeatureItem): SearchDoc {
     title: it.title,
     subtitle: it.subtitle,
     tags: it.tags,
+    geo: it.geo,
+    images: it.images,
+    validFrom: it.validFrom,
+    validTo: it.validTo,
+    source: it.source,
     text: [it.subtitle, ...(it.tags ?? []), ...(it.keywords ?? []), it.text, f.title].filter(Boolean).join(' '),
     to: it.to,
   }
