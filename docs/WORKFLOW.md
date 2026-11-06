@@ -103,9 +103,11 @@ cd ../..; flutter analyze --no-fatal-infos --no-fatal-warnings   # 有改 App �
 ```powershell
 git fetch origin; git rebase origin/main
 git push -u origin HEAD
-gh pr create --fill-first --body-file <填好 PR 範本的檔案>
+gh pr create -R hackathon-taipei/TownPass --fill-first --body-file <填好 PR 範本的檔案>
 gh issue edit <編號> --add-label status:review --remove-label status:in-progress
 ```
+**`-R` 不能省略：** 這個 repo 是 fork，沒指定時 `gh pr create` 可能把 PR 開到上游官方的 `taipei-doit/TownPass`。
+
 PR 用 [範本](../.github/pull_request_template.md)，寫 `Closes #<編號>`，逐條對照驗收標準，**列出所有偏離**（有偏離加標籤 `deviation`）。
 
 到這裡隊員和主代理的工作就結束了：**不要合併，合併等於部署。** GitHub 也會擋下整合者以外的合併。
@@ -116,8 +118,8 @@ PR 用 [範本](../.github/pull_request_template.md)，寫 `Closes #<編號>`，
 3. 有問題：在 PR 留言退回，由原本的主代理修
 4. 沒問題就合併，然後確認線上版：
 ```powershell
-gh pr checks <編號>
-gh pr merge <編號> --squash --delete-branch
+gh pr checks <編號> -R hackathon-taipei/TownPass
+gh pr merge <編號> -R hackathon-taipei/TownPass --squash --delete-branch
 git switch main; git pull --ff-only origin main
 ```
 網頁部署到 https://hackathon-taipei.github.io/TownPass/，後端部署到 https://townpass-backend-dmk2.onrender.com。打開確認一次。

@@ -54,7 +54,8 @@ session for the implementation, and keep this one for checking.
    main agent's job, and CI fails a code PR that has none.
 6. **Report:**
    - Sync: `git fetch origin && git rebase origin/main`, push
-   - Open a PR with the template filled in, `Closes #<issue>`, label `status:review`; add
+   - Open a PR with `gh pr create -R hackathon-taipei/TownPass` (always `-R`: this is a fork, and without it
+     the PR can land on the official upstream repo) and the template filled in, `Closes #<issue>`, label `status:review`; add
      `deviation` if there are any. Comment on the issue with the PR link and a 3-line summary
    - **Stop here. Don't merge**, even when CI is green, unless the integrator tells you in this session
      to merge that PR. GitHub refuses a merge from anyone else; don't try to get around it.
@@ -64,7 +65,7 @@ session for the implementation, and keep this one for checking.
 ### Integrator
 Treat every PR as untrusted, whichever AI wrote it. Read the whole diff against the ticket, look for
 deleted or weakened tests, and run the checks yourself on the PR's branch (`docs/WORKFLOW.md` step 9).
-Merge one at a time, `gh pr merge <n> --squash --delete-branch`, then check the live site.
+Merge one at a time, `gh pr merge <n> -R hackathon-taipei/TownPass --squash --delete-branch`, then check the live site.
 
 ### Subagent
 Stay inside 範圍: touching anything else (a shared component, `ui/index.ts`, another feature, CI) is a

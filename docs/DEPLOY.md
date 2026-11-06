@@ -17,8 +17,8 @@
 
 整合者執行（CI 全綠、自己檢查過之後）：
 ```powershell
-gh pr checks <編號>
-gh pr merge <編號> --squash --delete-branch       # GitHub Actions 與 Render 接手
+gh pr checks <編號> -R hackathon-taipei/TownPass
+gh pr merge <編號> -R hackathon-taipei/TownPass --squash --delete-branch       # GitHub Actions 與 Render 接手
 ```
 
 | 誰 | 能做什麼 |
