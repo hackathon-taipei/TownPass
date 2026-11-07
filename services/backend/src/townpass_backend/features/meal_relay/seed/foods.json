@@ -39,12 +39,12 @@
     "id": "f-4",
     "point_id": "p-3",
     "supplier_id": "s-1",
-    "name": "花生奶油麵包（模擬）",
+    "name": "刈包（活動多出來的）",
     "category": "bakery",
-    "allergens": ["peanut", "gluten", "milk", "egg"],
+    "allergens": ["peanut", "gluten"],
     "qty": 6,
     "expires_at": "now+5h",
-    "source_note": "含花生，過敏者請勿申請",
+    "source_note": "黑客松活動多出來的刈包，含花生粉，花生過敏者不派送",
     "created_at": "now-30m"
   },
   {
