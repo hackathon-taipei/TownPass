@@ -53,7 +53,7 @@ const emit = defineEmits<{ photo: [file: File]; submit: [] }>()
       <VisitResultOptions v-model="result" :kind="task.kind" :category="task.claim?.food.category" />
       <p class="flex items-center gap-1.5 text-sm text-grey-600">
         <Info class="h-4 w-4 shrink-0" aria-hidden="true" />
-        {{ REPORT_NOTE }}
+        {{ task.kind === 'meal' ? REPORT_NOTE : '請依實際情況回報是否見到本人' }}
       </p>
       <Transition name="expand">
         <div v-if="result === 'left_at_door'" class="expand-box">

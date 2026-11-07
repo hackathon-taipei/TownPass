@@ -332,7 +332,7 @@ describe('畫面 MR-P01（實際渲染 HomePage，設計 v2）', () => {
   it('元素順序照 README §3.1：主視覺、主按鈕、提醒卡、附近關懷據點、想成為志工？、資料來源', async () => {
     const { el, unmount } = await renderHome('u-cit-1')
     const text = el.textContent ?? ''
-    const order = ['把多出來的食物，', '我要提供食物', '長者不用操作 App', '附近關懷據點', '想成為志工？', '資料來源：']
+    const order = ['長者不必用手機，', '我要提供食物', '長者不用操作 App', '附近關懷據點', '想成為志工？', '資料來源：']
     const at = order.map((t) => text.indexOf(t))
     expect(at.every((i) => i >= 0)).toBe(true)
     expect([...at].sort((a, b) => a - b)).toEqual(at)

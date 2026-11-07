@@ -12,7 +12,7 @@ export default defineFeature({
   id: 'meal-relay',
   code: 'MR',
   title: '鄰食轉運站',
-  description: '把多出來的食物轉給附近需要的長者：志工到據點報到，系統自動派送餐點與關懷',
+  description: '長者不必操作手機，由社區據點、食物提供者與志工協作，將餐食與關懷送到需要的人身邊',
   icon: HandPlatter,
   order: 1,
   keywords: ['食物', '剩食', '惜食', '便當', '送餐', '長者', '關懷', '志工', '據點'],

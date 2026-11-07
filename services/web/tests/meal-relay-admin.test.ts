@@ -538,13 +538,13 @@ describe('設計 v2：分頁、統計卡、名冊狀態、圖例（T-138）', ()
     expect(adminTabs(0)[0].badge).toBe(0) // 0 時 SegmentedTabs 不顯示徽章
   })
 
-  it('STAT_FIELDS：5 張統計卡的順序、名稱、圖示；「需關懷長者」用 stats.alerts', () => {
+  it('STAT_FIELDS：5 張統計卡的順序、名稱、圖示；「待服務長者」用 stats.alerts', () => {
     expect(STAT_FIELDS.map((f) => [f.key, f.label])).toEqual([
-      ['foods_open', '可派送食物'],
-      ['delivered_today', '今日送達'],
       ['seen_today', '今日見到'],
-      ['alerts', '需關懷長者'],
+      ['alerts', '待服務長者'],
+      ['delivered_today', '今日送達'],
       ['checkins_today', '今日報到'],
+      ['foods_open', '可派送食物'],
     ])
     expect(STAT_FIELDS.every((f) => f.icon)).toBe(true)
     expect(STAT_FIELDS.find((f) => f.key === 'alerts')?.tone).toBe('alert')
@@ -744,11 +744,11 @@ describe('AdminPage 畫面（T-138）', () => {
     expect(tabEl('待審核').querySelector('[aria-label]')).toBeNull()
   })
 
-  it('服務看板：5 張統計卡的名稱與 stats 數字（需關懷長者 = alerts）', async () => {
+  it('服務看板：5 張統計卡的名稱與 stats 數字（待服務長者 = alerts）', async () => {
     api.getBoard.mockResolvedValue(board({ stats: { foods_open: 6, delivered_today: 8, seen_today: 7, alerts: 4, checkins_today: 3 } }))
     await mountAdmin()
     const body = text(document.body)
-    for (const label of ['可派送食物', '今日送達', '今日見到', '需關懷長者', '今日報到']) expect(body).toContain(label)
+    for (const label of ['今日見到', '待服務長者', '今日送達', '今日報到', '可派送食物']) expect(body).toContain(label)
     expect(body).toContain('食物去向')
     expect(body).toContain('剩餘 3｜已派送 0｜已送達 0')
   })
