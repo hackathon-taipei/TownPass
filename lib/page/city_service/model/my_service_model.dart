@@ -193,13 +193,13 @@ extension MyServiceIdExt on MyServiceItemId {
           category: MyServiceCategory.explore,
           destinationUrl: '',
         ),
-      // TODO(team): rename + pick an icon once the topic is announced
+      // 2026 臺北秋季程式設計節作品：鄰食轉運站（services/web 的 meal-relay 功能，docs/system/11-meal-relay.md）
       MyServiceItemId.teamService => MyServiceItem(
-          title: '城市任務',
-          description: '2026 臺北秋季程式設計節作品',
-          icon: Assets.svg.iconLocationSearch24.svg(),
+          title: '鄰食轉運站',
+          description: '商家多出來的餐，由志工送到獨居長輩家',
+          icon: Assets.svg.iconEssentialGoods.svg(),
           category: MyServiceCategory.cityService,
-          destinationUrl: teamWebUrl,
+          destinationUrl: '$teamWebUrl#/f/meal-relay',
         ),
     };
   }
