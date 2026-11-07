@@ -4,6 +4,7 @@
  * T-126：提供者只在新增食物點時看到地圖（MR-C37 的 LocationPicker），這裡不放總覽地圖，用清單選點。
  * markers（listPoints 的食物點）只交給 MR-C37 當選位置時的參考定位針。
  * 食物點的名稱與位置來自開放資料（T-115），下方放 SourceNote。
+ * T-136：放在 MR-C91 PointField 的底部面板裡；有地址（T-133）時副標前面加上地址。
  */
 import { BaseButton, BaseChip, ListItem, SourceNote } from '@/ui'
 import type { Marker } from '../logic/mapMarker'
@@ -28,7 +29,7 @@ const emit = defineEmits<{ select: [id: string]; 'update:adding': [v: boolean]; 
   <div class="flex flex-col gap-3">
     <ul class="divide-y divide-grey-100" aria-label="食物點">
       <li v-for="p in points" :key="p.id">
-        <ListItem :title="p.name" :subtitle="pointSubtitle(p)">
+        <ListItem :title="p.name" :subtitle="p.address ? `${p.address}・${pointSubtitle(p)}` : pointSubtitle(p)">
           <template #trailing>
             <BaseChip :active="p.id === selectedId" @click="emit('select', p.id)">
               {{ p.id === selectedId ? '已選' : '選這裡' }}
