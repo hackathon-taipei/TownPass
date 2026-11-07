@@ -90,7 +90,7 @@ export async function mealGet<T>(path: string, query?: Query): Promise<Cached<T>
 }
 
 /** 寫入（POST／PUT／PATCH）：不存在裝置上，斷網直接失敗。 */
-export async function mealSend<T>(method: 'POST' | 'PUT' | 'PATCH', path: string, body?: unknown): Promise<T> {
+export async function mealSend<T>(method: 'POST' | 'PUT' | 'PATCH' | 'DELETE', path: string, body?: unknown): Promise<T> {
   const accountId = await currentAccountId()
   try {
     return await api<T>(`/meal-relay${path}`, {

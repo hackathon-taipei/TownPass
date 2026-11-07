@@ -526,14 +526,15 @@ describe('設計 v2：分頁、統計卡、名冊狀態、圖例（T-138）', ()
       ['review', '待審核'],
       ['board', '服務看板'],
       ['elders', '長者名冊'],
+      ['stations', '據點管理'],
     ])
     expect(ADMIN_TAB_VALUES[0]).toBe('board')
-    expect([...ADMIN_TAB_VALUES].sort()).toEqual(['board', 'elders', 'review'])
+    expect([...ADMIN_TAB_VALUES].sort()).toEqual(['board', 'elders', 'review', 'stations'])
     expect(useAdmin().tab.value).toBe('board')
   })
 
   it('adminTabs：只有「待審核」帶徽章，數字 = pending 申請數', () => {
-    expect(adminTabs(2).map((t) => t.badge)).toEqual([2, undefined, undefined])
+    expect(adminTabs(2).map((t) => t.badge)).toEqual([2, undefined, undefined, undefined])
     expect(adminTabs(0)[0].badge).toBe(0) // 0 時 SegmentedTabs 不顯示徽章
   })
 

@@ -12,6 +12,7 @@ import { ShieldX, User, WifiOff } from 'lucide-vue-next'
 import { BaseButton, BaseCard, EmptyState, SourceNote } from '@/ui'
 import { DENIED_TEXT, SIMULATED_ONLY_TEXT, adminTabs, useAdmin, useAdminTab, useWideLayout } from '../logic/admin'
 import AdminShell from './AdminShell.vue'
+import StationManager from './StationManager.vue'
 import BoardPanel from './BoardPanel.vue'
 import BottomSheet from './BottomSheet.vue'
 import ConfirmDialog from './ConfirmDialog.vue'
@@ -71,7 +72,7 @@ onBeforeUnmount(() => admin.stop())
       <div v-else class="flex flex-col gap-4">
         <StaleBanner :stale-at="staleAt" :now="now" />
         <div class="border-b border-grey-400">
-          <SegmentedTabs v-model="tab" :tabs="tabs" label="管理系統分頁" class="admin-tabs lg:ml-9 lg:max-w-2xl" />
+          <SegmentedTabs v-model="tab" :tabs="tabs" label="管理系統分頁" class="admin-tabs lg:ml-9 lg:max-w-4xl" />
         </div>
 
         <PageTransition variant="refresh" :page-key="version">
@@ -94,6 +95,8 @@ onBeforeUnmount(() => admin.stop())
               :source-text="sourceText"
               :error="errors.board"
             />
+
+            <StationManager v-else-if="tab === 'stations'" :stations="stations" :elders="roster" :offline="offline" :load-error="errors.elders || errors.stations" :on-refresh="admin.loadAll" />
 
             <section v-else class="flex flex-col gap-3 rounded-xl border border-grey-300 p-3 lg:p-4" aria-labelledby="admin-elders-title">
               <div class="flex flex-wrap items-center justify-between gap-2">
@@ -166,6 +169,9 @@ onBeforeUnmount(() => admin.stop())
   gap: 0.25rem;
   border-radius: 0;
   box-shadow: none;
+}
+@media (max-width: 639px) {
+  .admin-tabs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 .admin-tabs :deep(button) {
   border-radius: 0.75rem 0.75rem 0 0;

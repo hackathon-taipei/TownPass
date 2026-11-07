@@ -38,6 +38,7 @@ const props = defineProps<{
   markers: Marker[]
   center?: Location
   onPick?: (location: Location) => void
+  onMarkerSelect?: (marker: Marker) => void
   picked?: Location | null
   zoomPosition?: 'bottomright' | 'bottomleft'
 }>()
@@ -139,10 +140,12 @@ function __add(m: Marker, animate: boolean) {
     icon: __iconOf(m, animate),
     title: __aria(m),
     riseOnHover: true,
+    bubblingMouseEvents: false,
     zIndexOffset: m.kind === 'me' ? 1000 : 0,
   })
     .bindPopup(__popupOf(m), { className: 'tp-map__popup', maxWidth: 240 })
     .addTo(map!)
+  marker.on('click', () => props.onMarkerSelect?.(entries.get(m.id)?.data ?? m))
   marker.getElement()?.setAttribute('aria-label', __aria(m))
   entries.set(m.id, { marker, data: m })
 }
