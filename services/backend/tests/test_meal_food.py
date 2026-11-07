@@ -310,3 +310,58 @@ def test_image_invalid_mime(client: TestClient, session: Session) -> None:
     )
     assert r.status_code == 422
     assert r.json()["detail"]["code"] == "VALIDATION_ERROR"
+
+
+# ---------------------------------------------------------------- 食物點地址（T-133、ADR-030）
+
+
+def test_create_point_with_address_then_food_point_address(client: TestClient, session: Session) -> None:
+    payload = {
+        "name": "地址測試食物點",
+        "kind": "custom",
+        "location": {"lat": 25.04, "lng": 121.55},
+        "address": "  臺北市萬華區測試街1號  ",
+    }
+    r = client.post("/meal-relay/points", json=payload, headers={"X-Demo-User": "u-sup-1"})
+    assert r.status_code == 200, r.text
+    point = r.json()
+    assert point["address"] == "臺北市萬華區測試街1號"  # 前後空白去掉
+
+    # Food.point_address 由 point_id 查出食物點的地址
+    body = {
+        "point_id": point["id"],
+        "name": "地址測試便當",
+        "category": "meal_box",
+        "qty": 2,
+        "expires_at": (T0 + timedelta(hours=3)).isoformat(),
+    }
+    r_food = client.post("/meal-relay/foods", json=body, headers={"X-Demo-User": "u-sup-1"})
+    assert r_food.status_code == 200, r_food.text
+    assert r_food.json()["point_address"] == "臺北市萬華區測試街1號"
+    listed = client.get(f"/meal-relay/foods/{r_food.json()['id']}", headers={"X-Demo-User": "u-sup-1"})
+    assert listed.json()["point_address"] == "臺北市萬華區測試街1號"
+
+
+def test_create_point_without_address_is_empty(client: TestClient, session: Session) -> None:
+    payload = {"name": "沒填地址", "kind": "custom", "location": {"lat": 25.04, "lng": 121.55}}
+    r = client.post("/meal-relay/points", json=payload, headers={"X-Demo-User": "u-sup-1"})
+    assert r.status_code == 200 and r.json()["address"] == ""
+    r_null = client.post(
+        "/meal-relay/points", json={**payload, "address": None}, headers={"X-Demo-User": "u-sup-1"}
+    )
+    assert r_null.status_code == 200 and r_null.json()["address"] == ""
+
+
+def test_point_address_over_120_chars_is_422(client: TestClient, session: Session) -> None:
+    payload = {"name": "地址太長", "location": {"lat": 25.04, "lng": 121.55}, "address": "址" * 121}
+    r = client.post("/meal-relay/points", json=payload, headers={"X-Demo-User": "u-sup-1"})
+    assert r.status_code == 422
+    assert r.json()["detail"]["code"] == "VALIDATION_ERROR"
+
+
+def test_seed_food_point_address(client: TestClient, session: Session) -> None:
+    """種子食物的 point_address 是它所在食物點的地址：f-1 → p-1、f-3 → p-4。"""
+    f1 = client.get("/meal-relay/foods/f-1", headers={"X-Demo-User": "u-sup-1"}).json()
+    assert f1["point_address"] == "臺北市萬華區福音里康定路229號6樓"
+    f3 = client.get("/meal-relay/foods/f-3", headers={"X-Demo-User": "u-sup-2"}).json()
+    assert f3["point_address"] == "臺北市萬華區福音里桂林路64號"

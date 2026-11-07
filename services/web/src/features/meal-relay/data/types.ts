@@ -53,6 +53,8 @@ export interface Supplier {
   reviewed_at: IsoDateTime | null
   /** 店面照片（ADR-029），相對於後端網址；沒有或個人提供者（person）→ null */
   image_url: string | null
+  /** 單位地址（ADR-030）；沒填或個人提供者 → 空字串 */
+  address: string
 }
 
 export interface Station {
@@ -62,6 +64,8 @@ export interface Station {
   source: string
   /** 入口照片（ADR-028），相對於後端網址；沒有 → null。顯示用 imageSrc() 轉成完整網址 */
   image_url: string | null
+  /** 據點地址（ADR-030）；沒填 → 空字串 */
+  address: string
 }
 
 export interface Point {
@@ -75,6 +79,8 @@ export interface Point {
   open_food_count: number
   /** 入口照片（ADR-028），相對於後端網址；沒有 → null */
   image_url: string | null
+  /** 食物點地址（ADR-030）；沒填 → 空字串 */
+  address: string
 }
 
 export interface Food {
@@ -107,6 +113,8 @@ export interface Food {
   image_url: string | null
   /** 食物點（取餐地點）的入口照片（ADR-028）；沒有 → null */
   point_image_url: string | null
+  /** 食物點（取餐地點）的地址（ADR-030）；沒有 → 空字串 */
+  point_address: string
 }
 
 export interface Elder {
@@ -266,6 +274,8 @@ export interface SupplierApply {
   location: Location
   /** 店面照片（先 uploadImage）；個人提供者不送，後端也會忽略（ADR-029） */
   image_id?: string | null
+  /** 單位地址，選填，最長 120 字（ADR-030）；個人提供者不送，後端存空字串 */
+  address?: string | null
 }
 
 export interface PointCreate {
@@ -274,6 +284,8 @@ export interface PointCreate {
   location: Location
   /** 入口照片（先 uploadImage）；只拍入口或建築外觀，不能有人臉、車牌、門牌（ADR-028） */
   image_id?: string | null
+  /** 食物點地址，選填，最長 120 字（ADR-030）；取餐地點的公開地址，不填住家 */
+  address?: string | null
 }
 
 export interface FoodCreate {

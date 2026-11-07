@@ -1,6 +1,6 @@
 # 鄰食轉運站（meal-relay）系統規格與合約
 
-> 版本 v2.4｜2026-11-08｜v2.4：提供者店面照片：`meal_supplier.image_id`（選填），`applySupplier` 可帶 `image_id`，`Supplier` 回應多 `image_url`；個人提供者（`org_type = person`）不顯示照片欄位、後端忽略並存 `null`；一般市民可以 `uploadImage`（申請前上傳店面照片）；照片只拍招牌或店門口，不能有人臉、車牌、個人資料（ADR-029，T-129）。v2.3：食物點與據點的入口照片：`meal_point.image_id`、`meal_station.image_id`（選填），`PointCreate` 可帶 `image_id`，`Point`、`Station` 回應多 `image_url`，`Food` 多 `point_image_url`（取餐地點的入口照片）；照片只拍入口或建築外觀，不能有人臉、車牌、門牌號碼（ADR-028，T-128）。v2.2 之後的補充：長者地址 `meal_elder.address`（模擬資料，ADR-027，T-125）。v2.2：長者不使用 App、志工只看得到派給自己的長者、據點 QR 定時更新、提供者看得到庫存去向（ADR-026，T-123）。v2.1：長者不訂餐，餐點一律由系統在志工報到時派發（ADR-025）。整合者 `n753951f` 定案。取代隊長版 `GLOSSARY.md`／`ARCHITECTURE.md` v1.1 的認領模式，沿用其中的拜訪結果、`refresh`、相對時間種子、錯誤代碼與驗收清單。
+> 版本 v2.5｜2026-11-08｜v2.5：地址：`meal_station.address`、`meal_point.address`、`meal_supplier.address`（文字，空字串代表沒填）；`Food` 多計算欄位 `point_address`（取餐地點的地址）；`applySupplier`、`createPoint` 可帶選填的 `address`（最長 120 字）。據點與食物點用 T-115 的開放資料機構地址；提供者是模擬地址（標「（模擬）」）；個人提供者（`org_type = person`）後端存空字串，不存住家地址（ADR-030，T-133）。v2.4：提供者店面照片：`meal_supplier.image_id`（選填），`applySupplier` 可帶 `image_id`，`Supplier` 回應多 `image_url`；個人提供者（`org_type = person`）不顯示照片欄位、後端忽略並存 `null`；一般市民可以 `uploadImage`（申請前上傳店面照片）；照片只拍招牌或店門口，不能有人臉、車牌、個人資料（ADR-029，T-129）。v2.3：食物點與據點的入口照片：`meal_point.image_id`、`meal_station.image_id`（選填），`PointCreate` 可帶 `image_id`，`Point`、`Station` 回應多 `image_url`，`Food` 多 `point_image_url`（取餐地點的入口照片）；照片只拍入口或建築外觀，不能有人臉、車牌、門牌號碼（ADR-028，T-128）。v2.2 之後的補充：長者地址 `meal_elder.address`（模擬資料，ADR-027，T-125）。v2.2：長者不使用 App、志工只看得到派給自己的長者、據點 QR 定時更新、提供者看得到庫存去向（ADR-026，T-123）。v2.1：長者不訂餐，餐點一律由系統在志工報到時派發（ADR-025）。整合者 `n753951f` 定案。取代隊長版 `GLOSSARY.md`／`ARCHITECTURE.md` v1.1 的認領模式，沿用其中的拜訪結果、`refresh`、相對時間種子、錯誤代碼與驗收清單。
 > **這份是合約：** 欄位、列舉值、端點、錯誤代碼、規則編號（M1～M20）以本文件為準。要改合約先停下來在工單留言（`townpass-ticket` D 節）。實作規則時在程式註解標規則編號，例如 `# M7`。
 
 ## 1. 目標
@@ -36,9 +36,9 @@
 | 表 | 欄位 | 說明 |
 |---|---|---|
 | `meal_account` 帳號 | `id` PK（前綴 `u`；或台北通 id）、`role`（預設 `citizen`）、`name`、`station_id`?、`supplier_id`?、`elder_id`?、`created_at` | `station_id`：志工與據點帳號必填。`elder_id` 保留不用（ADR-026） |
-| `meal_station` 據點 | `id` PK（`st`）、`name`、`lat`、`lng`、`checkin_code`（QR 內容用，見 M15）、`source`（開放資料名稱或「模擬」）、`image_id`?（入口照片，v2.3） | 社區照顧關懷據點。入口照片由管理員或種子資料提供（目前種子沒有照片），規定見 M19 |
-| `meal_supplier` 提供者 | `id` PK（`s`）、`account_id`、`name`、`org_type`、`lat`、`lng`、`status`、`created_at`、`reviewed_at`?、`image_id`?（店面照片，v2.4） | 申請時填單位名稱、類型、位置，可附店面照片（M19）；個人提供者一律不存照片 |
-| `meal_point` 食物點 | `id` PK（`p`）、`name`、`kind`、`lat`、`lng`、`source`、`created_by`?、`image_id`?（入口照片，v2.3） | 多位提供者共用；開放資料預先載入。提供者新增食物點時可附入口照片（M19） |
+| `meal_station` 據點 | `id` PK（`st`）、`name`、`lat`、`lng`、`checkin_code`（QR 內容用，見 M15）、`source`（開放資料名稱或「模擬」）、`image_id`?（入口照片，v2.3）、`address`（據點地址，v2.5） | 社區照顧關懷據點。入口照片由管理員或種子資料提供（目前種子沒有照片），規定見 M19。`address` 是開放資料的機構地址，空字串代表沒填（ADR-030） |
+| `meal_supplier` 提供者 | `id` PK（`s`）、`account_id`、`name`、`org_type`、`lat`、`lng`、`status`、`created_at`、`reviewed_at`?、`image_id`?（店面照片，v2.4）、`address`（單位地址，v2.5） | 申請時填單位名稱、類型、位置，可附店面照片（M19）與單位地址（選填，最長 120 字）；個人提供者一律不存照片，也不存地址（ADR-029、ADR-030）。`address` 只存機構或店面地址，不存住家 |
+| `meal_point` 食物點 | `id` PK（`p`）、`name`、`kind`、`lat`、`lng`、`source`、`created_by`?、`image_id`?（入口照片，v2.3）、`address`（食物點地址，v2.5） | 多位提供者共用；開放資料預先載入。提供者新增食物點時可附入口照片（M19）與地址（選填）。`address` 是取餐地點的公開地址，空字串代表沒填（ADR-030） |
 | `meal_food` 食物 | `id` PK（`f`）、`point_id`、`supplier_id`、`name`、`category`、`allergens`（JSON）、`qty`、`expires_at`、`image_id`?、`source_note`、`closed`（下架，預設 false）、`created_at` | `remaining`、`dispatched_qty`、`delivered_qty`、`status`、`unclaimed` 不存，回應時計算（M1、M5） |
 | `meal_image` 圖片 | `id` PK（`img`）、`mime`、`data`（bytes）、`size`、`uploaded_by`、`created_at` | 食物圖片、放門口照片、食物點與據點的入口照片、提供者店面照片（M19） |
 | `meal_elder` 長者 | `id` PK（`e`）、`alias`、`account_id`?、`station_id`、`lat`、`lng`、`address`（文字，可空，ADR-027）、`allergens`（JSON）、`created_by`（管理員帳號 id）、`created_at`、`last_seen_at`?、`last_meal_at`?、`next_care_at`?、`next_meal_at`?、`primary_volunteer_id`?、`merged_into`? | 全部是模擬資料；不存姓名、身分證、電話。`address` 只能是模擬地址（門牌不存在、標「（模擬）」），只有管理員與被派到這位長者的志工看得到（M13、ADR-027）。`account_id`、`merged_into` 保留不用（ADR-026） |
@@ -65,6 +65,8 @@
 | `VisitKind` | `meal` 送餐、`care` 純關懷 |
 | `VisitResult` | `seen` 見到本人、`left_at_door` 放門口（附照片）、`returned` 未見到，帶回 |
 | `AssignmentStatus` | `assigned` 進行中、`done` 完成、`released` 釋出 |
+
+**v2.5 新增的欄位型別**（都是 `string`，沒填 → `""`，ADR-030）：`Station.address`、`Point.address`、`Supplier.address`、`Food.point_address`（計算欄位，由 `point_id` 查出食物點的地址）。請求 `SupplierApply.address`、`PointCreate.address` 是選填的 `string | null`，最長 120 字，前後空白由後端去掉；`extra="forbid"` 不變。
 
 ## 5. 設定值（`MEAL_RELAY_MODE=demo|prod`，預設 `demo`）
 
@@ -139,12 +141,12 @@
 |---|---|---|---|
 | `getMe` | `GET /me` | 全部 | `meal_account` |
 | `resetDemo` | `POST /demo/reset` | admin | `meal_account` |
-| `applySupplier` | `POST /suppliers`（可帶店面照片 `image_id`，先 `uploadImage`；個人提供者忽略） | citizen | `meal_account` |
+| `applySupplier` | `POST /suppliers`（可帶店面照片 `image_id`，先 `uploadImage`，個人提供者忽略；可帶單位地址 `address`，選填，v2.5，個人提供者存空字串） | citizen | `meal_account` |
 | `getMySupplier` | `GET /suppliers/mine` | citizen、supplier | `meal_account` |
 | `listSuppliers` | `GET /suppliers?status=` | admin | `meal_account` |
 | `reviewSupplier` | `POST /suppliers/{id}/approve`、`/reject` | admin | `meal_account` |
 | `listPoints` | `GET /points?category=&for_elder=` | supplier、admin | `meal_food` |
-| `createPoint` | `POST /points`（可帶入口照片 `image_id`，先 `uploadImage`） | supplier | `meal_food` |
+| `createPoint` | `POST /points`（可帶入口照片 `image_id`，先 `uploadImage`；可帶食物點地址 `address`，選填，v2.5） | supplier | `meal_food` |
 | `listFoods` | `GET /foods?point_id=&category=&for_elder=&mine=1` | supplier（`mine=1` 只看自己的）、admin | `meal_food` |
 | `getFood` | `GET /foods/{id}` | supplier、volunteer、admin | `meal_food` |
 | `createFood` | `POST /foods` | supplier | `meal_food` |
@@ -223,14 +225,14 @@
 | 檔案 | 內容 | 最少筆數 |
 |---|---|---|
 | `accounts.json` | 帳號與角色 | admin 1、volunteer 3（`u-vol-1`、`u-vol-2` 同據點）、supplier 2（已通過）、citizen 2（1 位已申請、審核中的提供者；1 位什麼都還沒做）、station 2 |
-| `stations.json` | 據點 | 2，同一行政區 |
-| `suppliers.json` | 提供者 | 3（2 通過、1 審核中） |
-| `points.json` | 食物點 | 6，含據點、里辦、學校、自訂 |
+| `stations.json` | 據點 | 2，同一行政區；`address` 用 T-115 的開放資料地址（v2.5） |
+| `suppliers.json` | 提供者 | 3（2 通過、1 審核中）；`address` 是模擬地址，標「（模擬）」、門牌用不存在的號碼（v2.5） |
+| `points.json` | 食物點 | 6，含據點、里辦、學校、自訂；`address` 同樣用 T-115 的地址（v2.5） |
 | `foods.json` | 食物 | 6，含便當、生鮮、有過敏原的、快過期的 |
 | `elders.json` | 長者（模擬，`created_by` 是管理員） | 12：從未見到 2、逾期 3、最近才見過 3、有下次時間 2、有過敏 2；`u-vol-1` 是其中 4 位的主要志工 |
 | `claims.json` | 申請 | 0（申請只由派送產生；檔案保留為空陣列） |
 
-時間可寫相對值：`"now"`、`"now+90m"`、`"now-2d"`，匯入時換算。種子不放照片（`image_id` 一律空，倉庫不提交圖片檔）；之後要放示範用的入口照片，只能用團隊自己拍的或開放授權的圖，並登記在 `data/SOURCES.md`（ADR-028）。座標用開放資料的真實位置；長者座標放在路上或公共空間，不對應任何住家。`POST /demo/reset` 清空 `meal_` 開頭的表並重新匯入。已經有資料的資料庫（例如已部署的 Render）啟動時不重新匯入，只把 v2.1 以前的 `elder` 帳號改成 `citizen`（ADR-026）；要換成 v2.2 的種子，請管理員執行一次重置。
+時間可寫相對值：`"now"`、`"now+90m"`、`"now-2d"`，匯入時換算。種子不放照片（`image_id` 一律空，倉庫不提交圖片檔）；之後要放示範用的入口照片，只能用團隊自己拍的或開放授權的圖，並登記在 `data/SOURCES.md`（ADR-028）。座標用開放資料的真實位置；長者座標放在路上或公共空間，不對應任何住家。`POST /demo/reset` 清空 `meal_` 開頭的表並重新匯入。已經有資料的資料庫（例如已部署的 Render）啟動時不重新匯入，只把 v2.1 以前的 `elder` 帳號改成 `citizen`（ADR-026）；要換成 v2.2 的種子，請管理員執行一次重置。v2.5 的地址（據點、食物點、提供者的 `address`）也一樣：已部署的資料庫啟動時只補欄位（值是空字串），種子地址要管理員執行「重置示範資料」後才會出現（ADR-030）。
 
 ## 11. 驗收清單（各工單挑自己相關的寫成測試）
 

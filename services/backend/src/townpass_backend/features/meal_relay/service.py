@@ -533,6 +533,7 @@ def to_supplier(row: MealSupplier) -> Supplier:
         created_at=__local(row.created_at),
         reviewed_at=to_local(row.reviewed_at),
         image_url=image_url(supplier_image_id(row.org_type, row.image_id)),  # ADR-029：個人提供者一律 null
+        address=row.address or "",  # ADR-030
     )
 
 
@@ -543,6 +544,7 @@ def to_station(row: MealStation) -> Station:
         location=to_location(row),
         source=row.source,
         image_url=image_url(row.image_id),  # ADR-028 入口照片
+        address=row.address or "",  # ADR-030
     )
 
 
@@ -556,6 +558,7 @@ def to_point(row: MealPoint, open_food_count: int = 0) -> Point:
         created_by=row.created_by,
         open_food_count=open_food_count,
         image_url=image_url(row.image_id),  # ADR-028 入口照片
+        address=row.address or "",  # ADR-030
     )
 
 
@@ -589,6 +592,7 @@ def to_food(session: Session, row: MealFood, at: datetime | None = None) -> Food
         unclaimed=food_unclaimed(row, status, t),
         image_url=image_url(row.image_id),
         point_image_url=image_url(point.image_id) if point else None,  # ADR-028 取餐地點入口照片
+        point_address=(point.address or "") if point else "",  # ADR-030 取餐地點地址（計算欄位）
     )
 
 
