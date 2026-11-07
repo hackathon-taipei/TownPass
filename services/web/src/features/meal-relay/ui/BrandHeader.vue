@@ -20,14 +20,14 @@ const mascot = computed(() => brandSrc('mascot', import.meta.env.BASE_URL))
 </script>
 
 <template>
-  <header v-if="variant === 'wordmark'" class="flex items-center gap-3 bg-primary-50 px-4 py-3">
-    <MascotBadge :size="44" />
+  <header v-if="variant === 'wordmark'" class="flex min-h-18 items-center gap-2 bg-primary-100 px-4 py-2.5">
+    <MascotBadge :size="48" />
     <div class="flex shrink-0 flex-col items-start leading-none">
       <img class="h-6 w-auto" :src="wordmark" :alt="BRAND_NAME" draggable="false" />
       <span class="mt-1 text-[10px] font-semibold text-primary-800">{{ BRAND_SUBTITLE }}</span>
     </div>
-    <span class="h-8 w-px shrink-0 bg-grey-200" aria-hidden="true" />
-    <h1 class="min-w-0 flex-1 truncate text-xl font-extrabold text-primary-800">{{ title }}</h1>
+    <span class="mx-1 h-8 w-px shrink-0 bg-primary-700" aria-hidden="true" />
+    <h1 class="mr-display min-w-0 flex-1 text-2xl leading-tight font-extrabold text-primary-800">{{ title }}</h1>
     <slot name="actions" />
   </header>
 

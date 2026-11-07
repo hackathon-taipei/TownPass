@@ -9,10 +9,11 @@
  * 店面照片（ADR-029）：選了類型、而且不是「個人」才顯示；只拍招牌或店門口，不能有人臉、車牌、個資。
  */
 import { computed } from 'vue'
-import { ChevronRight } from 'lucide-vue-next'
+import { Camera, ChevronRight } from 'lucide-vue-next'
 import { BaseInput } from '@/ui'
 import { STOREFRONT_PHOTO_RULE, showsStorefrontPhoto } from '../logic/placePhoto'
 import { buildSupplierApply, setFormImage, type ApplyForm } from '../logic/supplier'
+import Accordion from './Accordion.vue'
 import ApplyLocationField from './ApplyLocationField.vue'
 import ImageInput from './ImageInput.vue'
 import InfoNote from './InfoNote.vue'
@@ -28,13 +29,16 @@ const addressError = computed(() => (built.value.ok ? '' : (built.value.errors.a
 </script>
 
 <template>
-  <form class="flex flex-col gap-4" aria-label="申請成為提供者" @submit.prevent="emit('submit')">
-    <div class="flex items-center gap-3">
-      <h2 class="min-w-0 flex-1 text-2xl leading-snug font-extrabold text-primary-800">讓多出來的一份，<br />成為一份照顧</h2>
-      <MascotBadge :size="88" glow />
+  <form class="flex flex-col gap-3.5" aria-label="申請成為提供者" @submit.prevent="emit('submit')">
+    <div class="flex items-center justify-between gap-2">
+      <h2 class="mr-display min-w-0 text-2xl leading-tight font-extrabold text-primary-800">
+        讓多出來的一份，<br />成為一份照顧
+        <span class="mx-auto mt-2 block h-2 w-20 rotate-[-4deg] rounded-[100%] border-t-[3px] border-secondary-500" aria-hidden="true"></span>
+      </h2>
+      <MascotBadge class="shrink-0" :size="104" glow />
     </div>
 
-    <BaseInput v-model="form.name" label="單位名稱" placeholder="例：萬華好味便當" />
+    <BaseInput v-model="form.name" class="[&_label]:font-bold [&_label]:text-grey-900 [&_input]:border-grey-300" label="單位名稱" placeholder="例：萬華好味便當" />
     <OrgTypePicker v-model="form.org_type" />
     <ApplyLocationField
       v-model="form.location"
@@ -43,8 +47,7 @@ const addressError = computed(() => (built.value.ok ? '' : (built.value.errors.a
       :address-error="addressError"
     />
 
-    <div v-if="showsStorefrontPhoto(form.org_type)">
-      <p class="mb-1.5 text-sm font-medium text-grey-700">店面照片（選填）</p>
+    <Accordion v-if="showsStorefrontPhoto(form.org_type)" title="店面照片（選填）" :icon="Camera">
       <p class="mb-2 text-sm text-grey-500">管理員審核時看得到，志工也比較放心。{{ STOREFRONT_PHOTO_RULE }}。</p>
       <ImageInput
         label="拍招牌或店門口"
@@ -53,14 +56,14 @@ const addressError = computed(() => (built.value.ok ? '' : (built.value.errors.a
         @change="setFormImage(form, $event)"
         @clear="setFormImage(form, null)"
       />
-    </div>
+    </Accordion>
 
     <InfoNote text="審核通過後，就能上架食物" />
     <p v-if="error" class="text-sm text-warn-200" role="alert">{{ error }}</p>
-    <SubmitButton class="min-h-12 text-lg" :loading="saving" :disabled="!built.ok || offline">送出申請</SubmitButton>
+    <SubmitButton class="min-h-12 text-xl font-bold enabled:bg-primary-600 enabled:hover:bg-primary-700" :loading="saving" :disabled="!built.ok || offline">送出申請</SubmitButton>
     <button
       type="button"
-      class="press mx-auto flex min-h-11 items-center gap-0.5 px-2 text-base font-semibold text-primary-700 disabled:text-grey-400"
+      class="press mx-auto -mt-2 flex min-h-11 items-center gap-0.5 px-2 text-sm font-semibold text-primary-700 disabled:text-grey-400"
       :disabled="checking"
       @click="emit('recheck')"
     >

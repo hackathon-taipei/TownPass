@@ -2,22 +2,21 @@
 /** @component MR-P06 SupplierPage — 提供者頁（設計 v2）：申請 → 審核中／未通過 → 我的庫存｜上架食物（分頁與網址 ?tab= 同步） */
 /**
  * MR-P06 = T01 PageContainer {
- *   MR-C60 BrandHeader（「提供食物」；上架分頁是「上架食物」）, MR-C05 StaleBanner,
+ *   MR-C60 BrandHeader（「提供食物」；上架分頁是「上架食物」＋返回庫存）, MR-C05 StaleBanner,
  *   MR-C21 PageTransition {
  *     讀取失敗：M05 EmptyState＋A01「再試一次」；志工、據點、管理員：M05 EmptyState
- *     沒有申請：MR-C35 SupplierApplyForm { MR-C62, A04, MR-C92 OrgTypePicker, MR-C93 ApplyLocationField { MR-C07, MR-C09＋MR-C02 }, MR-C06, MR-C64, MR-C10 }
+ *     沒有申請：MR-C35 SupplierApplyForm { MR-C62, A04, MR-C92 OrgTypePicker, MR-C93 ApplyLocationField { MR-C07, MR-C09＋MR-C02 }, MR-C65 { MR-C06 }, MR-C64, MR-C10 }
  *     審核中／未通過：MR-C86 SupplierReviewStatus { MR-C62, MR-C64（V4）, A01「重新整理」 }
- *     通過：MR-C57 PlacePhoto（店面照片，有才顯示，ADR-029）＋單位名稱・「已通過」, MR-C66 SegmentedTabs {
- *       我的庫存：MR-C87 InventoryPanel { MR-C88 InventoryTotals, MR-C85 InventoryRow×N, MR-C64, MR-C65 Accordion（已結束）, A01「＋ 上架新食物」 }
+ *     通過：
+ *       我的庫存：MR-C57 PlacePhoto（有店面照片才顯示）＋單位名稱・「已通過」, MR-C66 SegmentedTabs, MR-C87 InventoryPanel { MR-C88 InventoryTotals, MR-C85 InventoryRow×N, MR-C64, MR-C65 Accordion（已結束）, A01「＋ 上架新食物」 }
  *       上架食物：MR-C38 FoodPublishForm { MR-C63, MR-C06, A04, MR-C89, MR-C68, MR-C90, #point: MR-C91 PointField { MR-C09＋MR-C36 PointPicker（MR-C37） }, MR-C64, MR-C10 }
- *     }
  *   },
  *   MR-C39 FoodEditSheet（修改）, MR-C67 ConfirmDialog（下架，danger）, MR-C12 ToastHost
  * }
  * 狀態與 API 都在 logic/supplier.ts 的 useSupplierPage()；分頁用 useSupplierTab()（router push，App 返回鍵退回上一個分頁）。
  */
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
-import { CircleAlert, Store } from 'lucide-vue-next'
+import { ChevronLeft, CircleAlert, Store } from 'lucide-vue-next'
 import { BaseButton, EmptyState, PageContainer } from '@/ui'
 import { SUPPLIER_TABS, SUPPLIER_TAB_LABEL, useSupplierPage, useSupplierTab, type Food } from '../logic/supplier'
 import { mealHomeRoute } from '../logic/shared'
@@ -54,8 +53,21 @@ onBeforeUnmount(s.stop)
 
 <template>
   <PageContainer>
-    <div class="-mx-4"><BrandHeader :title="title" /></div>
-    <div class="flex flex-col gap-4 pt-3">
+    <div class="-mx-4">
+      <BrandHeader :title="title">
+        <template v-if="stage === 'approved' && tab === 'publish'" #actions>
+          <button
+            type="button"
+            class="press flex size-11 shrink-0 items-center justify-center rounded-lg text-primary-800"
+            aria-label="返回我的庫存"
+            @click="tab = 'inventory'"
+          >
+            <ChevronLeft class="size-6" aria-hidden="true" />
+          </button>
+        </template>
+      </BrandHeader>
+    </div>
+    <div class="relative -mt-2 flex flex-col gap-3 rounded-t-2xl bg-white pt-3">
       <StaleBanner :stale-at="s.staleAt.value" :now="now" />
 
       <PageTransition :loading="s.view.value === 'loading'" :page-key="s.me.value?.role ?? 'none'">
@@ -90,13 +102,13 @@ onBeforeUnmount(s.stop)
             :checking="s.checking.value"
             @refresh="s.recheck"
           />
-          <div v-else key="approved" class="flex flex-col gap-4">
-            <div class="flex items-center justify-center gap-2">
+          <div v-else key="approved" class="flex flex-col gap-3">
+            <div v-if="tab === 'inventory'" class="flex items-center justify-center gap-2">
               <PlacePhoto v-if="s.supplierPhoto.value" :photo="s.supplierPhoto.value" size="sm" />
-              <span class="min-w-0 truncate text-base font-bold text-grey-900">{{ s.supplier.value?.name }}</span>
-              <span class="shrink-0 rounded-full bg-primary-50 px-2.5 py-0.5 text-sm font-semibold text-primary-700">已通過</span>
+              <span class="min-w-0 truncate text-base font-semibold text-grey-900 after:ml-2 after:content-['·']">{{ s.supplier.value?.name }}</span>
+              <span class="shrink-0 rounded-full bg-success/20 px-2.5 py-0.5 text-sm font-semibold text-primary-900">已通過</span>
             </div>
-            <SegmentedTabs v-model="tab" :tabs="TABS" label="提供者分頁" />
+            <SegmentedTabs v-if="tab === 'inventory'" v-model="tab" :tabs="TABS" label="提供者分頁" />
             <Transition name="tab-fade" mode="out-in">
               <InventoryPanel
                 v-if="tab === 'inventory'"
