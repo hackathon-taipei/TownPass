@@ -24,9 +24,22 @@
 | MR-C21 | `PageTransition` | 載入骨架、換頁、重置後淡出淡入 | `loading`、`page-key`、`variant` | `getMe`、`resetDemo` |
 | MR-C22 | `ResetDemoButton` | 重置示範資料 | `on-reset`、`@done` | `resetDemo` |
 | MR-C55 | `FoodThumb` | 食物照片縮圖（T-127）：有照片才畫，替代文字用食物名稱；沒照片什麼都不畫 | `food`（`image_url`、`name`）、`size?`（`md` 48px，預設；`lg` 64px） | 照片網址來自 `listFoods`、`listMyAssignments` 的 `image_url`，用 `imageSrc()` 轉換 |
+| MR-C56 | `CategoryIcon` | 分類 icon＋中文（T-130）：食物類別、提供者類型、食物點種類；單色 `currentColor`、18px、線寬 2，icon `aria-hidden` | `kind`（`food`／`org`／`point`）、`value`、`label?`（預設 true，顯示中文） | 上架表單類別選擇（`createFood`）、提供者申請類型選擇（`applySupplier`） |
 | MR-C23 | `VolunteerAvatar` | 志工的企鵝頭像：依志工 id 固定分到 6 隻之一，可輕輕搖擺 | `id`、`name?`、`size?`（預設 40）、`idle?`（預設 true） | 據點頁今天報到（`getMyStation` 的 `checkins`）、志工頁 |
 
 邏輯層：`logic/motion.ts`（`MOTION`、`useMotionNumber`、`diffById`、`replayClass`、`reducedMotion`）、`logic/toast.ts`、`logic/mapMarker.ts`（定位針型別、顏色、中文）、`logic/foodQty.ts`（`qtyHint`、`qtyRangeText`、`FOOD_QTY_FIELDS`、`foodQtyCounts`）、`logic/volunteerAvatar.ts`（`penguinOf`、`idlePhaseOf`、`penguinSrc`）、`logic/mealLabels.ts`（合約 §4 的中文、`allergenConflicts`、`claimProgress`、`timeLeftText`）。動畫的 class 在 `ui/motion.css`，每個元件都已匯入。
+
+### 分類 icon（T-130）
+
+對照表在 `logic/mealLabels.ts`（`FOOD_CATEGORY_ICON`、`ORG_TYPE_ICON`、`POINT_KIND_ICON`，經 `logic/shared.ts` 轉出），元件只讀表、不寫死。icon 全部來自已安裝的 `lucide-vue-next`（MIT）。
+
+| 分類 | 值 → icon |
+|---|---|
+| 食物類別 `FoodCategory` | `meal_box` 熟食便當 → `Utensils`、`bakery` 麵包點心 → `Croissant`、`produce` 生鮮蔬果 → `Carrot`、`dry_goods` 乾貨罐頭 → `Package`、`drink` 飲品 → `Milk`、`other` 其他 → `Ellipsis` |
+| 提供者類型 `OrgType` | `person` 個人 → `User`、`school` 學校 → `School`、`agency` 機關 → `Landmark`、`shop` 店家 → `Store`、`other` 其他 → `Building2` |
+| 食物點種類 `PointKind` | `station` 關懷據點 → `HeartHandshake`、`village_office` 里辦公處 → `House`、`school` 學校 → `School`、`custom` 自訂 → `MapPin` |
+
+只用在**選擇分類的地方**：MR-C38 上架表單的類別選擇、MR-C35 提供者申請的類型選擇。清單與晶片（MR-C14 FoodRow、MR-C19 ReviewList、MR-C51 ReviewPanel）不加；`POINT_KIND_ICON` 給 #80 的地圖定位針共用。測試 `tests/meal-relay-shared.test.ts` 會抓合約 §4 的值有沒有遺漏。
 
 ## 2. 動畫對照字詞表
 
@@ -114,6 +127,8 @@
 | 17 | 照片仍是選填（T-127） | 合約 M19 沒有規定必填；略過時提示一次「有照片，志工比較好找」（同一個頁面只提示一次），不擋上架 |
 | 18 | 食物照片沒有就不顯示（T-127） | 志工任務卡（MR-C41）、食物列（MR-C14）都不放空框或佔位圖；有照片時任務卡的縮圖點了用 MR-C09 BottomSheet 放大 |
 | 19 | 拍照按鈕沿用 MR-C06 ImageInput，不加相機 icon | 工單允許拍照這一步的主要按鈕加 icon，但按鈕在 MR-C06 裡面，不在 T-127 範圍；之後要加再開工單 |
+| 20 | 分類 icon 統一用 `lucide-vue-next`，不自繪、不用 emoji 或圖片檔（T-130） | 專案已安裝、開源（MIT）、單色跟著文字顏色，不新增顏色；icon 一律搭配中文，不單獨出現 |
+| 21 | 分類 icon 只放在選擇分類的地方（T-130 範圍縮小） | 和 #80 的美術方向一致：清單、晶片不加 icon，避免畫面太花 |
 
 ## 5. 素材來源與授權
 
