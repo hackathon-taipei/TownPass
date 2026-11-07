@@ -25,7 +25,7 @@ App 端實作在 `lib/util/web_message_handler/tp_web_message_handler.dart`。
 | `1999agree` | 任意 | `bool` | 1999 語音通報 |
 | `open_link` | URL | — | 用外部瀏覽器開連結 |
 | `notify` | 通知內容 | — | 本機推播通知 |
-| `qr_code_scan` | — | 掃描結果 | 開相機掃 QR code |
+| `qr_code_scan` | — | 掃描到的文字；取消為 `null` | 開相機掃 QR code，也可選相簿圖片（模擬器測試用）。鄰食轉運站的志工報到用它掃據點 QR（`meal-relay:checkin:<code>`） |
 | `tts_speak` | `{text, lang}` | — | 用手機內建語音念出文字（WebView 沒有 `speechSynthesis`） |
 | `tts_stop` | — | — | 停止朗讀 |
 | `tts_status` | — | `{available, installed}` | `installed` 代表斷網也能朗讀 |

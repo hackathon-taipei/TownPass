@@ -81,13 +81,13 @@ TownPass/
    │     ├─ modules/         共用能力：assistant、search、tools、recent、env
    │     ├─ ui/              共用元件：atoms、molecules、organisms、templates（components.md）
    │     ├─ pages/           框架頁面：HomePage、SourcesPage、UiGalleryPage
-   │     ├─ features/        一個資料夾一個功能：example、_template、_ai（底線開頭的不會啟用）
+   │     ├─ features/        一個資料夾一個功能：meal-relay（本作品）、example、_template、_ai（底線開頭的不會啟用）
    │     └─ addons/          預設關閉：auth、model、rag、agent（各有 README）
    └─ backend/
       ├─ tests/              pytest
       └─ src/townpass_backend/
          ├─ main.py、db.py、config.py
-         ├─ features/        自動發現：examples、opendata、_template（api、service、repo、models、schemas）
+         ├─ features/        自動發現：meal_relay（共用資料與規則）＋meal_account／food／claim／elder／dispatch／board、examples、opendata、_template
          └─ addons/auth/     預設關閉
 ```
 
@@ -119,6 +119,7 @@ TownPass/
 | `townpass_backend.features.opendata` | `taipei_dataset()`、`UpstreamError` | 臺北資料大平台（有快取） |
 | `townpass_backend.addons.auth` | `CurrentUser`、`AppUser`、`router` | 登入（要先載入） |
 | `townpass_backend.db` | `SessionDep`、`sync_schema()` | 資料庫、動態欄位 |
+| `townpass_backend.features.meal_relay` | `meal_router(tag)`、`CurrentAccount`、`require_roles()`、`MealError`、`settings()`、`refresh()`、`food_remaining()`、`food_status()`、`allergen_conflict()`、`elder_flags()`、`distance_m()`、`is_auto_claim()`、`to_food()`／`to_elder()`／`to_claim()`…、`repo`、`models`、`schemas`、`reset_demo()` | 鄰食轉運站共用資料層與規則（[11-meal-relay.md](11-meal-relay.md) §9） |
 
 ### 端點
 `GET /health`、`GET /examples/places`、`GET /examples/places/{id}`、`GET /opendata/taipei/{resource_id}`；完整合約看後端 `/docs`。
