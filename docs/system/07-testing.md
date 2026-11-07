@@ -59,6 +59,12 @@ def test_my_endpoint_is_per_user(client, auth_headers):
 - 後端不可用時 `ensureSession()` 回傳 `null` 不丟例外；`requireUser()` 丟出「需要登入台北通」
 - 後端拒絕舊 token 時會清掉並重新登入
 
+### 鄰食轉運站
+- 端點用 `X-Demo-User: <帳號 id>` 表示身分，測試帳號見 `features/meal_relay/seed/accounts.json`（`u-admin-1`、`u-vol-1`、`u-sup-1`、`u-eld-1`、`u-st-1`…）；沒帶 header 必須 401
+- 驗收情境 V1–V17 見 [11-meal-relay.md](11-meal-relay.md) §11，各工單挑自己相關的寫成測試，名稱帶編號（`test_v13_checkin_prefers_primary_volunteer`）
+- 時間相關的規則（過期、逾時、警示）用固定的 `at` 呼叫 `refresh(session, at)` 或改資料的時間，不要 sleep
+- 畫面上要看完整流程：網址加 `?as=<帳號 id>` 切換帳號（存在裝置上，`?as=` 換別的 id 就換人）
+
 ## 4. 手動驗證後端（Swagger）
 1. 啟動後端，打開 `http://localhost:8000/docs`
 2. `POST /auth/login`，body `{"townpass_id": "test-user-a", "name": "測試甲"}` → 複製 `token`
