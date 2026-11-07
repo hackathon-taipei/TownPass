@@ -3,7 +3,7 @@
 /**
  * stations：undefined = 讀取中，null = 讀不到（顯示 error），陣列 = 據點清單。
  * 據點來自開放資料（T-115），一律附 SourceNote。
- * 據點有入口照片（Station.image_url，ADR-028）才在右側放縮圖（MR-C55，點一下放大）；沒有就維持原本的列。
+ * 據點有入口照片（Station.image_url，ADR-028）才在右側放縮圖（MR-C57，點一下放大）；沒有就維持原本的列。
  */
 import { computed } from 'vue'
 import { MapPin } from 'lucide-vue-next'

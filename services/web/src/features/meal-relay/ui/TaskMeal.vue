@@ -4,7 +4,7 @@
  * 合約 M8：claimed →（取餐）delivering；claimed、delivering 都可以取消，份數退回，任務保留只做關懷（V7）。
  * M4：食物與長者的過敏原有交集時停用取餐（MR-C16，長者之後改過敏原時的保險）。
  * 斷網或處理中（disabled）時按鈕停用（ADR-024）。
- * 取餐地點有入口照片（Food.point_image_url，ADR-028）才顯示縮圖（MR-C55，點一下放大）；沒有就不顯示這一行。
+ * 取餐地點有入口照片（Food.point_image_url，ADR-028）才顯示縮圖（MR-C57，點一下放大）；沒有就不顯示這一行。
  *
  *   <TaskMeal :claim="task.claim" :elder="task.assignment.elder" :disabled="busy || offline" @pickup="…" @cancel="…" />
  */

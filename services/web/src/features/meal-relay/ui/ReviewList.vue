@@ -7,7 +7,7 @@
  *
  *   <ReviewList :items="pending.map((s) => ({ id: s.id, name: s.name, detail: ORG_TYPE[s.org_type], photo: supplierPhotoOf(s) }))"
  *               :on-decide="(id, result) => reviewSupplier(id, result)" />
- * photo 有值才在左側放縮圖（MR-C55，點一下放大，ADR-029）；沒有就維持原本的版面。
+ * photo 有值才在左側放縮圖（MR-C57，點一下放大，ADR-029）；沒有就維持原本的版面。
  */
 import './motion.css'
 import { computed, reactive } from 'vue'

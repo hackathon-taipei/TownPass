@@ -7,7 +7,7 @@
  *     MR-C18 SupplierGate {
  *       #apply: MR-C35 SupplierApplyForm（一般市民）
  *       審核中／未通過：Gate 的狀態卡＋V4 提示（不能上架）
- *       通過：MR-C55 PlacePhoto（店面照片，有才顯示，ADR-029）、MR-C08 TabBar {
+ *       通過：MR-C57 PlacePhoto（店面照片，有才顯示，ADR-029）、MR-C08 TabBar {
  *         我的庫存：MR-C13 StatCard×4、MR-C03 FoodCard×N（修改、下架）、A07 SourceNote
  *         上架食物：MR-C36 PointPicker（MR-C07 地圖、M02 清單、MR-C37 新增食物點）、MR-C38 FoodPublishForm
  *       }
