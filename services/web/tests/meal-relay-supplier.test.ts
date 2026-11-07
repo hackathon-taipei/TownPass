@@ -334,6 +334,25 @@ describe('斷網（ADR-024）', () => {
     expect(m.updateFood).not.toHaveBeenCalled()
   })
 
+  it('帳號是舊資料時，連線恢復後輪詢整個重讀、解除離線', async () => {
+    const stale = '2026-11-07T09:55:00+08:00'
+    const me = meOf('supplier', supplierOf('approved'))
+    m.getMe.mockResolvedValue({ ...me, stale_at: stale })
+    m.getMySupplier.mockResolvedValue({ ...supplierOf('approved'), stale_at: stale })
+    m.listPoints.mockResolvedValue([point])
+    m.listFoods.mockResolvedValue([foodOf()])
+    const page = useSupplierPage()
+    await page.load()
+    expect(page.offline.value).toBe(true)
+
+    m.getMe.mockResolvedValue(me)
+    m.getMySupplier.mockResolvedValue(supplierOf('approved'))
+    await page.refresh()
+    expect(m.getMe).toHaveBeenCalledTimes(2)
+    expect(page.staleAt.value).toBeNull()
+    expect(page.offline.value).toBe(false)
+  })
+
   it('連不上又沒有舊資料：顯示讀取失敗', async () => {
     m.getMe.mockRejectedValue(new data.MealApiError('OFFLINE', '目前連不上伺服器，請稍後再試', 0))
     const page = useSupplierPage()

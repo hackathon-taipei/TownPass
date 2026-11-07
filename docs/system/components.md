@@ -49,10 +49,15 @@
 | MR-C21 | PageTransition | 頁面切換：載入骨架 → 內容淡入上移；身分或資料重置時舊畫面淡出再換新（E1、E2、E3） | `features/meal-relay/ui/PageTransition.vue` |
 | MR-C22 | ResetDemoButton | 重置示範資料：送出中轉圈，成功後提示並通知頁面淡出淡入（E3） | `features/meal-relay/ui/ResetDemoButton.vue` |
 | MR-C23 | VolunteerAvatar | 志工的企鵝頭像：依志工 id 固定分到 6 隻之一，可輕輕搖擺 | `features/meal-relay/ui/VolunteerAvatar.vue` |
+| MR-C35 | SupplierApplyForm | 申請成為提供者：單位名稱、類型、位置（MR-C02）→ applySupplier | `features/meal-relay/ui/SupplierApplyForm.vue` |
+| MR-C36 | PointPicker | 食物點地圖（MR-C07）與清單：選一個食物點上架，或新增食物點（MR-C37） | `features/meal-relay/ui/PointPicker.vue` |
+| MR-C37 | PointCreateForm | 新增食物點：名稱、位置（MR-C02）→ createPoint（kind = custom） | `features/meal-relay/ui/PointCreateForm.vue` |
+| MR-C38 | FoodPublishForm | 上架食物：名稱、類別、過敏原（MR-C01）、份數（MR-C11）、最晚食用時間、圖片（MR-C06） | `features/meal-relay/ui/FoodPublishForm.vue` |
+| MR-C39 | FoodEditSheet | 修改一批食物（份數、最晚食用時間，M14、V21）或確認下架，用 MR-C09 BottomSheet | `features/meal-relay/ui/FoodEditSheet.vue` |
 | MR-P01 | HomePage | 鄰食轉運站首頁（佔位） | `features/meal-relay/ui/HomePage.vue` |
 | MR-P04 | VolunteerPage | 志工頁（佔位） | `features/meal-relay/ui/VolunteerPage.vue` |
 | MR-P05 | TaskPage | 我的任務與拜訪回報（佔位） | `features/meal-relay/ui/TaskPage.vue` |
-| MR-P06 | SupplierPage | 提供者頁（佔位） | `features/meal-relay/ui/SupplierPage.vue` |
+| MR-P06 | SupplierPage | 提供者頁：申請與審核狀態、食物點地圖、上架、我的庫存（剩餘／派出中／已送達）、修改、下架 | `features/meal-relay/ui/SupplierPage.vue` |
 | MR-P07 | StationPage | 據點頁（佔位） | `features/meal-relay/ui/StationPage.vue` |
 | MR-P08 | AdminPage | 管理系統（佔位） | `features/meal-relay/ui/AdminPage.vue` |
 | O01 | BaseSheet | 底部面板 | `ui/organisms/BaseSheet.vue` |

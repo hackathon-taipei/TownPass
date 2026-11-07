@@ -400,9 +400,13 @@ export function useSupplierPage() {
     }
   }
 
-  /** 輪詢：審核中時看是否已通過（D2）；提供者更新庫存（派出中、已送達會變） */
+  /**
+   * 輪詢：審核中時看是否已通過（D2）；提供者更新庫存（派出中、已送達會變）。
+   * 畫面用的是裝置上的舊資料時整個重讀，連線恢復後帳號與申請狀態也會更新、送出鍵恢復（ADR-024）。
+   */
   async function refresh(): Promise<void> {
     if (!me.value || loading.value || saving.value) return
+    if (offline.value) return load()
     try {
       if (supplier.value?.status === 'pending') {
         const s = await getMySupplier()
