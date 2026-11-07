@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-// 鄰食轉運站資料層（T-107）：X-Demo-User、?as=、錯誤格式、斷網快取。全部用假的 fetch，不連網路。
+// 鄰食轉運站資料層（T-107、T-123）：X-Demo-User、?as=、錯誤格式、斷網快取。全部用假的 fetch，不連網路。
 
 async function freshData() {
   vi.resetModules()
@@ -20,11 +20,12 @@ describe('meal-relay data layer', () => {
   afterEach(() => vi.unstubAllGlobals())
 
   it('sends X-Demo-User from the TownPass userinfo id (browser mock)', async () => {
-    const fetchMock = vi.fn().mockResolvedValue(json({ id: 'mock-user', role: 'elder', name: '', station_id: null, supplier: null, elder: null }))
+    const fetchMock = vi.fn().mockResolvedValue(json({ id: 'mock-user', role: 'citizen', name: '', station_id: null, supplier: null }))
     vi.stubGlobal('fetch', fetchMock)
     const d = await freshData()
     const me = await d.getMe()
-    expect(me.role).toBe('elder')
+    expect(me.role).toBe('citizen') // ADR-026：沒匯入的帳號是一般市民
+    expect(me).not.toHaveProperty('elder')
     const [url, init] = fetchMock.mock.calls[0]!
     expect(String(url)).toMatch(/\/meal-relay\/me$/)
     expect(headerOf(init, 'X-Demo-User')).toBe('mock-user')
@@ -54,16 +55,23 @@ describe('meal-relay data layer', () => {
     expect(err).toMatchObject({ code: 'INVALID_STATE', message: '這筆申請已經取消', status: 409 })
   })
 
-  it('exposes only the dispatch-era claim functions and the elder visit list (ADR-025)', async () => {
-    const fetchMock = vi.fn().mockImplementation(() => Promise.resolve(json([])))
+  it('exposes no elder-account or manual-claim functions; createElder returns the Elder (ADR-025, ADR-026)', async () => {
+    const elder = { id: 'e-99', alias: '測試阿嬤', station_id: 'st-1' }
+    const fetchMock = vi.fn().mockImplementation(() => Promise.resolve(json(elder)))
     vi.stubGlobal('fetch', fetchMock)
     const d = (await freshData()) as Record<string, unknown>
-    for (const removed of ['createClaim', 'listStationClaims', 'listPickupClaims', 'acceptClaim', 'confirmPickup']) {
-      expect(d[removed]).toBeUndefined()
-    }
-    const visits = await (d.listMyElderVisits as () => Promise<unknown[]>)()
-    expect(visits).toEqual([])
-    expect(String(fetchMock.mock.calls[0]![0])).toMatch(/\/meal-relay\/elders\/me\/visits$/)
+    const removed = [
+      'createClaim', 'listStationClaims', 'listPickupClaims', 'acceptClaim', 'confirmPickup',
+      'getMyElder', 'listMyElderVisits', 'upsertMyElder', 'findNearbyElders', 'mergeElder',
+    ]
+    for (const name of removed) expect(d[name]).toBeUndefined()
+    const create = d.createElder as (body: unknown) => Promise<unknown>
+    const body = { alias: '測試阿嬤', location: { lat: 25.03, lng: 121.5 }, station_id: 'st-1' }
+    expect(await create(body)).toEqual(elder)
+    const [url, init] = fetchMock.mock.calls[0]!
+    expect(String(url)).toMatch(/\/meal-relay\/elders$/)
+    expect(init.method).toBe('POST')
+    expect(JSON.parse(init.body)).toEqual(body)
   })
 
   it('HttpError carries the JSON detail (platform/http)', async () => {
@@ -96,10 +104,10 @@ describe('meal-relay data layer', () => {
     const fetchMock = vi.fn().mockRejectedValue(new TypeError('Failed to fetch'))
     vi.stubGlobal('fetch', fetchMock)
     const d = await freshData()
-    await expect(d.checkIn('meal-relay:checkin:ABC')).rejects.toMatchObject({ code: 'OFFLINE' })
+    await expect(d.checkIn('meal-relay:checkin:ABC:0123456789')).rejects.toMatchObject({ code: 'OFFLINE' })
     const [, init] = fetchMock.mock.calls[0]!
     expect(init.method).toBe('POST')
-    expect(JSON.parse(init.body)).toEqual({ qr_text: 'meal-relay:checkin:ABC' })
+    expect(JSON.parse(init.body)).toEqual({ qr_text: 'meal-relay:checkin:ABC:0123456789' })
     const cacheKeys = Object.keys(localStorage).filter((k) => k.includes('meal-relay.cache.'))
     expect(cacheKeys).toEqual([])
   })

@@ -7,7 +7,7 @@ import type { Cached, Claim } from './types'
 
 const __path = (id: string, action: string) => `/claims/${encodeURIComponent(id)}/${action}`
 
-/** GET /claims/mine（volunteer：派給自己的申請） */
+/** GET /claims/mine（volunteer：派給自己的申請，只回傳 claimed、delivering，M13） */
 export function listMyClaims(): Promise<Cached<Claim[]>> {
   return mealGet<Claim[]>('/claims/mine')
 }

@@ -1,5 +1,6 @@
-"""鄰食轉運站共用資料層與規則（T-107）：資料表、種子、refresh、M1／M4／M5／M6／M10／M18、身分。"""
+"""鄰食轉運站共用資料層與規則（T-107、T-123）：資料表、種子、refresh、M1／M4／M5／M6／M10／M13／M14／M15／M18、身分。"""
 
+from collections import Counter
 from collections.abc import Iterator
 from datetime import timedelta
 from typing import Annotated, get_args
@@ -40,11 +41,18 @@ def test_all_meal_tables_exist(client: TestClient) -> None:
 
 def test_seed_meets_contract_minimums(session: Session) -> None:
     accounts = repo.list_accounts(session)
-    roles = [a.role for a in accounts]
-    assert roles.count("admin") >= 1 and roles.count("volunteer") >= 3
-    assert roles.count("supplier") >= 2 and roles.count("station") >= 2
+    roles = Counter(a.role for a in accounts)
+    assert roles["admin"] >= 1 and roles["volunteer"] >= 3 and roles["supplier"] >= 2
+    assert roles["citizen"] >= 2 and roles["station"] >= 2
+    assert "elder" not in roles and set(roles) <= set(schemas.ROLES)  # ADR-026：長者不是帳號
+    assert not any(a.elder_id for a in accounts)
     vol1, vol2 = repo.get_account(session, "u-vol-1"), repo.get_account(session, "u-vol-2")
     assert vol1 and vol2 and vol1.station_id == vol2.station_id == "st-1"
+    # 一般市民：u-sup-3 已申請、審核中的提供者；u-cit-1 什麼都還沒做
+    applicant, citizen = repo.get_account(session, "u-sup-3"), repo.get_account(session, "u-cit-1")
+    assert applicant and applicant.role == "citizen" and applicant.supplier_id == "s-3"
+    assert citizen and citizen.role == "citizen" and citizen.supplier_id is None
+    assert repo.get_supplier_by_account(session, "u-cit-1") is None
     assert len(repo.list_stations(session)) >= 2
     sups = repo.list_suppliers(session)
     assert len([s for s in sups if s.status == "approved"]) >= 2 and repo.list_suppliers(session, "pending")
@@ -56,6 +64,10 @@ def test_seed_meets_contract_minimums(session: Session) -> None:
     assert len(repo.list_elders(session, primary_volunteer_id="u-vol-1")) == 4
     assert sum(e.last_seen_at is None for e in elders) >= 2
     assert sum(bool(e.allergens) for e in elders) >= 2
+    # 長者名冊只由管理員登記（ADR-026）
+    assert all(e.created_by == "u-admin-1" and e.account_id is None for e in elders)
+    admin = repo.get_account(session, "u-admin-1")
+    assert admin and admin.role == "admin"
     assert repo.list_claims(session) == []  # ADR-025：申請只由派送產生，種子沒有申請
     # 種子相對時間：以 T0 換算
     f1 = repo.get_food(session, "f-1")
@@ -67,6 +79,27 @@ def test_seed_is_idempotent(session: Session) -> None:
     mr.seed(session)
     mr.seed(session)
     assert (len(repo.list_accounts(session)), len(repo.list_foods(session))) == before
+
+
+def test_seed_converts_legacy_elder_accounts(session: Session) -> None:  # ADR-026：已部署的資料庫升級
+    repo.create_account(session, m.MealAccount(id="u-old-eld-1", role="elder", name="舊版長者帳號（模擬）",
+                                               elder_id="e-1"))  # fmt: skip
+    repo.create_account(session, m.MealAccount(id="u-old-eld-2", role="elder", name="舊版長者帳號（模擬）"))
+    before = len(repo.list_accounts(session)), len(repo.list_foods(session)), len(repo.list_elders(session))
+    mr.seed(session)
+    session.expire_all()
+    for account_id in ("u-old-eld-1", "u-old-eld-2"):
+        acc = repo.get_account(session, account_id)
+        assert acc and acc.role == "citizen"
+    old1 = repo.get_account(session, "u-old-eld-1")
+    assert old1 and old1.elder_id == "e-1"  # 只改角色，其他欄位不動
+    assert repo.list_accounts(session, role="elder") == []
+    # 已有帳號：不重新匯入種子，其他資料不動
+    after = len(repo.list_accounts(session)), len(repo.list_foods(session)), len(repo.list_elders(session))
+    assert after == before
+    vol1 = repo.get_account(session, "u-vol-1")
+    assert vol1 and vol1.role == "volunteer"
+    assert repo.convert_elder_accounts_to_citizen(session) == 0  # 再跑一次不重複
 
 
 def test_reset_demo_restores_seed_state(session: Session) -> None:
@@ -153,7 +186,8 @@ def test_m1_remaining_and_status_priority(session: Session) -> None:
     assert f1
     food = mr.to_food(session, f1, T0)
     assert food.remaining == 5  # 種子沒有申請
-    assert food.status == "open" and food.location.lat == pytest.approx(25.0368)
+    assert food.dispatched_qty == 0 and food.delivered_qty == 0
+    assert food.status == "open" and food.location.lat == pytest.approx(repo.get_point(session, "p-1").lat)
     assert food.point_name and food.supplier_name
 
     # 全數申請 → claimed
@@ -170,6 +204,36 @@ def test_m1_remaining_and_status_priority(session: Session) -> None:
     assert mr.food_status(f1, 0, T0) == "claimed"
     repo.update_food(session, f1, closed=True)
     assert mr.food_status(f1, 0, later) == "closed"
+
+
+def test_v21_food_usage_matches_claim_statuses(session: Session) -> None:  # M1、M14
+    f6 = repo.get_food(session, "f-6")
+    assert f6 and f6.qty == 10
+    __claim(session, "c-u1", "f-6", "e-2", qty=2, status="claimed")
+    __claim(session, "c-u2", "f-6", "e-4", qty=1, status="delivering")
+    __claim(session, "c-u3", "f-6", "e-5", qty=2, status="done")
+    __claim(session, "c-u4", "f-6", "e-6", qty=2, status="cancelled")  # 取消的不算（份數已退回）
+    __claim(session, "c-u5", "f-1", "e-7", qty=2, status="claimed")  # 別的食物不算
+    usage = mr.food_usage(session, f6)
+    assert usage == mr.FoodUsage(dispatched=3, delivered=2) and usage.used == 5
+    food = mr.to_food(session, f6, T0)
+    assert (food.dispatched_qty, food.delivered_qty, food.remaining) == (3, 2, 5)
+    assert food.status == "open" and mr.food_remaining(session, f6) == 5
+
+    # M14：份數不能少於已派出加已送達
+    with pytest.raises(mr.MealError) as e:
+        mr.ensure_food_update(session, f6, schemas.FoodUpdate(qty=4), T0)
+    assert e.value.code == "QTY_BELOW_USED" and e.value.status == 409 and "5" in e.value.message
+    mr.ensure_food_update(session, f6, schemas.FoodUpdate(qty=5), T0)  # 等於已用掉的份數可以
+    mr.ensure_food_update(session, f6, schemas.FoodUpdate(closed=True), T0)  # 沒改份數就不檢查
+    # M14：到期時間不能早於現在
+    with pytest.raises(mr.MealError) as e:
+        mr.ensure_food_update(session, f6, schemas.FoodUpdate(expires_at=T0 - timedelta(minutes=1)), T0)
+    assert e.value.code == "VALIDATION_ERROR" and e.value.status == 422
+    mr.ensure_food_update(session, f6, schemas.FoodUpdate(qty=8, expires_at=T0 + timedelta(hours=2)), T0)
+    with pytest.raises(mr.MealError) as e:  # 份數與時間一起改，份數不合也一樣擋
+        mr.ensure_food_update(session, f6, schemas.FoodUpdate(qty=1, expires_at=T0 + timedelta(hours=2)), T0)
+    assert e.value.code == "QTY_BELOW_USED"
 
 
 def test_m4_allergen_conflict(session: Session) -> None:
@@ -336,18 +400,21 @@ def test_m18_active_assignment_not_yet_expired_stays(session: Session) -> None:
 # ---------------------------------------------------------------- 身分（deps）
 
 
-def test_v2_unknown_account_is_elder(session: Session) -> None:
+def test_v2_unknown_account_is_citizen(session: Session) -> None:
     acc = mr.get_account_or_default(session, "tp-unknown-123")
-    assert acc.role == "elder" and repo.get_account(session, "tp-unknown-123") is None
+    assert acc.role == "citizen" and repo.get_account(session, "tp-unknown-123") is None  # 不寫進資料庫
     me = mr.to_me(session, acc, T0)
-    assert me.role == "elder" and me.elder is None and me.supplier is None
+    assert me.role == "citizen" and me.supplier is None
+    assert "elder" not in me.model_dump()  # ADR-026：Me 沒有 elder 欄位
 
 
 def test_me_includes_profiles(session: Session) -> None:
-    eld = mr.to_me(session, mr.get_account_or_default(session, "u-eld-1"), T0)
-    assert eld.elder and eld.elder.id == "e-1"
     pending = mr.to_me(session, mr.get_account_or_default(session, "u-sup-3"), T0)
-    assert pending.role == "elder" and pending.supplier and pending.supplier.status == "pending"
+    assert pending.role == "citizen" and pending.supplier and pending.supplier.status == "pending"
+    citizen = mr.to_me(session, mr.get_account_or_default(session, "u-cit-1"), T0)
+    assert citizen.role == "citizen" and citizen.supplier is None and citizen.station_id is None
+    sup = mr.to_me(session, mr.get_account_or_default(session, "u-sup-1"), T0)
+    assert sup.role == "supplier" and sup.supplier and sup.supplier.status == "approved"
     vol = mr.to_me(session, mr.get_account_or_default(session, "u-vol-1"), T0)
     assert vol.role == "volunteer" and vol.station_id == "st-1"
 
@@ -377,9 +444,12 @@ def test_deps_auth_roles_and_error_format(session: Session) -> None:
         r = c.get("/meal-relay/probe/me")  # V1
         assert r.status_code == 401 and r.json()["detail"]["code"] == "UNAUTHENTICATED"
         r = c.get("/meal-relay/probe/me", headers={"X-Demo-User": "tp-new"})  # V2
-        assert r.status_code == 200 and r.json()["role"] == "elder" and r.json()["elder"] is None
-        r = c.get("/meal-relay/probe/me", headers={"X-Demo-User": "u-eld-1"})
-        assert r.json()["elder"]["last_seen_at"].endswith("+08:00")
+        assert r.status_code == 200 and r.json()["role"] == "citizen" and r.json()["supplier"] is None
+        assert "elder" not in r.json()
+        r = c.get("/meal-relay/probe/me", headers={"X-Demo-User": "u-cit-1"})
+        assert r.status_code == 200 and r.json()["role"] == "citizen" and "elder" not in r.json()
+        r = c.get("/meal-relay/probe/me", headers={"X-Demo-User": "u-sup-3"})  # 審核中的提供者申請人
+        assert r.json()["role"] == "citizen" and r.json()["supplier"]["created_at"].endswith("+08:00")
         r = c.get("/meal-relay/probe/admin", headers={"X-Demo-User": "u-vol-1"})
         assert r.status_code == 403 and r.json()["detail"]["code"] == "FORBIDDEN_ROLE"
         assert c.get("/meal-relay/probe/admin", headers={"X-Demo-User": "u-admin-1"}).json() == {
@@ -400,7 +470,7 @@ def test_current_account_runs_refresh_first(session: Session) -> None:  # V9 經
     __claim(session, "c-1", "f-1", "e-2")
     repo.update_food(session, f1, expires_at=mr.now() - timedelta(minutes=1))
     with TestClient(__probe_app()) as c:
-        assert c.get("/meal-relay/probe/me", headers={"X-Demo-User": "u-eld-1"}).status_code == 200
+        assert c.get("/meal-relay/probe/me", headers={"X-Demo-User": "u-cit-1"}).status_code == 200
     session.expire_all()
     c1 = repo.get_claim(session, "c-1")
     assert c1 and c1.status == "cancelled" and c1.cancel_reason == "expired"
@@ -420,18 +490,64 @@ def test_request_models_forbid_extra_fields() -> None:
 def test_qr_and_distance(session: Session) -> None:
     st1 = repo.get_station(session, "st-1")
     assert st1
-    text = mr.station_qr_text(st1)
+    text = mr.station_qr_text(st1, T0)
     assert text.startswith("meal-relay:checkin:") and st1.id not in text  # M15：不等於據點 id
-    assert mr.parse_qr_text(text) == st1.checkin_code and mr.parse_qr_text("hello") is None
+    parsed = mr.parse_qr_text(text)
+    assert parsed and parsed[0] == st1.checkin_code and len(parsed[1]) == 10
+    assert mr.parse_qr_text("hello") is None
+    assert mr.parse_qr_text(f"meal-relay:checkin:{st1.checkin_code}") is None  # 沒有 token
     st2 = repo.get_station(session, "st-2")
     assert st2 and 1000 < mr.distance_m(st1, st2) < 2000
     assert mr.distance_m(st1, schemas.Location(lat=st1.lat, lng=st1.lng)) == pytest.approx(0)
 
 
-def test_ensure_station_access() -> None:
-    vol = m.MealAccount(id="v", role="volunteer", station_id="st-1")
-    mr.ensure_station_access(vol, "st-1")
+def __qr_error(session: Session, text: str, account_id: str, at: object) -> str:
+    account = repo.get_account(session, account_id)
+    assert account
     with pytest.raises(mr.MealError) as e:
-        mr.ensure_station_access(vol, "st-2")
-    assert e.value.code == "WRONG_STATION" and e.value.status == 403
-    mr.ensure_station_access(m.MealAccount(id="a", role="admin"), "st-2")
+        mr.verify_qr_text(session, text, account, at)  # type: ignore[arg-type]
+    return e.value.code
+
+
+def test_m15_qr_rotates_and_expires(session: Session, monkeypatch: pytest.MonkeyPatch) -> None:  # V12、V18
+    monkeypatch.delenv("MEAL_RELAY_QR_SECRET", raising=False)
+    st1, vol1 = repo.get_station(session, "st-1"), repo.get_account(session, "u-vol-1")
+    assert st1 and vol1
+    step = timedelta(seconds=mr.settings().QR_ROTATE_SEC)
+    text = mr.station_qr_text(st1, T0)
+    assert mr.verify_qr_text(session, text, vol1, T0).id == "st-1"  # 目前時間窗
+    assert mr.verify_qr_text(session, text, vol1, T0 + step).id == "st-1"  # 前一個時間窗仍可
+    assert mr.station_qr_text(st1, T0 + 2 * step) != text  # 會換
+    assert __qr_error(session, text, "u-vol-1", T0 + 2 * step) == "QR_EXPIRED"  # 兩個時間窗以前
+    tampered = text[:-1] + ("0" if text[-1] != "0" else "1")
+    assert __qr_error(session, tampered, "u-vol-1", T0) == "QR_EXPIRED"
+    assert __qr_error(session, text, "u-vol-3", T0) == "WRONG_STATION"  # u-vol-3 屬於 st-2
+    assert __qr_error(session, "hello", "u-vol-1", T0) == "NOT_FOUND"
+    assert __qr_error(session, f"meal-relay:checkin:{st1.checkin_code}", "u-vol-1", T0) == "NOT_FOUND"
+    assert __qr_error(session, "meal-relay:checkin:ZZZZZZZZ:0123456789", "u-vol-1", T0) == "NOT_FOUND"
+    # 換金鑰後舊 QR 失效
+    monkeypatch.setenv("MEAL_RELAY_QR_SECRET", "another-secret")
+    assert __qr_error(session, text, "u-vol-1", T0) == "QR_EXPIRED"
+    assert mr.verify_qr_text(session, mr.station_qr_text(st1, T0), vol1, T0).id == "st-1"
+    # 到期時間：晚於現在、不超過一個時間窗，以台北時間表示
+    expires = mr.qr_expires_at(T0)
+    assert T0 < expires <= T0 + step and expires.utcoffset() == timedelta(hours=8)
+
+
+def test_m13_ensure_assigned_elder(session: Session) -> None:  # V20
+    vol1, vol2 = repo.get_account(session, "u-vol-1"), repo.get_account(session, "u-vol-2")
+    assert vol1 and vol2
+    a = __assignment(session, "e-5", None, timedelta(minutes=10))  # u-vol-1 的任務
+    assert mr.ensure_assigned_elder(session, vol1, "e-5").id == a.id
+    for account, elder_id in ((vol2, "e-5"), (vol1, "e-6"), (vol1, "")):
+        with pytest.raises(mr.MealError) as e:
+            mr.ensure_assigned_elder(session, account, elder_id)
+        assert e.value.code == "NOT_OWNER" and e.value.status == 403
+    repo.update_assignment(session, a, status="done")  # 完成後就不能再回報
+    with pytest.raises(mr.MealError):
+        mr.ensure_assigned_elder(session, vol1, "e-5")
+
+
+def test_new_error_codes_are_409() -> None:
+    assert mr.MealError("QTY_BELOW_USED", "x").status == 409
+    assert mr.MealError("QR_EXPIRED", "x").status == 409

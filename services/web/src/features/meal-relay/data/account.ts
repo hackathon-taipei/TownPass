@@ -2,7 +2,7 @@
 import { mealGet, mealSend } from './client'
 import type { Cached, DemoResetResult, Me, Supplier, SupplierApply, SupplierStatus } from './types'
 
-/** GET /me */
+/** GET /me（全部；沒匯入的帳號是一般市民 citizen，V2） */
 export function getMe(): Promise<Cached<Me>> {
   return mealGet<Me>('/me')
 }
@@ -12,12 +12,12 @@ export function resetDemo(): Promise<DemoResetResult> {
   return mealSend<DemoResetResult>('POST', '/demo/reset')
 }
 
-/** POST /suppliers（elder） */
+/** POST /suppliers（citizen：申請成為提供者） */
 export function applySupplier(body: SupplierApply): Promise<Supplier> {
   return mealSend<Supplier>('POST', '/suppliers', body)
 }
 
-/** GET /suppliers/mine（elder、supplier）；還沒申請 → null */
+/** GET /suppliers/mine（citizen、supplier）；還沒申請 → null */
 export function getMySupplier(): Promise<Cached<Supplier | null>> {
   return mealGet<Supplier | null>('/suppliers/mine')
 }

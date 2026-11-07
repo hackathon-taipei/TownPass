@@ -1,4 +1,4 @@
-"""meal_relay - 鄰食轉運站的共用資料層、規則與身分（合約 docs/system/11-meal-relay.md，T-107）。
+"""meal_relay - 鄰食轉運站的共用資料層、規則與身分（合約 docs/system/11-meal-relay.md v2.2，T-107、T-123）。
 
 **沒有路由**：各端點由 meal_account／meal_food／meal_claim／meal_elder／meal_dispatch／meal_board
 套件各自提供，並且只從這個套件根 import（B5）：
@@ -7,7 +7,10 @@
         CurrentAccount, MealError, meal_router, models, repo, require_roles, schemas, service,
     )
 
-`seed(session)` 由 main 在啟動時自動執行（冪等）。
+共用的檢查：`ensure_assigned_elder()`（M13 志工只能處理自己任務上的長者）、`ensure_food_update()`
+（M14 改份數與到期時間）、`verify_qr_text()`（M15 據點 QR）。長者不是帳號（ADR-026）。
+
+`seed(session)` 由 main 在啟動時自動執行（冪等；已部署的資料庫會把舊的 elder 帳號改成 citizen）。
 """
 
 from . import models, repo, schemas, service
@@ -32,6 +35,7 @@ from .service import (
     SEED_DIR,
     TAIPEI,
     ElderFlags,
+    FoodUsage,
     MealError,
     RefreshResult,
     Settings,
@@ -39,10 +43,12 @@ from .service import (
     care_due,
     distance_m,
     elder_flags,
-    ensure_station_access,
+    ensure_assigned_elder,
+    ensure_food_update,
     food_remaining,
     food_status,
     food_unclaimed,
+    food_usage,
     get_account_or_default,
     image_url,
     import_seed,
@@ -53,6 +59,7 @@ from .service import (
     now,
     parse_qr_text,
     parse_time,
+    qr_expires_at,
     refresh,
     reset_demo,
     seed,
@@ -71,6 +78,7 @@ from .service import (
     to_supplier,
     to_utc,
     to_visit,
+    verify_qr_text,
 )
 
 __all__ = [
@@ -85,6 +93,7 @@ __all__ = [
     "TAIPEI",
     "CurrentAccount",
     "ElderFlags",
+    "FoodUsage",
     "MealError",
     "MealRoute",
     "RefreshResult",
@@ -94,11 +103,13 @@ __all__ = [
     "current_account",
     "distance_m",
     "elder_flags",
-    "ensure_station_access",
+    "ensure_assigned_elder",
+    "ensure_food_update",
     "error_response",
     "food_remaining",
     "food_status",
     "food_unclaimed",
+    "food_usage",
     "get_account_or_default",
     "http_error",
     "image_url",
@@ -112,6 +123,7 @@ __all__ = [
     "now",
     "parse_qr_text",
     "parse_time",
+    "qr_expires_at",
     "refresh",
     "repo",
     "require_roles",
@@ -135,4 +147,5 @@ __all__ = [
     "to_utc",
     "to_visit",
     "validation_message",
+    "verify_qr_text",
 ]
