@@ -291,3 +291,44 @@ def test_v17_reset_demo_restores_seed_state(api: TestClient) -> None:
     with Session(engine) as s:
         assert repo.get_account(s, "tp-temp-1") is None
         assert len(repo.list_foods(s)) >= 6 and len(repo.list_elders(s)) >= 12
+
+
+# ---------------------------------------------------------------- 單位地址（T-133、ADR-030）
+
+
+def test_apply_with_address_is_stripped_and_listed(api: TestClient) -> None:
+    address = "  臺北市萬華區測試路1號（模擬）  "
+    res = api.post("/meal-relay/suppliers", headers=h(CITIZEN), json={**APPLY, "address": address})
+    assert res.status_code == 200
+    assert res.json()["address"] == "臺北市萬華區測試路1號（模擬）"
+    mine = api.get("/meal-relay/suppliers/mine", headers=h(CITIZEN)).json()
+    assert mine["address"] == "臺北市萬華區測試路1號（模擬）"
+    api.post(f"/meal-relay/suppliers/{res.json()['id']}/approve", headers=h(ADMIN))
+    listed = {s["id"]: s for s in api.get("/meal-relay/suppliers", headers=h(ADMIN)).json()}
+    assert listed[res.json()["id"]]["address"] == "臺北市萬華區測試路1號（模擬）"
+
+
+def test_apply_without_address_is_empty_string(api: TestClient) -> None:
+    res = api.post("/meal-relay/suppliers", headers=h(CITIZEN), json=APPLY)
+    assert res.status_code == 200 and res.json()["address"] == ""
+    res_null = api.post("/meal-relay/suppliers", headers=h("tp-addr-null"), json={**APPLY, "address": None})
+    assert res_null.status_code == 200 and res_null.json()["address"] == ""
+
+
+def test_apply_person_does_not_store_address(api: TestClient) -> None:
+    """個人提供者的地址是自家住址，一律不存（ADR-030、AGENTS.md 第 5 條）。"""
+    body = {**APPLY, "org_type": "person", "address": "臺北市某路1號"}
+    res = api.post("/meal-relay/suppliers", headers=h("tp-addr-person"), json=body)
+    assert res.status_code == 200 and res.json()["address"] == ""
+    with Session(engine) as s:
+        row = repo.get_supplier(s, res.json()["id"])
+        assert row is not None and row.address == ""
+
+
+def test_apply_address_max_120_chars(api: TestClient) -> None:
+    ok = api.post("/meal-relay/suppliers", headers=h("tp-addr-120"), json={**APPLY, "address": "址" * 120})
+    assert ok.status_code == 200 and ok.json()["address"] == "址" * 120
+    too_long = api.post(
+        "/meal-relay/suppliers", headers=h("tp-addr-121"), json={**APPLY, "address": "址" * 121}
+    )
+    assert too_long.status_code == 422 and error_code(too_long) == "VALIDATION_ERROR"
