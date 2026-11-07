@@ -1,12 +1,13 @@
 /**
- * LOGIC LAYER - 地點照片（入口照片，T-128，ADR-028）的顯示判斷。
- * 合約 docs/system/11-meal-relay.md v2.3：`Station.image_url`、`Point.image_url`、`Food.point_image_url`、`PointCreate.image_id`。
+ * LOGIC LAYER - 地點照片的顯示判斷：入口照片（T-128，ADR-028）、提供者店面照片（T-129，ADR-029）。
+ * 合約 docs/system/11-meal-relay.md v2.4：`Station.image_url`、`Point.image_url`、`Food.point_image_url`、`PointCreate.image_id`、
+ * `Supplier.image_url`、`SupplierApply.image_id`（個人提供者沒有店面照片）。
  *
  * 有照片才顯示（回傳 null ＝ 不放縮圖，也不留空框）；網址一律用 data 層的 imageSrc() 接上後端位址。
  * 畫面用 MR-C55 PlacePhoto 顯示縮圖，點一下放大。
  */
 import { imageSrc } from '../data'
-import type { Food, Point, Station } from '../data'
+import type { Food, OrgType, Point, Station, Supplier } from '../data'
 
 /** MR-C55 PlacePhoto 要的資料：圖片完整網址、替代文字、放大時的標題 */
 export interface PlacePhoto {
@@ -17,6 +18,9 @@ export interface PlacePhoto {
 
 /** 入口照片的拍攝規定（ADR-028），放在上傳欄位下方 */
 export const ENTRANCE_PHOTO_RULE = '只拍入口或建築外觀，不要拍到人臉、車牌、門牌號碼'
+
+/** 店面照片的拍攝規定（ADR-029），放在申請表的照片欄位下方 */
+export const STOREFRONT_PHOTO_RULE = '只拍招牌或店門口，不要拍到人臉、車牌，也不能出現個人資料'
 
 /** 照片網址 → 縮圖資料；沒有網址（null、空字串）回傳 null，畫面就不顯示 */
 export function placePhotoOf(url: string | null | undefined, name: string, what = '入口照片'): PlacePhoto | null {
@@ -39,4 +43,15 @@ export function stationPhotoOf(station: Pick<Station, 'image_url' | 'name'>): Pl
 /** 食物點的入口照片 */
 export function pointPhotoOf(point: Pick<Point, 'image_url' | 'name'>): PlacePhoto | null {
   return placePhotoOf(point.image_url, point.name)
+}
+
+/** 申請表要不要顯示店面照片欄位：選了類型、而且不是個人（ADR-029：避免拍到自家住址） */
+export function showsStorefrontPhoto(orgType: OrgType | null | undefined): boolean {
+  return !!orgType && orgType !== 'person'
+}
+
+/** 提供者的店面照片（審核清單、提供者頁頁首）；個人提供者一律 null（後端也存 null） */
+export function supplierPhotoOf(supplier: Pick<Supplier, 'image_url' | 'name' | 'org_type'> | null | undefined): PlacePhoto | null {
+  if (!supplier || !showsStorefrontPhoto(supplier.org_type)) return null
+  return placePhotoOf(supplier.image_url, supplier.name, '店面照片')
 }

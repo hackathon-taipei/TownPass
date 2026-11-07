@@ -12,7 +12,7 @@ export function resetDemo(): Promise<DemoResetResult> {
   return mealSend<DemoResetResult>('POST', '/demo/reset')
 }
 
-/** POST /suppliers（citizen：申請成為提供者） */
+/** POST /suppliers（citizen：申請成為提供者；店面照片 image_id 選填，個人提供者不送，ADR-029） */
 export function applySupplier(body: SupplierApply): Promise<Supplier> {
   return mealSend<Supplier>('POST', '/suppliers', body)
 }

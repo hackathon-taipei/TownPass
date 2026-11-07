@@ -51,6 +51,8 @@ export interface Supplier {
   status: SupplierStatus
   created_at: IsoDateTime
   reviewed_at: IsoDateTime | null
+  /** 店面照片（ADR-029），相對於後端網址；沒有或個人提供者（person）→ null */
+  image_url: string | null
 }
 
 export interface Station {
@@ -262,6 +264,8 @@ export interface SupplierApply {
   name: string
   org_type: OrgType
   location: Location
+  /** 店面照片（先 uploadImage）；個人提供者不送，後端也會忽略（ADR-029） */
+  image_id?: string | null
 }
 
 export interface PointCreate {

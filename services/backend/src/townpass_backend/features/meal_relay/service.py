@@ -517,6 +517,11 @@ def __local(dt: datetime) -> datetime:
     return out
 
 
+def supplier_image_id(org_type: str, image_id: str | None) -> str | None:
+    """ADR-029：個人提供者（`person`）不存店面照片（避免拍到自家住址），其他類型照收。"""
+    return None if org_type == "person" else (image_id or None)
+
+
 def to_supplier(row: MealSupplier) -> Supplier:
     return Supplier(
         id=row.id,
@@ -527,6 +532,7 @@ def to_supplier(row: MealSupplier) -> Supplier:
         status=row.status,  # type: ignore[arg-type]
         created_at=__local(row.created_at),
         reviewed_at=to_local(row.reviewed_at),
+        image_url=image_url(supplier_image_id(row.org_type, row.image_id)),  # ADR-029：個人提供者一律 null
     )
 
 

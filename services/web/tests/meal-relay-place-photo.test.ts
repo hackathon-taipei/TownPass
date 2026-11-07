@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-// 入口照片（T-128，ADR-028）：顯示判斷（logic/placePhoto.ts）與新增食物點附照片（logic/supplier.ts）。
+// 入口照片（T-128，ADR-028）與提供者店面照片（T-129，ADR-029）：
+// 顯示判斷（logic/placePhoto.ts）、新增食物點與申請提供者附照片（logic/supplier.ts）。
 // 資料層全部 mock，不連網路。
 
 vi.mock('@/features/meal-relay/data', async (importOriginal) => {
@@ -22,8 +23,24 @@ vi.mock('@/features/meal-relay/data', async (importOriginal) => {
 
 import * as data from '@/features/meal-relay/data'
 import type { Me, Point, Supplier } from '@/features/meal-relay/data'
-import { ENTRANCE_PHOTO_RULE, pickupPhotoOf, placePhotoOf, pointPhotoOf, stationPhotoOf } from '@/features/meal-relay/logic/placePhoto'
-import { buildPointCreate, emptyPointForm, setFormImage, useSupplierPage } from '@/features/meal-relay/logic/supplier'
+import {
+  ENTRANCE_PHOTO_RULE,
+  STOREFRONT_PHOTO_RULE,
+  pickupPhotoOf,
+  placePhotoOf,
+  pointPhotoOf,
+  showsStorefrontPhoto,
+  stationPhotoOf,
+  supplierPhotoOf,
+} from '@/features/meal-relay/logic/placePhoto'
+import {
+  buildPointCreate,
+  buildSupplierApply,
+  emptyApplyForm,
+  emptyPointForm,
+  setFormImage,
+  useSupplierPage,
+} from '@/features/meal-relay/logic/supplier'
 
 const m = vi.mocked(data)
 
@@ -36,6 +53,7 @@ const supplier: Supplier = {
   status: 'approved',
   created_at: '2026-11-07T08:00:00+08:00',
   reviewed_at: '2026-11-07T09:00:00+08:00',
+  image_url: null,
 }
 const me: Me = { id: 'u-sup-1', role: 'supplier', name: '測試', station_id: null, supplier }
 const pointOf = (over: Partial<Point> = {}): Point => ({
@@ -153,5 +171,84 @@ describe('新增食物點附入口照片', () => {
     expect(await p.addPoint()).toBe(false)
     expect(m.createPoint).not.toHaveBeenCalled()
     expect(p.pointError.value).toBe('圖片大小超過上限 200000 bytes')
+  })
+})
+
+describe('提供者店面照片（ADR-029）', () => {
+  it('個人提供者不顯示照片欄位；還沒選類型也不顯示', () => {
+    expect(showsStorefrontPhoto('person')).toBe(false)
+    expect(showsStorefrontPhoto(null)).toBe(false)
+    expect(showsStorefrontPhoto(undefined)).toBe(false)
+    for (const t of ['shop', 'school', 'agency', 'other'] as const) expect(showsStorefrontPhoto(t)).toBe(true)
+  })
+  it('拍攝規定寫明不能有人臉、車牌、個資', () => {
+    expect(STOREFRONT_PHOTO_RULE).toContain('人臉')
+    expect(STOREFRONT_PHOTO_RULE).toContain('車牌')
+    expect(STOREFRONT_PHOTO_RULE).toContain('個人資料')
+  })
+  it('supplierPhotoOf：有 image_url 才顯示，替代文字是「○○的店面照片」；個人提供者一律 null', () => {
+    const withPhoto = { ...supplier, image_url: '/meal-relay/images/img-s' }
+    expect(supplierPhotoOf(withPhoto)?.alt).toBe('艋舺便當店（模擬）的店面照片')
+    expect(supplierPhotoOf(supplier)).toBeNull()
+    expect(supplierPhotoOf({ ...withPhoto, org_type: 'person' })).toBeNull()
+    expect(supplierPhotoOf(null)).toBeNull()
+  })
+  it('buildSupplierApply：店家帶 image_id；個人就算有 image_id 也不送', () => {
+    const form = { ...emptyApplyForm(), name: '麵包坊', org_type: 'shop' as const, location: { lat: 25, lng: 121.5 } }
+    expect(buildSupplierApply(form, 'img-1')).toEqual({
+      ok: true,
+      body: { name: '麵包坊', org_type: 'shop', location: { lat: 25, lng: 121.5 }, image_id: 'img-1' },
+    })
+    expect(buildSupplierApply(form)).toEqual({ ok: true, body: { name: '麵包坊', org_type: 'shop', location: { lat: 25, lng: 121.5 } } })
+    const person = { ...form, org_type: 'person' as const }
+    expect(buildSupplierApply(person, 'img-1')).toEqual({ ok: true, body: { name: '麵包坊', org_type: 'person', location: { lat: 25, lng: 121.5 } } })
+  })
+
+  async function citizenPage() {
+    m.getMe.mockResolvedValue({ ...me, id: 'u-cit-1', role: 'citizen', supplier: null })
+    m.getMySupplier.mockResolvedValue(null)
+    const p = useSupplierPage()
+    await p.load()
+    Object.assign(p.applyForm, { name: '西園路麵包坊', org_type: 'shop', location: { lat: 25.03, lng: 121.5 } })
+    setFormImage(p.applyForm, { data: 'BBBB', mime: 'image/jpeg' })
+    return p
+  }
+
+  it('店家申請附照片：先 uploadImage，再 applySupplier 帶 image_id', async () => {
+    const p = await citizenPage()
+    m.uploadImage.mockResolvedValue({ id: 'img-s', image_url: '/meal-relay/images/img-s', mime: 'image/jpeg', size: 3 })
+    m.applySupplier.mockResolvedValue({ ...supplier, status: 'pending', image_url: '/meal-relay/images/img-s' })
+    expect(await p.apply()).toBe(true)
+    expect(m.uploadImage).toHaveBeenCalledWith('data:image/jpeg;base64,BBBB')
+    expect(m.applySupplier).toHaveBeenCalledWith({
+      name: '西園路麵包坊',
+      org_type: 'shop',
+      location: { lat: 25.03, lng: 121.5 },
+      image_id: 'img-s',
+    })
+    expect(p.applyForm.image).toBeNull()
+  })
+
+  it('改選「個人」：已拍的照片不上傳、不送', async () => {
+    const p = await citizenPage()
+    p.applyForm.org_type = 'person'
+    m.applySupplier.mockResolvedValue({ ...supplier, org_type: 'person', status: 'pending' })
+    expect(await p.apply()).toBe(true)
+    expect(m.uploadImage).not.toHaveBeenCalled()
+    expect(m.applySupplier.mock.calls[0]![0]).not.toHaveProperty('image_id')
+  })
+
+  it('提供者頁頁首：通過的店家有照片才顯示', async () => {
+    m.getMe.mockResolvedValue(me)
+    m.getMySupplier.mockResolvedValue({ ...supplier, image_url: '/meal-relay/images/img-s' })
+    m.listPoints.mockResolvedValue([])
+    m.listFoods.mockResolvedValue([])
+    const p = useSupplierPage()
+    await p.load()
+    expect(p.supplierPhoto.value?.title).toBe('艋舺便當店（模擬）・店面照片')
+
+    m.getMySupplier.mockResolvedValue(supplier)
+    await p.load()
+    expect(p.supplierPhoto.value).toBeNull()
   })
 })

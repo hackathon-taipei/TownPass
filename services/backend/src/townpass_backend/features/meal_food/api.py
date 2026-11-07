@@ -19,7 +19,8 @@ from .service import MealFoodUpdate
 router = meal_router("meal_food")
 
 SupplierOrAdmin = Annotated[models.MealAccount, Depends(require_roles("supplier", "admin"))]
-SupplierOrVolunteer = Annotated[models.MealAccount, Depends(require_roles("supplier", "volunteer"))]
+# ADR-029：一般市民申請提供者時要先上傳店面照片
+ImageUploader = Annotated[models.MealAccount, Depends(require_roles("citizen", "supplier", "volunteer"))]
 FoodReader = Annotated[models.MealAccount, Depends(require_roles("supplier", "volunteer", "admin"))]
 
 
@@ -109,10 +110,10 @@ def update_food(
 @router.post("/images")
 def upload_image(
     session: SessionDep,
-    account: SupplierOrVolunteer,
+    account: ImageUploader,
     payload: schemas.ImageUpload,
 ) -> schemas.ImageUploaded:
-    """POST /images (supplier, volunteer)"""
+    """POST /images (citizen, supplier, volunteer；citizen 是為了提供者申請的店面照片，ADR-029)"""
     return service.upload_image(session, account, payload)
 
 
