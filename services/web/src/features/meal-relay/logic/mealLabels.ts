@@ -1,5 +1,5 @@
 /**
- * 列舉值的中文（照合約 docs/system/11-meal-relay.md §4），給 MR-C14～C22 用。
+ * 列舉值的中文（照合約 docs/system/11-meal-relay.md v2.2 §4），給 MR-C14～C22 用。
  * T-114 的 logic/shared.ts 合併後，改從 shared.ts 匯入並刪掉這個檔案，避免兩份。
  */
 import type {
@@ -38,8 +38,8 @@ export const FOOD_CATEGORY_LABEL: Record<FoodCategory, string> = {
 }
 
 export const FOOD_STATUS_LABEL: Record<FoodStatus, string> = {
-  open: '可申請',
-  claimed: '已全數申請',
+  open: '可派送',
+  claimed: '已全數派出',
   expired: '已過期',
   closed: '已下架',
 }

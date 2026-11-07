@@ -1,7 +1,7 @@
 <script setup lang="ts">
 /** @component MR-C15 ClaimRow — 申請列：狀態晶片換色、送餐進度條（已派送 → 配送中 → 完成） */
 /**
- * 一筆申請＝自動派送給一位長者的一份餐（合約 v2.1，M7、M8）。
+ * 一筆申請＝自動派送給一位長者的一份餐（合約 v2.2，M7、M8）。志工只看得到自己的 claimed、delivering 申請（M13）。
  * 進度條顯示走到第幾步；取消時變淡、不顯示進度。
  */
 import './motion.css'

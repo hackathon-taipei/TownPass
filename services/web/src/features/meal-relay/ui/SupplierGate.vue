@@ -1,6 +1,7 @@
 <script setup lang="ts">
 /** @component MR-C18 SupplierGate — 提供者申請狀態：申請表 → 審核中卡片 → 通過後進入提供者頁（D1、D2） */
 /**
+ * 申請人是一般市民（Role citizen，ADR-026）：沒有匯入角色的台北通帳號；長者不是帳號，不會出現在這裡。
  * 依 me.supplier（getMe 或 getMySupplier）切換三種畫面，切換時淡出再淡入（swap）：
  *   沒有申請 → #apply 插槽（申請表，送出用 SubmitButton）
  *   pending／rejected → 狀態卡（晶片顏色依狀態過渡）

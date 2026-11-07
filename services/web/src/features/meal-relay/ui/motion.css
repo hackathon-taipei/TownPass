@@ -128,152 +128,6 @@
   }
 }
 
-/* ===== 志工企鵝（MapView kind: 'volunteer'） =====
- * 和定位針用同一組動畫語言：落下、換狀態脈衝、淡出；另外加待機搖擺與移動滑行。
- * 腳下陰影用狀態顏色（--pin-fill），所以換狀態時陰影也會平滑換色。 */
-.tp-map .tp-map__pin--volunteer {
-  --idle-duration: 2.4s;
-}
-.tp-map .tp-map__penguin {
-  position: relative;
-  width: 100%;
-  height: 100%;
-  transform-origin: 50% 100%;
-  transition: transform var(--motion-fast) var(--ease-out);
-}
-.tp-map .tp-map__pin--volunteer:hover .tp-map__penguin,
-.tp-map .tp-map__pin--volunteer:focus-visible .tp-map__penguin {
-  transform: scale(1.15);
-}
-.tp-map .tp-map__penguin-shadow,
-.tp-map .tp-map__penguin-ring {
-  position: absolute;
-  left: 50%;
-  bottom: 0;
-  width: 26px;
-  height: 8px;
-  margin-left: -13px;
-  border-radius: 50%;
-}
-.tp-map .tp-map__penguin-shadow {
-  background: color-mix(in srgb, var(--pin-fill) 55%, transparent);
-  transition: background-color var(--motion-base) var(--ease-in-out);
-  animation: tp-penguin-shadow var(--idle-duration) var(--ease-in-out) infinite;
-  animation-delay: calc(var(--idle-phase, 0) * var(--idle-duration) * -1);
-}
-.tp-map .tp-map__penguin-ring {
-  border: 2px solid var(--pin-fill);
-  opacity: 0;
-}
-.tp-map .tp-map__penguin-hop {
-  position: absolute;
-  inset: 0 0 3px;
-  display: block;
-  transform-origin: 50% 100%;
-}
-.tp-map .tp-map__penguin-img {
-  display: block;
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-  object-position: 50% 100%;
-  transform-origin: 50% 100%;
-  pointer-events: none;
-  user-select: none;
-  filter: drop-shadow(0 1px 1px color-mix(in srgb, var(--color-grey-900) 35%, transparent));
-  animation: tp-penguin-idle var(--idle-duration) var(--ease-in-out) infinite;
-  animation-delay: calc(var(--idle-phase, 0) * var(--idle-duration) * -1);
-}
-/* 待機：像在原地跳舞，左右擺 ±5° 並輕輕彈起，陰影跟著縮放 */
-@keyframes tp-penguin-idle {
-  0%,
-  100% {
-    transform: rotate(-5deg) translateY(0) scale(1, 1);
-  }
-  22% {
-    transform: rotate(0deg) translateY(-2px) scale(0.98, 1.03);
-  }
-  50% {
-    transform: rotate(5deg) translateY(0) scale(1.03, 0.97);
-  }
-  72% {
-    transform: rotate(0deg) translateY(-2px) scale(0.98, 1.03);
-  }
-}
-@keyframes tp-penguin-shadow {
-  0%,
-  50%,
-  100% {
-    transform: scaleX(1);
-  }
-  22%,
-  72% {
-    transform: scaleX(0.82);
-  }
-}
-/* 新增：從上方落下，落地時壓扁一下 */
-.tp-map .tp-map__pin--volunteer.tp-map__pin--enter .tp-map__penguin {
-  animation: tp-penguin-drop var(--motion-emphasis) var(--ease-out) backwards;
-}
-@keyframes tp-penguin-drop {
-  0% {
-    opacity: 0;
-    transform: translateY(calc(var(--motion-drop) * -1.5));
-  }
-  55% {
-    opacity: 1;
-    transform: translateY(0) scale(1.08, 0.9);
-  }
-  80% {
-    transform: translateY(-2px) scale(0.97, 1.03);
-  }
-  100% {
-    transform: none;
-  }
-}
-/* 狀態改變：跳一下＋陰影顏色脈衝 */
-.tp-map .tp-map__pin--volunteer.tp-map__pin--changed .tp-map__penguin-hop {
-  animation: tp-penguin-hop var(--motion-emphasis) var(--ease-out);
-}
-.tp-map .tp-map__pin--volunteer.tp-map__pin--changed .tp-map__penguin-ring {
-  animation: tp-penguin-ring var(--motion-emphasis) var(--ease-out);
-}
-@keyframes tp-penguin-hop {
-  0% {
-    transform: none;
-  }
-  15% {
-    transform: scale(1.08, 0.9);
-  }
-  45% {
-    transform: translateY(-10px) scale(0.95, 1.06);
-  }
-  75% {
-    transform: translateY(0) scale(1.06, 0.94);
-  }
-  100% {
-    transform: none;
-  }
-}
-@keyframes tp-penguin-ring {
-  from {
-    opacity: 0.7;
-    transform: scale(1);
-  }
-  to {
-    opacity: 0;
-    transform: scale(2.2);
-  }
-}
-/* 移除：淡出縮小 */
-.tp-map .tp-map__pin--volunteer.tp-map__pin--leave .tp-map__penguin {
-  animation: tp-pin-leave var(--motion-base) var(--ease-in) forwards;
-}
-/* 移動：MapView 只在這次 setLatLng 前後加上 --moving，地圖縮放時不會拖影 */
-.tp-map .leaflet-marker-icon.tp-map__pin--moving {
-  transition: transform 900ms var(--ease-in-out);
-}
-
 /* ===== 共用 Transition（ANIMATION §4） ===== */
 /* fade-up：淡入並上移 8px；離場只淡出 */
 .fade-up-enter-active {
@@ -448,6 +302,41 @@
   opacity: 0;
 }
 
+/* ===== 志工企鵝頭像（MR-C23 VolunteerAvatar） =====
+ * 待機時原地輕輕左右擺（±5°、彈起 2px），每位志工起始時間錯開；減少動態時不動。 */
+.tp-avatar {
+  --idle-duration: 2.4s;
+  display: inline-block;
+  flex-shrink: 0;
+}
+.tp-avatar__img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: 50% 100%;
+  transform-origin: 50% 100%;
+  user-select: none;
+  pointer-events: none;
+}
+.tp-avatar--idle .tp-avatar__img {
+  animation: tp-avatar-idle var(--idle-duration) var(--ease-in-out) infinite;
+  animation-delay: calc(var(--idle-phase, 0) * var(--idle-duration) * -1);
+}
+@keyframes tp-avatar-idle {
+  0%,
+  100% {
+    transform: rotate(-5deg) translateY(0) scale(1, 1);
+  }
+  22%,
+  72% {
+    transform: rotate(0deg) translateY(-2px) scale(0.98, 1.03);
+  }
+  50% {
+    transform: rotate(5deg) translateY(0) scale(1.03, 0.97);
+  }
+}
+
 /* ===== 減少動態（ANIMATION §8） ===== */
 @media (prefers-reduced-motion: reduce) {
   :root:not(:has(.tp-motion-preview)) .bump {
@@ -469,11 +358,7 @@
   }
   :root:not(:has(.tp-motion-preview)) .tp-map__pin svg,
   :root:not(:has(.tp-motion-preview)) .tp-map__pin-ring,
-  :root:not(:has(.tp-motion-preview)) .tp-map__penguin,
-  :root:not(:has(.tp-motion-preview)) .tp-map__penguin-img,
-  :root:not(:has(.tp-motion-preview)) .tp-map__penguin-shadow,
-  :root:not(:has(.tp-motion-preview)) .tp-map__penguin-hop,
-  :root:not(:has(.tp-motion-preview)) .tp-map__penguin-ring,
+  :root:not(:has(.tp-motion-preview)) .tp-avatar__img,
   :root:not(:has(.tp-motion-preview)) .flash {
     animation: none !important;
   }

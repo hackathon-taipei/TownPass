@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest'
-import { idlePhaseOf, PENGUIN_COUNT, penguinOf, pinColorOf } from '@/features/meal-relay/logic/mapMarker'
+import { foodQtyCounts, FOOD_QTY_FIELDS, QTY_MAX_DEFAULT, qtyHint, qtyRangeText } from '@/features/meal-relay/logic/foodQty'
+import { MAP_STATUS_LABEL, MARKER_KIND_LABEL, pinColorOf } from '@/features/meal-relay/logic/mapMarker'
+import { idlePhaseOf, PENGUIN_COUNT, penguinOf, penguinSrc } from '@/features/meal-relay/logic/volunteerAvatar'
 import { allergenConflicts, claimProgress, timeLeftText } from '@/features/meal-relay/logic/mealLabels'
 import { diffById } from '@/features/meal-relay/logic/motion'
 
@@ -61,7 +63,7 @@ describe('diffById（輪詢只對變化的項目做動畫）', () => {
   })
 })
 
-describe('penguinOf（志工企鵝圖示）', () => {
+describe('penguinOf（志工企鵝頭像 MR-C23）', () => {
   it('同一個志工永遠是同一隻，範圍 1～6', () => {
     for (const id of ['u-vol-1', 'u-vol-2', 'abc', '']) {
       const n = penguinOf(id)
@@ -81,5 +83,46 @@ describe('penguinOf（志工企鵝圖示）', () => {
       expect(p).toBeLessThan(1)
     }
     expect(new Set(phases).size).toBe(3)
+  })
+  it('圖片網址指到 public/meal-relay/penguins', () => {
+    expect(penguinSrc('u-vol-1', '/base/')).toBe(`/base/meal-relay/penguins/penguin-${penguinOf('u-vol-1')}.png`)
+  })
+})
+
+describe('mapMarker（合約 v2.2）', () => {
+  it('地圖上沒有志工位置（合約沒有志工位置的 API）', () => {
+    expect(Object.keys(MARKER_KIND_LABEL).sort()).toEqual(['elder', 'point', 'station', 'supplier'])
+    expect(Object.keys(MARKER_KIND_LABEL)).not.toContain('volunteer')
+  })
+  it('食物點狀態的中文照 v2.2 §4', () => {
+    expect(MAP_STATUS_LABEL.open).toBe('可派送')
+    expect(MAP_STATUS_LABEL.claimed).toBe('已全數派出')
+  })
+})
+
+describe('qtyHint（MR-C11 QtyInput 的 min／max，M14）', () => {
+  it('上架：預設 1～999', () => {
+    expect(qtyHint('')).toBe('請輸入份數')
+    expect(qtyHint('1')).toBe('')
+    expect(qtyHint(String(QTY_MAX_DEFAULT))).toBe('')
+    expect(qtyHint('1000')).toBe(`最多 ${QTY_MAX_DEFAULT} 份`)
+    expect(qtyRangeText()).toBe('請輸入 1 到 999 份')
+  })
+  it('改份數：低於已派出＋已送達就提示', () => {
+    expect(qtyHint('2', 3)).toBe('不能少於已派出＋已送達的 3 份')
+    expect(qtyHint('3', 3)).toBe('')
+    expect(qtyHint('6', 3, 5)).toBe('最多 5 份')
+    expect(qtyRangeText(3, 5)).toContain('最少 3 份')
+  })
+})
+
+describe('foodQtyCounts（MR-C14 FoodRow 的三個數字，M1）', () => {
+  it('依序是剩餘、派出中、已送達', () => {
+    expect(FOOD_QTY_FIELDS.map((f) => f.label)).toEqual(['剩餘', '派出中', '已送達'])
+    expect(foodQtyCounts({ remaining: 2, dispatched_qty: 3, delivered_qty: 5 })).toEqual({
+      remaining: 2,
+      dispatched_qty: 3,
+      delivered_qty: 5,
+    })
   })
 })

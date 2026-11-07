@@ -1,7 +1,9 @@
 <script setup lang="ts">
 /** @component MR-C07 MapView — 鄰食地圖：定位針依狀態上色、落下／換色脈衝／淡出動畫、可選點 */
 /**
- * MapView — 鄰食轉運站地圖（型別與顏色見 ../logic/mapMarker.ts，對齊 docs/system/11-meal-relay.md）。
+ * MapView — 鄰食轉運站地圖（型別與顏色見 ../logic/mapMarker.ts，對齊 docs/system/11-meal-relay.md v2.2）。
+ * 長者定位針（kind: 'elder'）只放在管理系統看板與志工自己的任務（M13）；志工畫面不能出現長者清單（ADR-026）。
+ * 合約沒有志工位置的 API，所以地圖上沒有志工。
  *
  *   markers: Marker[]                       // { id, kind, location, status?, label? }
  *   center?: Location                       // 指定時移到這裡；沒指定時第一次載入縮放到所有定位針
@@ -9,7 +11,6 @@
  *   picked?: Location | null                // 目前選取的位置（由父層控制）
  *
  * 動畫（ANIMATION.md §5.6）：依 Marker.id 比對差異，新增→落下、狀態改變→換色＋脈衝環一次、移除→淡出縮小。
- * 志工（kind: 'volunteer'）畫成企鵝：依 id 固定分到 6 隻之一，待機輕輕搖擺、換狀態跳一下、移動時平滑走過去。
  * 輪詢更新時不會自動移動或縮放地圖。MapView 不呼叫任何 API（ARCHITECTURE §3）。
  * 底圖：隨附的大臺北向量底圖（public/maps/taipei.pmtiles），縮小時精簡路名，斷網可用。比賽規則不可用 Google Maps。
  */
@@ -19,16 +20,7 @@ import 'leaflet/dist/leaflet.css'
 import type { Feature, LabelRule } from 'protomaps-leaflet'
 import './motion.css'
 import { MOTION, replayClass } from '../logic/motion'
-import {
-  idlePhaseOf,
-  MAP_STATUS_LABEL,
-  MARKER_KIND_LABEL,
-  penguinOf,
-  pinColorOf,
-  type Location,
-  type Marker,
-  type MarkerKind,
-} from '../logic/mapMarker'
+import { MAP_STATUS_LABEL, MARKER_KIND_LABEL, pinColorOf, type Location, type Marker, type MarkerKind } from '../logic/mapMarker'
 
 const props = defineProps<{
   markers: Marker[]
@@ -41,7 +33,7 @@ const __ATTRIBUTION = '&copy; OpenStreetMap contributors'
 const __TAIPEI: L.LatLngTuple = [25.0375, 121.5637]
 
 /** 每種 kind 的小圖示，畫在 28×36 定位針的圓頭裡（中心約 14, 13.5） */
-const __GLYPH: Record<Exclude<MarkerKind, 'volunteer'> | 'picked', string> = {
+const __GLYPH: Record<MarkerKind | 'picked', string> = {
   supplier: '<path class="tp-map__pin-glyph" d="M8.4 9.2h11.2l-1.1 3.3H9.5z M9.8 13.4h8.4v5.2H9.8z"/>', // 店面
   station: '<path class="tp-map__pin-glyph" d="M14 7.9l6 5.1v5.7H8v-5.7z"/>', // 房子
   elder:
@@ -63,32 +55,6 @@ function __pinHtml(glyph: string): string {
 
 function __icon(className: string, glyph: string): L.DivIcon {
   return L.divIcon({ className, html: __pinHtml(glyph), iconSize: [28, 36], iconAnchor: [14, 35], popupAnchor: [0, -32] })
-}
-
-/**
- * 志工：不用定位針，改成企鵝（public/meal-relay/penguins/penguin-1～6.png，依 id 固定分配一隻）。
- * 腳下的橢圓陰影用狀態顏色（配送中＝藍），換狀態時陰影外擴脈衝＋企鵝跳一下；平常輕輕左右搖擺。
- * 結構：.tp-map__penguin（落下／淡出／懸停）> 陰影、脈衝環、.tp-map__penguin-hop（換狀態跳一下）> img（待機搖擺）
- */
-const __PENGUIN_SIZE = 44
-function __penguinIcon(className: string, m: Marker): L.DivIcon {
-  const src = `${import.meta.env.BASE_URL}meal-relay/penguins/penguin-${penguinOf(m.id)}.png`
-  const phase = idlePhaseOf(m.id).toFixed(3)
-  return L.divIcon({
-    className: `${className} tp-map__pin--volunteer`,
-    html:
-      `<div class="tp-map__penguin" style="--idle-phase:${phase}">` +
-      '<span class="tp-map__penguin-shadow"></span><span class="tp-map__penguin-ring"></span>' +
-      `<span class="tp-map__penguin-hop"><img class="tp-map__penguin-img" src="${src}" alt="" draggable="false" /></span>` +
-      '</div>',
-    iconSize: [__PENGUIN_SIZE, __PENGUIN_SIZE],
-    iconAnchor: [__PENGUIN_SIZE / 2, __PENGUIN_SIZE - 2],
-    popupAnchor: [0, -__PENGUIN_SIZE + 4],
-  })
-}
-
-function __iconOf(m: Marker, className: string): L.DivIcon {
-  return m.kind === 'volunteer' ? __penguinIcon(className, m) : __icon(className, __GLYPH[m.kind])
 }
 
 const __statusText = (m: Marker) => (m.status ? MAP_STATUS_LABEL[m.status] : '')
@@ -120,7 +86,7 @@ function __classOf(m: Marker) {
 
 function __add(m: Marker, animate: boolean) {
   const marker = L.marker([m.location.lat, m.location.lng], {
-    icon: __iconOf(m, `${__classOf(m)}${animate ? ' tp-map__pin--enter' : ''}`),
+    icon: __icon(`${__classOf(m)}${animate ? ' tp-map__pin--enter' : ''}`, __GLYPH[m.kind]),
     title: __aria(m),
     riseOnHover: true,
   })
@@ -134,13 +100,11 @@ function __update(entry: Entry, m: Marker) {
   const prev = entry.data
   entry.data = m
   if (prev.location.lat !== m.location.lat || prev.location.lng !== m.location.lng) {
-    // 志工移動：平滑走過去（只在這次移動加 transition，不影響縮放地圖時的定位）
-    if (m.kind === 'volunteer') __glide(entry.marker)
     entry.marker.setLatLng([m.location.lat, m.location.lng])
   }
   if (prev.kind !== m.kind) {
     // 種類變了（很少見）：換圖示，視為新的定位針
-    entry.marker.setIcon(__iconOf(m, __classOf(m)))
+    entry.marker.setIcon(__icon(__classOf(m), __GLYPH[m.kind]))
   } else if (prev.status !== m.status) {
     // 只換 class，不重建元素：顏色平滑過渡，再播一次脈衝環
     const node = entry.marker.getElement()
@@ -153,16 +117,6 @@ function __update(entry: Entry, m: Marker) {
     entry.marker.getElement()?.setAttribute('aria-label', __aria(m))
     entry.marker.getElement()?.setAttribute('title', __aria(m))
   }
-}
-
-const __GLIDE_MS = 900
-function __glide(marker: L.Marker) {
-  const node = marker.getElement()
-  const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches && !document.querySelector('.tp-motion-preview')
-  if (!node || reduced) return
-  node.classList.add('tp-map__pin--moving')
-  clearTimeout(Number(node.dataset.glideTimer))
-  node.dataset.glideTimer = String(setTimeout(() => node.classList.remove('tp-map__pin--moving'), __GLIDE_MS))
 }
 
 function __remove(id: string) {
