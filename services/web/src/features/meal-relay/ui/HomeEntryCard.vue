@@ -1,20 +1,23 @@
 <script setup lang="ts">
-/** @component MR-C33 HomeEntryCard — 首頁依角色的主要按鈕：進入志工／提供者／據點頁，或一般市民的「我要提供食物」（§9） */
-import { computed } from 'vue'
-import { ArrowRight, HandPlatter } from 'lucide-vue-next'
-import { BaseButton, BaseCard } from '@/ui'
-import type { HomeEntry } from '../logic/home'
+/** @component MR-C33 HomeEntryCard — 首頁依角色的主按鈕：圖示＋文字＋右箭頭（我要提供食物／管理我的食物／進入志工頁／打開報到 QR） */
+/**
+ * 設計 v2（docs/meal-relay/design-v2/README.md §2、§3.1）01 左的青色大按鈕。admin 沒有按鈕，父層不放這個元件。
+ * 整個頁面只有這一個主按鈕，圖示也只放在這裡（當下的主要動作）。
+ */
+import type { Component } from 'vue'
+import { ChevronRight, HandHeart, Package, QrCode } from 'lucide-vue-next'
+import { BaseButton } from '@/ui'
+import type { EntryRole, HomeEntry } from '../logic/home'
 
-const props = defineProps<{ entry: HomeEntry; name?: string }>()
-const greeting = computed(() => (props.entry.kind === 'enter' && props.name ? `${props.name}，你好` : ''))
+defineProps<{ entry: HomeEntry }>()
+
+/** 依角色的方塊圖示：提供食物與管理食物用箱子、志工用愛心手、據點用 QR */
+const ICON: Record<EntryRole, Component> = { citizen: Package, supplier: Package, volunteer: HandHeart, station: QrCode }
 </script>
 
 <template>
-  <BaseCard>
-    <p v-if="greeting" class="font-semibold text-grey-900">{{ greeting }}</p>
-    <p class="text-base text-grey-700" :class="greeting && 'mt-1'">{{ entry.description }}</p>
-    <BaseButton class="mt-3" block :to="entry.to" :icon="entry.kind === 'offer_food' ? HandPlatter : ArrowRight">
-      {{ entry.label }}
-    </BaseButton>
-  </BaseCard>
+  <BaseButton block size="lg" class="rounded-xl px-5 shadow-card" :to="entry.to" :icon="ICON[entry.role]">
+    <span class="min-w-0 flex-1 truncate text-left text-lg font-bold">{{ entry.label }}</span>
+    <ChevronRight class="size-6 shrink-0" aria-hidden="true" />
+  </BaseButton>
 </template>
