@@ -1,10 +1,12 @@
 <script setup lang="ts">
-/** @component MR-C07 MapView — 鄰食地圖：定位針用 icon＋三色、落下／換色脈衝／淡出動畫、我的位置企鵝、可選點 */
+/** @component MR-C07 MapView — 鄰食地圖：定位針用 icon＋三色、落下／換色脈衝／淡出動畫、企鵝頭像（我、任務卡據點）、可選點 */
 /**
  * MapView — 鄰食轉運站地圖（型別與顏色見 ../logic/mapMarker.ts，對齊 docs/system/11-meal-relay.md v2.2）。
  * 長者定位針（kind: 'elder'）只放在管理員登記長者與志工自己的任務（M13）；志工畫面不能出現長者清單（ADR-026）。
  * 定位針不只靠顏色：據點是 HeartHandshake（深灰）、長者是 User（warn／primary），icon 白色 14px（T-126）。
- * kind: 'me' 畫成圓形企鵝頭像（MR-C23 的圖），位置只來自裝置定位，不送後端；沒有滑行、跳躍動畫。
+ * 有 avatar 的定位針畫成圓形企鵝頭像，不上狀態色、沒有滑行、跳躍動畫：
+ *   kind: 'me' 是志工自己的企鵝（MR-C23 的圖，主色細邊），位置只來自裝置定位，不送後端；
+ *   志工任務卡的據點（taskMarkers）是品牌企鵝 mascot.webp（grey-700 細邊）。沒有 avatar 的據點仍是 HeartHandshake 定位針。
  * 已結束的定位針（已全數派出、已過期、已下架的食物點，完成、取消）不畫（visibleMarkers）。
  *
  *   markers: Marker[]                       // { id, kind, location, status?, label?, avatar? }
@@ -89,10 +91,10 @@ function __icon(className: string, glyph: string): L.DivIcon {
   return L.divIcon({ className, html: __pinHtml(glyph), iconSize: [28, 36], iconAnchor: [14, 35], popupAnchor: [0, -32] })
 }
 
-/** 我的位置：圓形企鵝頭像（不是狀態，不上色）；src 只來自 penguinSrc，屬性用 DOM API 設定 */
-function __meIcon(m: Marker): L.DivIcon {
+/** 圓形頭像（我＝志工企鵝、任務卡據點＝品牌企鵝；不是狀態，不上色）；src 只來自 logic 組好的網址，屬性用 DOM API 設定 */
+function __avatarIcon(m: Marker): L.DivIcon {
   const box = document.createElement('div')
-  box.className = 'tp-map__me-face'
+  box.className = `tp-map__me-face${m.kind === 'station' ? ' tp-map__me-face--station' : ''}`
   const img = box.appendChild(document.createElement('img'))
   img.alt = ''
   img.width = 36
@@ -102,7 +104,7 @@ function __meIcon(m: Marker): L.DivIcon {
 }
 
 function __iconOf(m: Marker, animate: boolean): L.DivIcon {
-  if (m.kind === 'me') return __meIcon(m)
+  if (m.kind === 'me' || m.avatar) return __avatarIcon(m)
   return __icon(`${__classOf(m)}${animate ? ' tp-map__pin--enter' : ''}`, __glyphOf(m.kind))
 }
 
@@ -159,7 +161,7 @@ function __update(entry: Entry, m: Marker) {
   if (prev.kind !== m.kind || prev.avatar !== m.avatar) {
     // 種類或頭像變了（很少見）：換圖示，視為新的定位針
     entry.marker.setIcon(__iconOf(m, false))
-  } else if (prev.status !== m.status && m.kind !== 'me') {
+  } else if (prev.status !== m.status && !m.avatar) {
     // 只換 class，不重建元素：顏色平滑過渡，再播一次脈衝環
     const node = entry.marker.getElement()
     node?.classList.remove(...__COLOR_CLASSES)
@@ -190,7 +192,7 @@ function syncMarkers() {
   for (const m of list) {
     const entry = entries.get(m.id)
     if (entry) __update(entry, m)
-    else __add(m, m.kind !== 'me') // 第一次載入：全部同時落下；之後：只有新的落下（我的位置不做動畫）
+    else __add(m, !m.avatar) // 第一次載入：全部同時落下；之後：只有新的落下（頭像不做動畫）
   }
   // 只在第一次載入時調整視野；輪詢更新不移動地圖（ANIMATION §5.6 實作要求 3）
   if (firstLoad && list.length) {

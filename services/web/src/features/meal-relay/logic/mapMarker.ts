@@ -8,11 +8,14 @@
  * | unclaimed、alert（還沒被派出、長者需要處理）        | warn（警示） |
  * | claimed、done、expired、closed、cancelled（結束）   | grey（灰） |
  * | 沒有 status（據點、提供者、沒有食物的點）           | station（深灰 grey-700，是「地點」不是狀態） |
+ * 有 avatar 的定位針畫成圓形頭像、不上狀態色：「我」＝志工自己的企鵝（penguinSrc）；
+ * 志工任務卡（taskMarkers）的據點＝品牌企鵝 mascot.webp（brandSrc），其他地圖的據點仍是深灰定位針。
  * 已結束的食物點（claimed、expired、closed）與 done、cancelled 不畫在地圖上（isEndedMarker）。
  */
 import { onBeforeUnmount, onMounted, ref, type Ref } from 'vue'
 import type { ClaimStatus, Elder, FoodStatus, Location, Station } from '../data/types'
 import { elderTagsOf } from './shared'
+import { brandSrc } from './brand'
 import { penguinSrc } from './volunteerAvatar'
 
 export type { Location }
@@ -34,7 +37,7 @@ export type Marker = {
   location: Location
   status?: MarkerStatus
   label?: string
-  /** kind: 'me' 的頭像圖片網址（MR-C23 企鵝） */
+  /** 圓形頭像圖片網址：kind 'me' 是志工的企鵝（MR-C23）；任務卡的 kind 'station' 是品牌企鵝 mascot.webp */
   avatar?: string
 }
 
@@ -107,17 +110,26 @@ export type TaskMapInput = {
   elder: Pick<Elder, 'id' | 'alias' | 'location' | 'meal_due' | 'care_due' | 'last_seen_at'>
   /** 我的位置：志工 id（決定企鵝）＋裝置定位；拒絕定位或取不到時為 null，就不畫 */
   me?: { id: string; location: Location } | null
-  /** 企鵝圖的 base（import.meta.env.BASE_URL） */
+  /** 企鵝圖（我、據點）的 base（import.meta.env.BASE_URL） */
   base?: string
 }
 
 /**
  * 志工任務卡的定位針：只有據點、這張任務的長者、我（T-126）。
+ * 據點畫成品牌企鵝頭像（brand/mascot.webp），和志工自己的企鵝（penguins/penguin-N.png）分得出來。
  * 長者有任何警示標籤（需要送餐、需要關懷、從未見到）→ alert（warn），否則 ok（primary）。
  */
 export function taskMarkers({ station, elder, me, base = '/' }: TaskMapInput): Marker[] {
   const out: Marker[] = []
-  if (station) out.push({ id: `station:${station.id}`, kind: 'station', location: station.location, label: station.name })
+  if (station) {
+    out.push({
+      id: `station:${station.id}`,
+      kind: 'station',
+      location: station.location,
+      label: station.name,
+      avatar: brandSrc('mascot', base),
+    })
+  }
   out.push({
     id: `elder:${elder.id}`,
     kind: 'elder',
@@ -133,7 +145,7 @@ export function taskMarkers({ station, elder, me, base = '/' }: TaskMapInput): M
 
 export type LegendItem = { key: string; kind: MarkerKind; color: PinColor; label: string; avatar?: string }
 
-/** 圖例：依地圖上真的有的定位針，每種「種類＋顏色」一項，順序：據點、長者、食物點、提供者、我 */
+/** 圖例：依地圖上真的有的定位針，每種「種類＋顏色」一項，順序：據點、長者、食物點、提供者、我；有頭像的項目帶 avatar */
 export function legendOf(markers: readonly Marker[]): LegendItem[] {
   const order: MarkerKind[] = ['station', 'elder', 'point', 'supplier', 'me']
   const seen = new Map<string, LegendItem>()

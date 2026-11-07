@@ -32,7 +32,7 @@
 | MR-C04 | ElderStatusTag | 長者警示標籤：需要送餐／需要關懷／從未見到（M10），只在需要處理時出現 | `features/meal-relay/ui/ElderStatusTag.vue` |
 | MR-C05 | StaleBanner | 斷網時顯示上次更新時間，提醒送出鍵停用（ADR-024） | `features/meal-relay/ui/StaleBanner.vue` |
 | MR-C06 | ImageInput | 拍照或選圖，前端壓縮成 base64（M19，≤ IMAGE_MAX_BYTES） | `features/meal-relay/ui/ImageInput.vue` |
-| MR-C07 | MapView | 鄰食地圖：定位針用 icon＋三色、落下／換色脈衝／淡出動畫、我的位置企鵝、可選點 | `features/meal-relay/ui/MapView.vue` |
+| MR-C07 | MapView | 鄰食地圖：定位針用 icon＋三色、落下／換色脈衝／淡出動畫、企鵝頭像（我、任務卡據點）、可選點 | `features/meal-relay/ui/MapView.vue` |
 | MR-C08 | TabBar | 分頁列：底線滑動、內容交叉淡入 | `features/meal-relay/ui/TabBar.vue` |
 | MR-C09 | BottomSheet | 底部面板：遮罩淡入、面板由下滑入 | `features/meal-relay/ui/BottomSheet.vue` |
 | MR-C10 | SubmitButton | 送出按鈕：送出中停用，超過 300ms 才轉圈 | `features/meal-relay/ui/SubmitButton.vue` |
@@ -76,7 +76,7 @@
 | MR-C55 | FoodThumb | 食物照片縮圖：有照片才顯示，替代文字用食物名稱（M19） | `features/meal-relay/ui/FoodThumb.vue` |
 | MR-C56 | CategoryIcon | 分類 icon＋中文：食物類別、提供者類型、食物點種類（合約 §4，lucide 單色） | `features/meal-relay/ui/CategoryIcon.vue` |
 | MR-C57 | PlacePhoto | 地點照片縮圖（入口、店面）：點一下用底部面板（MR-C09）放大；圖片讀不到就整個隱藏 | `features/meal-relay/ui/PlacePhoto.vue` |
-| MR-C58 | MapLegend | 地圖圖例：定位針的 icon＋文字（據點、長者、我），跟著地圖上真的有的定位針 | `features/meal-relay/ui/MapLegend.vue` |
+| MR-C58 | MapLegend | 地圖圖例：定位針的 icon 或頭像＋文字（據點、長者、我），跟著地圖上真的有的定位針 | `features/meal-relay/ui/MapLegend.vue` |
 | MR-C59 | EndedGroup | 已結束的項目收合成一行「已結束 N 批」，點了才展開 | `features/meal-relay/ui/EndedGroup.vue` |
 | MR-C60 | BrandHeader | 品牌頁首：企鵝＋「鄰食蜂」字標＋頁面標題；banner 變體為淺青底、標題置中 | `features/meal-relay/ui/BrandHeader.vue` |
 | MR-C61 | BrandHero | 首頁主視覺：完整標誌＋兩行標語 | `features/meal-relay/ui/BrandHero.vue` |

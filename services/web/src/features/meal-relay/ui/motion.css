@@ -47,7 +47,7 @@
   pointer-events: none;
 }
 
-/* 我的位置：圓形企鵝頭像（MR-C23 的圖），白框＋主色細邊；不上狀態色、沒有滑行或跳躍動畫 */
+/* 圓形企鵝頭像：我的位置（MR-C23 的圖）白框＋主色細邊；任務卡據點（品牌企鵝）白框＋grey-700 細邊。不上狀態色、沒有滑行或跳躍動畫 */
 .tp-map .tp-map__me {
   background: none;
   border: 0;
@@ -60,6 +60,9 @@
   background: var(--color-white);
   border: 2px solid var(--color-primary-500);
   box-shadow: var(--shadow-card);
+}
+.tp-map .tp-map__me-face--station {
+  border-color: var(--color-grey-700);
 }
 .tp-map .tp-map__me-face img {
   display: block;

@@ -6,6 +6,9 @@ import { isEndedMarker, legendOf, MAP_STATUS_LABEL, MARKER_KIND_LABEL, pinColorO
 import { idlePhaseOf, PENGUIN_COUNT, penguinOf, penguinSrc } from '@/features/meal-relay/logic/volunteerAvatar'
 import { allergenConflicts, claimProgress, timeLeftText } from '@/features/meal-relay/logic/mealLabels'
 import { diffById } from '@/features/meal-relay/logic/motion'
+import { brandSrc } from '@/features/meal-relay/logic/brand'
+import { boardMarkers, rosterMarkers } from '@/features/meal-relay/logic/admin'
+import { stationMarkersOf } from '@/features/meal-relay/logic/home'
 
 // 鄰食轉運站介面元件的邏輯（docs/meal-relay/ui-kit.md）
 
@@ -98,6 +101,28 @@ describe('taskMarkers（志工任務卡地圖：只有據點、長者、我）',
     expect(pinColorOf(ms[0].status)).toBe('station')
     expect(ms[2]).toMatchObject({ id: 'me', location: me.location, avatar: penguinSrc('u-vol-1', '/base/') })
   })
+  it('據點畫成品牌企鵝頭像（mascot.webp），和志工自己的企鵝不同；長者沒有頭像', () => {
+    const ms = taskMarkers({ station, elder: ok, me, base: '/base/' })
+    expect(ms[0].avatar).toBe(brandSrc('mascot', '/base/'))
+    expect(ms[0].avatar).toBe('/base/meal-relay/brand/mascot.webp')
+    expect(ms[0].avatar).not.toBe(ms[2].avatar)
+    expect(ms[1].avatar).toBeUndefined()
+    expect(taskMarkers({ station, elder: ok })[0].avatar).toBe('/meal-relay/brand/mascot.webp')
+  })
+  it('其他地圖（看板、名冊、首頁據點）的據點沒有頭像，仍是深灰定位針', () => {
+    const others = [
+      ...boardMarkers({ stations: [station] as never, points: [], foods: [], elders: [] }),
+      ...rosterMarkers([station] as never, []),
+      ...stationMarkersOf(station),
+    ]
+    expect(others).toHaveLength(3)
+    for (const m of others) {
+      expect(m.kind).toBe('station')
+      expect(m.avatar).toBeUndefined()
+      expect(pinColorOf(m.status)).toBe('station')
+    }
+    expect(legendOf(others)[0].avatar).toBeUndefined()
+  })
   it('拒絕定位或取不到（me = null）：只有據點和長者', () => {
     expect(taskMarkers({ station, elder: ok, me: null }).map((m) => m.kind)).toEqual(['station', 'elder'])
     expect(taskMarkers({ station, elder: ok }).map((m) => m.kind)).toEqual(['station', 'elder'])
@@ -114,6 +139,12 @@ describe('taskMarkers（志工任務卡地圖：只有據點、長者、我）',
   it('圖例跟著定位針：有我才有「我」', () => {
     expect(legendOf(taskMarkers({ station, elder: ok, me })).map((i) => i.label)).toEqual(['據點', '長者', '我'])
     expect(legendOf(taskMarkers({ station, elder: { ...ok, meal_due: true } })).map((i) => i.label)).toEqual(['據點', '長者（需要處理）'])
+  })
+  it('圖例的據點與我都帶頭像；長者沒有', () => {
+    const items = legendOf(taskMarkers({ station, elder: ok, me, base: '/base/' }))
+    expect(items.map((i) => i.avatar)).toEqual([brandSrc('mascot', '/base/'), undefined, penguinSrc('u-vol-1', '/base/')])
+    expect(items[0].label).toBe('據點')
+    expect(items[2].label).toBe('我')
   })
 })
 
