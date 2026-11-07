@@ -49,16 +49,35 @@
 | MR-C21 | PageTransition | 頁面切換：載入骨架 → 內容淡入上移；身分或資料重置時舊畫面淡出再換新（E1、E2、E3） | `features/meal-relay/ui/PageTransition.vue` |
 | MR-C22 | ResetDemoButton | 重置示範資料：送出中轉圈，成功後提示並通知頁面淡出淡入（E3） | `features/meal-relay/ui/ResetDemoButton.vue` |
 | MR-C23 | VolunteerAvatar | 志工的企鵝頭像：依志工 id 固定分到 6 隻之一，可輕輕搖擺 | `features/meal-relay/ui/VolunteerAvatar.vue` |
+| MR-C30 | HomeIntro | 首頁說明：長者不用操作 App，需要送餐或關懷請洽里長或最近的社區關懷據點（§1、§2） | `features/meal-relay/ui/HomeIntro.vue` |
+| MR-C31 | HomeStationList | 首頁的社區關懷據點清單（實體管道，listStations）＋資料來源 | `features/meal-relay/ui/HomeStationList.vue` |
+| MR-C32 | HomeVolunteerInfo | 想當志工：正式版由據點經臺北市志工管理整合平臺招募、在臺北 E 大受訓（§1），本作品不做志工申請 | `features/meal-relay/ui/HomeVolunteerInfo.vue` |
+| MR-C33 | HomeEntryCard | 首頁依角色的主要按鈕：進入志工／提供者／據點頁，或一般市民的「我要提供食物」（§9） | `features/meal-relay/ui/HomeEntryCard.vue` |
+| MR-C35 | SupplierApplyForm | 申請成為提供者：單位名稱、類型、位置（MR-C02）→ applySupplier | `features/meal-relay/ui/SupplierApplyForm.vue` |
+| MR-C36 | PointPicker | 食物點地圖（MR-C07）與清單：選一個食物點上架，或新增食物點（MR-C37） | `features/meal-relay/ui/PointPicker.vue` |
+| MR-C37 | PointCreateForm | 新增食物點：名稱、位置（MR-C02）→ createPoint（kind = custom） | `features/meal-relay/ui/PointCreateForm.vue` |
+| MR-C38 | FoodPublishForm | 上架食物：名稱、類別、過敏原（MR-C01）、份數（MR-C11）、最晚食用時間、圖片（MR-C06） | `features/meal-relay/ui/FoodPublishForm.vue` |
+| MR-C39 | FoodEditSheet | 修改一批食物（份數、最晚食用時間，M14、V21）或確認下架，用 MR-C09 BottomSheet | `features/meal-relay/ui/FoodEditSheet.vue` |
+| MR-C40 | TaskCard | 派送任務卡：長者代號、警示、要做的事、位置（只有這位長者）、過敏、要送的餐、回報 | `features/meal-relay/ui/TaskCard.vue` |
+| MR-C41 | TaskMeal | 任務卡的送餐區：要送的餐（申請列）、過敏原警告、取餐與取消這份餐 | `features/meal-relay/ui/TaskMeal.vue` |
+| MR-C42 | VisitReportSheet | 拜訪回報底部面板：結果三選一、放門口拍照、送出 | `features/meal-relay/ui/VisitReportSheet.vue` |
+| MR-C43 | CheckinPanel | 志工報到：App 掃描據點 QR，沒有 App 時貼上 QR 文字 | `features/meal-relay/ui/CheckinPanel.vue` |
+| MR-C44 | TodayStatus | 志工今天的狀態：報到的據點、報到時間、進行中的任務數、前往我的任務 | `features/meal-relay/ui/TodayStatus.vue` |
+| MR-C45 | StationQrCode | 據點的報到 QR code：斷網時改顯示「連線中斷，QR 無法更新」 | `features/meal-relay/ui/StationQrCode.vue` |
+| MR-C46 | QrCountdown | QR 更新倒數：大字秒數與倒數條 | `features/meal-relay/ui/QrCountdown.vue` |
+| MR-C47 | CheckinList | 今天報到的志工清單，新的在上 | `features/meal-relay/ui/CheckinList.vue` |
+| MR-C48 | CheckinRow | 今天報到的一位志工：企鵝頭像、名字、報到時間 | `features/meal-relay/ui/CheckinRow.vue` |
+| MR-C49 | StationQrCard | 據點名稱、報到 QR code 與更新倒數 | `features/meal-relay/ui/StationQrCard.vue` |
 | MR-C50 | AdminShell | 管理系統外框：電腦瀏覽器寬度為主（最寬 6xl），手機也能用；標題列右側放重置等動作 | `features/meal-relay/ui/AdminShell.vue` |
 | MR-C51 | ReviewPanel | 提供者審核：待審核清單（MR-C19 ReviewList）＋剛審核的結果；離線時只顯示、不能審核 | `features/meal-relay/ui/ReviewPanel.vue` |
 | MR-C52 | BoardPanel | 看板：5 張統計卡（MR-C13）、據點／食物點／長者地圖（MR-C07）、食物去向（MR-C03） | `features/meal-relay/ui/BoardPanel.vue` |
 | MR-C53 | ElderForm | 登記或修改長者：代號、位置（MR-C02）、據點（必填）、過敏原（MR-C01）、下次關懷／送餐時間，附隱私提示 | `features/meal-relay/ui/ElderForm.vue` |
 | MR-C54 | ElderRoster | 長者名冊：每位長者的代號、據點、警示標籤（MR-C04）、過敏原、最近見到與下次時間，加「修改」 | `features/meal-relay/ui/ElderRoster.vue` |
-| MR-P01 | HomePage | 鄰食轉運站首頁（佔位） | `features/meal-relay/ui/HomePage.vue` |
-| MR-P04 | VolunteerPage | 志工頁（佔位） | `features/meal-relay/ui/VolunteerPage.vue` |
-| MR-P05 | TaskPage | 我的任務與拜訪回報（佔位） | `features/meal-relay/ui/TaskPage.vue` |
-| MR-P06 | SupplierPage | 提供者頁（佔位） | `features/meal-relay/ui/SupplierPage.vue` |
-| MR-P07 | StationPage | 據點頁（佔位） | `features/meal-relay/ui/StationPage.vue` |
+| MR-P01 | HomePage | 鄰食轉運站首頁：說明、社區關懷據點、志工從哪裡來、依角色進入（一般市民「我要提供食物」） | `features/meal-relay/ui/HomePage.vue` |
+| MR-P04 | VolunteerPage | 志工頁：掃描據點 QR 報到、今天的狀態、前往我的任務（沒有長者清單或地圖） | `features/meal-relay/ui/VolunteerPage.vue` |
+| MR-P05 | TaskPage | 我的任務：只有進行中的任務，取餐、取消、拜訪回報，回報後任務消失 | `features/meal-relay/ui/TaskPage.vue` |
+| MR-P06 | SupplierPage | 提供者頁：申請與審核狀態、食物點地圖、上架、我的庫存（剩餘／派出中／已送達）、修改、下架 | `features/meal-relay/ui/SupplierPage.vue` |
+| MR-P07 | StationPage | 據點頁：定時更新的報到 QR code（顯示倒數）、今天報到 | `features/meal-relay/ui/StationPage.vue` |
 | MR-P08 | AdminPage | 管理系統：審核提供者、看板與統計、長者名冊（新增、修改）、重置 Demo；只有 admin 能用 | `features/meal-relay/ui/AdminPage.vue` |
 | O01 | BaseSheet | 底部面板 | `ui/organisms/BaseSheet.vue` |
 | O02 | OsmMap | 地圖（隨附臺北向量底圖，縮小時精簡路名；可切換 OSM 圖磚） | `ui/organisms/OsmMap.vue` |
