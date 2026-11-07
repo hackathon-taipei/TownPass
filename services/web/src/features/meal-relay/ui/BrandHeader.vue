@@ -11,7 +11,6 @@
  */
 import { computed } from 'vue'
 import { BRAND_NAME, BRAND_SUBTITLE, brandSrc } from '../logic/brand'
-import MascotBadge from './MascotBadge.vue'
 
 withDefaults(defineProps<{ title: string; variant?: 'wordmark' | 'banner' }>(), { variant: 'wordmark' })
 
