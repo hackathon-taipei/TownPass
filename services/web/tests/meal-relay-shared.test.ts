@@ -5,6 +5,7 @@ import {
   ELDER_TAG_LABEL,
   elderTagsOf,
   fitSize,
+  foodPhotoOf,
   foodQtyText,
   homeRouteOf,
   IMAGE_MAX_BYTES,
@@ -162,5 +163,24 @@ describe('圖片常數（M19、§5）', () => {
     const sorted = [...steps].sort((a, b) => b - a)
     expect(steps).toEqual(sorted)
     expect(steps).toEqual([0.85, 0.7, 0.55, 0.4])
+  })
+})
+
+describe('foodPhotoOf（M19，T-127）', () => {
+  it('沒有照片回 null（畫面不顯示，也不放佔位圖）', () => {
+    expect(foodPhotoOf({ image_url: null, name: '排骨便當' })).toBeNull()
+    expect(foodPhotoOf({ image_url: '', name: '排骨便當' })).toBeNull()
+  })
+  it('有照片：用 imageSrc() 把相對路徑轉成完整網址', () => {
+    const photo = foodPhotoOf({ image_url: '/meal-relay/images/img-1', name: '排骨便當' })
+    expect(photo?.src).toMatch(/^https?:\/\/.+\/meal-relay\/images\/img-1$/)
+  })
+  it('data: 與完整網址原樣使用', () => {
+    expect(foodPhotoOf({ image_url: 'data:image/jpeg;base64,AAAA', name: '刈包' })?.src).toBe('data:image/jpeg;base64,AAAA')
+    expect(foodPhotoOf({ image_url: 'https://example.org/a.jpg', name: '刈包' })?.src).toBe('https://example.org/a.jpg')
+  })
+  it('替代文字用食物名稱；名稱是空的才用「食物照片」', () => {
+    expect(foodPhotoOf({ image_url: '/meal-relay/images/img-1', name: ' 刈包（含花生粉） ' })?.alt).toBe('刈包（含花生粉）')
+    expect(foodPhotoOf({ image_url: '/meal-relay/images/img-1', name: '  ' })?.alt).toBe('食物照片')
   })
 })

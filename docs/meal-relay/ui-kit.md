@@ -14,7 +14,7 @@
 | MR-C11 | `QtyInput` | 份數輸入框：只收 `min`～`max` 的整數；低於下限顯示「不能少於已派出＋已送達的 N 份」 | `v-model`、`min?`（預設 1；改份數時傳 `dispatched_qty + delivered_qty`，M14）、`max?`（預設 999）、`server-error?` | `createFood`、`updateFood`（`QTY_BELOW_USED`） |
 | MR-C12 | `ToastHost` | 提示訊息（`toast('…')`、`toast(message, 'error')`） | — | 所有寫入的成功與錯誤 |
 | MR-C13 | `StatCard` | 統計卡 | `label`、`value`、`tone?` | `getBoard` 的 `stats` |
-| MR-C14 | `FoodRow` | 食物列：剩餘、派出中、已送達三個數字（M1）平滑變化 | `food`、`now`（頁面每秒更新一次） | `listFoods` |
+| MR-C14 | `FoodRow` | 食物列：剩餘、派出中、已送達三個數字（M1）平滑變化；有照片（`image_url`）時左側顯示 48px 縮圖（MR-C55，`rounded-lg`），沒照片維持原本版面（T-127） | `food`、`now`（頁面每秒更新一次） | `listFoods` |
 | MR-C15 | `ClaimRow` | 申請列（志工只看得到自己的 `claimed`、`delivering`，M13） | `claim` | `listMyClaims` |
 | MR-C16 | `AllergenWarning` | 過敏原衝突警告 | 食物與長者的 `allergens`、名稱、`v-model:conflict` | `pickupClaim` 前檢查 |
 | MR-C17 | `VisitResultPicker` | 拜訪結果三選一＋放門口拍照 | `v-model`、`kind`、`category`、`photo-url`、`@photo` | `uploadImage` → `reportVisit` |
@@ -23,6 +23,7 @@
 | MR-C20 | `AllergenChips` | 過敏原晶片勾選（11 類） | `v-model` | `createElder`、`updateElder`（管理員）、`createFood` |
 | MR-C21 | `PageTransition` | 載入骨架、換頁、重置後淡出淡入 | `loading`、`page-key`、`variant` | `getMe`、`resetDemo` |
 | MR-C22 | `ResetDemoButton` | 重置示範資料 | `on-reset`、`@done` | `resetDemo` |
+| MR-C55 | `FoodThumb` | 食物照片縮圖（T-127）：有照片才畫，替代文字用食物名稱；沒照片什麼都不畫 | `food`（`image_url`、`name`）、`size?`（`md` 48px，預設；`lg` 64px） | 照片網址來自 `listFoods`、`listMyAssignments` 的 `image_url`，用 `imageSrc()` 轉換 |
 | MR-C23 | `VolunteerAvatar` | 志工的企鵝頭像：依志工 id 固定分到 6 隻之一，可輕輕搖擺 | `id`、`name?`、`size?`（預設 40）、`idle?`（預設 true） | 據點頁今天報到（`getMyStation` 的 `checkins`）、志工頁 |
 
 邏輯層：`logic/motion.ts`（`MOTION`、`useMotionNumber`、`diffById`、`replayClass`、`reducedMotion`）、`logic/toast.ts`、`logic/mapMarker.ts`（定位針型別、顏色、中文）、`logic/foodQty.ts`（`qtyHint`、`qtyRangeText`、`FOOD_QTY_FIELDS`、`foodQtyCounts`）、`logic/volunteerAvatar.ts`（`penguinOf`、`idlePhaseOf`、`penguinSrc`）、`logic/mealLabels.ts`（合約 §4 的中文、`allergenConflicts`、`claimProgress`、`timeLeftText`）。動畫的 class 在 `ui/motion.css`，每個元件都已匯入。
@@ -109,6 +110,10 @@
 | 13 | QtyInput 用 `min`／`max` 取代 `remaining` | v2.2 沒有手動申請；份數只給上架與改份數，改份數的下限是已派出＋已送達（M14） |
 | 14 | 地圖與食物狀態的中文改成「可派送」「已全數派出」 | 照 v2.2 §4 `FoodStatus` |
 | 15 | 新元件編號 MR-C23 | MR-C24～C29 沒有被預定；第 2 波頁面從 MR-C30 開始（11-meal-relay.md），不會撞號 |
+| 16 | 上架表單先拍照（T-127）：MR-C38 第一步只有「拍照」與「略過」，拍完或略過才展開其他欄位 | 志工到取餐地點看照片就知道拿哪一批，也比較看得出過敏原；漸進式揭示讓提供者先做這一步 |
+| 17 | 照片仍是選填（T-127） | 合約 M19 沒有規定必填；略過時提示一次「有照片，志工比較好找」（同一個頁面只提示一次），不擋上架 |
+| 18 | 食物照片沒有就不顯示（T-127） | 志工任務卡（MR-C41）、食物列（MR-C14）都不放空框或佔位圖；有照片時任務卡的縮圖點了用 MR-C09 BottomSheet 放大 |
+| 19 | 拍照按鈕沿用 MR-C06 ImageInput，不加相機 icon | 工單允許拍照這一步的主要按鈕加 icon，但按鈕在 MR-C06 裡面，不在 T-127 範圍；之後要加再開工單 |
 
 ## 5. 素材來源與授權
 
