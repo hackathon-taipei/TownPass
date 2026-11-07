@@ -1,5 +1,5 @@
 <script setup lang="ts">
-/** @component MR-C56 EndedGroup — 已結束的項目收合成一行「已結束 N 批」，點了才展開 */
+/** @component MR-C59 EndedGroup — 已結束的項目收合成一行「已結束 N 批」，點了才展開 */
 /**
  * T-126「結束的東西預設不出現」：已過期、已下架、已取消的項目不再以淡色佔位。
  * 哪些算結束由 logic/shared.ts 的 isEnded／splitEnded 決定；本元件只管收合與展開，內容放預設 slot。

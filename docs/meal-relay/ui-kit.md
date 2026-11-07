@@ -14,20 +14,35 @@
 | MR-C11 | `QtyInput` | 份數輸入框：只收 `min`～`max` 的整數；低於下限顯示「不能少於已派出＋已送達的 N 份」 | `v-model`、`min?`（預設 1；改份數時傳 `dispatched_qty + delivered_qty`，M14）、`max?`（預設 999）、`server-error?` | `createFood`、`updateFood`（`QTY_BELOW_USED`） |
 | MR-C12 | `ToastHost` | 提示訊息（`toast('…')`、`toast(message, 'error')`） | — | 所有寫入的成功與錯誤 |
 | MR-C13 | `StatCard` | 統計卡 | `label`、`value`、`tone?` | `getBoard` 的 `stats` |
-| MR-C14 | `FoodRow` | 食物列：剩餘、派出中、已送達三個數字（M1）平滑變化 | `food`、`now`（頁面每秒更新一次） | `listFoods` |
+| MR-C14 | `FoodRow` | 食物列：剩餘、派出中、已送達三個數字（M1）平滑變化；有照片（`image_url`）時左側顯示 48px 縮圖（MR-C55，`rounded-lg`），沒照片維持原本版面（T-127） | `food`、`now`（頁面每秒更新一次） | `listFoods` |
 | MR-C15 | `ClaimRow` | 申請列（志工只看得到自己的 `claimed`、`delivering`，M13） | `claim` | `listMyClaims` |
 | MR-C16 | `AllergenWarning` | 過敏原衝突警告 | 食物與長者的 `allergens`、名稱、`v-model:conflict` | `pickupClaim` 前檢查 |
 | MR-C17 | `VisitResultPicker` | 拜訪結果三選一＋放門口拍照 | `v-model`、`kind`、`category`、`photo-url`、`@photo` | `uploadImage` → `reportVisit` |
 | MR-C18 | `SupplierGate` | 提供者申請 → 審核中 → 提供者頁；申請人是一般市民（`citizen`） | `supplier`、`#apply` 插槽、預設插槽 | `applySupplier`、`getMySupplier` |
-| MR-C19 | `ReviewList` | 審核清單 | `items`、`on-decide` | `reviewSupplier` |
+| MR-C19 | `ReviewList` | 審核清單；項目有 `photo` 時左側放店面照片縮圖（MR-C57，ADR-029） | `items`（`{id, name, detail?, photo?}`）、`on-decide` | `reviewSupplier`、`listSuppliers` |
 | MR-C20 | `AllergenChips` | 過敏原晶片勾選（11 類） | `v-model` | `createElder`、`updateElder`（管理員）、`createFood` |
 | MR-C21 | `PageTransition` | 載入骨架、換頁、重置後淡出淡入 | `loading`、`page-key`、`variant` | `getMe`、`resetDemo` |
 | MR-C22 | `ResetDemoButton` | 重置示範資料 | `on-reset`、`@done` | `resetDemo` |
-| MR-C55 | `MapLegend` | 地圖圖例：定位針的 icon＋文字（據點、長者、我），跟著地圖上真的有的定位針（`legendOf`） | `items` | — |
-| MR-C56 | `EndedGroup` | 已結束的項目收合成一行「已結束 N 批」，點了才展開（T-126） | `count`、`unit?`（預設「批」）、預設插槽 | `listFoods`（提供者庫存）、`getBoard`（看板食物去向） |
+| MR-C58 | `MapLegend` | 地圖圖例：定位針的 icon＋文字（據點、長者、我），跟著地圖上真的有的定位針（`legendOf`） | `items` | — |
+| MR-C59 | `EndedGroup` | 已結束的項目收合成一行「已結束 N 批」，點了才展開（T-126） | `count`、`unit?`（預設「批」）、預設插槽 | `listFoods`（提供者庫存）、`getBoard`（看板食物去向） |
 | MR-C23 | `VolunteerAvatar` | 志工的企鵝頭像：依志工 id 固定分到 6 隻之一，可輕輕搖擺 | `id`、`name?`、`size?`（預設 40）、`idle?`（預設 true） | 據點頁今天報到（`getMyStation` 的 `checkins`）、志工頁 |
+| MR-C55 | `FoodThumb` | 食物照片縮圖（T-127）：有照片才畫，替代文字用食物名稱；沒照片什麼都不畫 | `food`（`image_url`、`name`）、`size?`（`md` 48px，預設；`lg` 64px） | 照片網址來自 `listFoods`、`listMyAssignments` 的 `image_url`，用 `imageSrc()` 轉換 |
+| MR-C56 | `CategoryIcon` | 分類 icon＋中文（T-130）：食物類別、提供者類型、食物點種類；單色 `currentColor`、18px、線寬 2，icon `aria-hidden` | `kind`（`food`／`org`／`point`）、`value`、`label?`（預設 true，顯示中文） | 上架表單類別選擇（`createFood`）、提供者申請類型選擇（`applySupplier`） |
+| MR-C57 | `PlacePhoto` | 地點照片縮圖（入口、店面）：點一下用 MR-C09 底部面板放大；圖片讀不到就整個隱藏（T-128，ADR-028；T-129，ADR-029） | `photo`（`logic/placePhoto.ts` 的 `PlacePhoto`：`src`、`alt`、`title`）、`size?`（`sm` 48px 方形，預設；`md` 滿版寬、高 128px） | 志工任務卡的取餐地點（`Food.point_image_url`）、首頁據點清單（`Station.image_url`）、審核清單與提供者頁頁首（`Supplier.image_url`） |
 
 邏輯層：`logic/motion.ts`（`MOTION`、`useMotionNumber`、`diffById`、`replayClass`、`reducedMotion`）、`logic/toast.ts`、`logic/mapMarker.ts`（定位針型別、`pinColorOf`、`isEndedMarker`／`visibleMarkers`、`taskMarkers`、`legendOf`、`useMyLocation`、中文）、`logic/shared.ts`（`isEnded`、`splitEnded`）、`logic/foodQty.ts`（`qtyHint`、`qtyRangeText`、`FOOD_QTY_FIELDS`、`foodQtyCounts`）、`logic/volunteerAvatar.ts`（`penguinOf`、`idlePhaseOf`、`penguinSrc`）、`logic/mealLabels.ts`（合約 §4 的中文、`allergenConflicts`、`claimProgress`、`timeLeftText`）。動畫的 class 在 `ui/motion.css`，每個元件都已匯入。
+
+### 分類 icon（T-130）
+
+對照表在 `logic/mealLabels.ts`（`FOOD_CATEGORY_ICON`、`ORG_TYPE_ICON`、`POINT_KIND_ICON`，經 `logic/shared.ts` 轉出），元件只讀表、不寫死。icon 全部來自已安裝的 `lucide-vue-next`（MIT）。
+
+| 分類 | 值 → icon |
+|---|---|
+| 食物類別 `FoodCategory` | `meal_box` 熟食便當 → `Utensils`、`bakery` 麵包點心 → `Croissant`、`produce` 生鮮蔬果 → `Carrot`、`dry_goods` 乾貨罐頭 → `Package`、`drink` 飲品 → `Milk`、`other` 其他 → `Ellipsis` |
+| 提供者類型 `OrgType` | `person` 個人 → `User`、`school` 學校 → `School`、`agency` 機關 → `Landmark`、`shop` 店家 → `Store`、`other` 其他 → `Building2` |
+| 食物點種類 `PointKind` | `station` 關懷據點 → `HeartHandshake`、`village_office` 里辦公處 → `House`、`school` 學校 → `School`、`custom` 自訂 → `MapPin` |
+
+只用在**選擇分類的地方**：MR-C38 上架表單的類別選擇、MR-C35 提供者申請的類型選擇。清單與晶片（MR-C14 FoodRow、MR-C19 ReviewList、MR-C51 ReviewPanel）不加；`POINT_KIND_ICON` 給 #80 的地圖定位針共用。測試 `tests/meal-relay-shared.test.ts` 會抓合約 §4 的值有沒有遺漏。
 
 ## 2. 動畫對照字詞表
 
@@ -84,7 +99,7 @@
 | 食物點（只在選點時當參考） | 餐盒小圖示 | `open` → `primary`、`unclaimed` → `warn`；已全數派出、已過期、已下架**不畫** |
 | 我的位置 | 圓形企鵝頭像（MR-C23 的圖，`penguinSrc`），白底主色細邊 | 不上狀態色；沒有滑行、跳躍動畫 |
 
-圖例（MR-C55）用同樣的 icon＋文字，只列地圖上真的有的定位針，不再列六種顏色的說明。
+圖例（MR-C58）用同樣的 icon＋文字，只列地圖上真的有的定位針，不再列六種顏色的說明。
 
 ### 各角色的地圖內容（T-126）
 | 角色 | 地圖上有什麼 | 什麼時候出現 |
@@ -125,13 +140,22 @@
 | 13 | QtyInput 用 `min`／`max` 取代 `remaining` | v2.2 沒有手動申請；份數只給上架與改份數，改份數的下限是已派出＋已送達（M14） |
 | 14 | 地圖與食物狀態的中文改成「可派送」「已全數派出」 | 照 v2.2 §4 `FoodStatus` |
 | 15 | 新元件編號 MR-C23 | MR-C24～C29 沒有被預定；第 2 波頁面從 MR-C30 開始（11-meal-relay.md），不會撞號 |
-| 16 | 狀態色只剩三種：primary 進行中／可用、warn 需要處理、grey 結束／背景；據點定位針深灰 `grey-700` | T-126 美術方向（漸進式揭示、情境式引導）：顏色越少，越能一眼看出「要不要處理」 |
-| 17 | 結束的東西預設收合：清單的已過期、已下架、已取消收成一行「已結束 N 批」（MR-C56，`splitEnded`）；地圖不畫已全數派出、已過期、已下架的食物點與完成、取消（`isEndedMarker`） | 不以淡色佔位，需要時點一下展開。已全數派出還有份數在配送、提供者還能修改或下架，所以清單上保留（灰色晶片），只有地圖不畫 |
-| 18 | 各角色只在需要的時刻看到地圖（上表）；拿掉看板總覽地圖，也拿掉上架頁的食物點總覽地圖（MR-C36 改成只有清單） | 地圖只回答「這一步要去哪裡／選哪裡」；看板用統計卡與清單就夠 |
-| 19 | 「我的位置」用 `navigator.geolocation`（`useMyLocation`），只在裝置上畫，不送後端、不存；拒絕或取不到就不畫、不跳錯誤 | 隱私（AGENTS.md 第 5 條）：位置不離開裝置；合約沒有志工位置的 API，也不需要 |
-| 20 | 定位針用 icon＋顏色（據點 HeartHandshake、長者 User、我＝企鵝），圖例也是 icon＋文字 | 不只靠顏色區分；這是地圖定位針，不違反「清單、晶片不加 icon」 |
-| 21 | icon 只放在當下這一步的主要動作按鈕；拿掉首頁說明的 IconBadge、據點清單列的 MapPin、志工資訊外部連結按鈕的 ExternalLink、據點 QR 斷網提示的 WifiOff | T-126 第 4 點；EmptyState（M05）的 icon 是共用元件內建，`ui/**` 不在本工單範圍，保留 |
-| 22 | 任務卡要畫據點，所以 `useMyTasks` 另外讀一次公開的 `listStations`（志工頁本來就會讀），`TaskView` 多一個 `station` | 合約的 `Assignment` 只有 `station_id`、沒有位置；讀不到就不畫據點，不影響任務 |
+| 16 | 上架表單先拍照（T-127）：MR-C38 第一步只有「拍照」與「略過」，拍完或略過才展開其他欄位 | 志工到取餐地點看照片就知道拿哪一批，也比較看得出過敏原；漸進式揭示讓提供者先做這一步 |
+| 17 | 照片仍是選填（T-127） | 合約 M19 沒有規定必填；略過時提示一次「有照片，志工比較好找」（同一個頁面只提示一次），不擋上架 |
+| 18 | 食物照片沒有就不顯示（T-127） | 志工任務卡（MR-C41）、食物列（MR-C14）都不放空框或佔位圖；有照片時任務卡的縮圖點了用 MR-C09 BottomSheet 放大 |
+| 19 | 拍照按鈕沿用 MR-C06 ImageInput，不加相機 icon | 工單允許拍照這一步的主要按鈕加 icon，但按鈕在 MR-C06 裡面，不在 T-127 範圍；之後要加再開工單 |
+| 20 | 分類 icon 統一用 `lucide-vue-next`，不自繪、不用 emoji 或圖片檔（T-130） | 專案已安裝、開源（MIT）、單色跟著文字顏色，不新增顏色；icon 一律搭配中文，不單獨出現 |
+| 21 | 分類 icon 只放在選擇分類的地方（T-130 範圍縮小） | 和 #80 的美術方向一致：清單、晶片不加 icon，避免畫面太花 |
+| 22 | 入口照片（T-128）：有照片才放縮圖，沒有就不顯示、不放佔位圖；點縮圖用 MR-C09 放大 | 合約 v2.3（ADR-028）照片選填；空框會讓志工以為照片沒載入。顯示判斷集中在 `logic/placePhoto.ts`（`placePhotoOf`、`pickupPhotoOf`、`stationPhotoOf`、`pointPhotoOf`），網址一律用 `imageSrc()` |
+| 23 | 新增食物點（MR-C37）的入口照片欄位下方固定顯示拍攝規定 | 「只拍入口或建築外觀，不要拍到人臉、車牌、門牌號碼」（`ENTRANCE_PHOTO_RULE`）；系統無法自動檢查照片內容，只能靠提示 |
+| 24 | 店面照片（T-129）：申請表（MR-C35）選了類型、而且不是「個人」才顯示照片欄位；改選「個人」時已拍的照片不上傳 | ADR-029：避免個人提供者拍到自家住址；後端也會忽略。判斷在 `showsStorefrontPhoto()`、`supplierPhotoOf()`，拍攝規定 `STOREFRONT_PHOTO_RULE` |
+| 25 | 狀態色只剩三種：primary 進行中／可用、warn 需要處理、grey 結束／背景；據點定位針深灰 `grey-700` | T-126 美術方向（漸進式揭示、情境式引導）：顏色越少，越能一眼看出「要不要處理」 |
+| 26 | 結束的東西預設收合：清單的已過期、已下架、已取消收成一行「已結束 N 批」（MR-C59，`splitEnded`）；地圖不畫已全數派出、已過期、已下架的食物點與完成、取消（`isEndedMarker`） | 不以淡色佔位，需要時點一下展開。已全數派出還有份數在配送、提供者還能修改或下架，所以清單上保留（灰色晶片），只有地圖不畫 |
+| 27 | 各角色只在需要的時刻看到地圖（上表）；拿掉看板總覽地圖，也拿掉上架頁的食物點總覽地圖（MR-C36 改成只有清單） | 地圖只回答「這一步要去哪裡／選哪裡」；看板用統計卡與清單就夠 |
+| 28 | 「我的位置」用 `navigator.geolocation`（`useMyLocation`），只在裝置上畫，不送後端、不存；拒絕或取不到就不畫、不跳錯誤 | 隱私（AGENTS.md 第 5 條）：位置不離開裝置；合約沒有志工位置的 API，也不需要 |
+| 29 | 定位針用 icon＋顏色（據點 HeartHandshake、長者 User、我＝企鵝），圖例也是 icon＋文字 | 不只靠顏色區分；這是地圖定位針，不違反「清單、晶片不加 icon」 |
+| 30 | icon 只放在當下這一步的主要動作按鈕；拿掉首頁說明的 IconBadge、據點清單列的 MapPin、志工資訊外部連結按鈕的 ExternalLink、據點 QR 斷網提示的 WifiOff | T-126 第 4 點；EmptyState（M05）的 icon 是共用元件內建，`ui/**` 不在本工單範圍，保留 |
+| 31 | 任務卡要畫據點，所以 `useMyTasks` 另外讀一次公開的 `listStations`（志工頁本來就會讀），`TaskView` 多一個 `station` | 合約的 `Assignment` 只有 `station_id`、沒有位置；讀不到就不畫據點，不影響任務 |
 
 ## 5. 素材來源與授權
 

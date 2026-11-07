@@ -1,5 +1,5 @@
 <script setup lang="ts">
-/** @component MR-C55 MapLegend — 地圖圖例：定位針的 icon＋文字（據點、長者、我），跟著地圖上真的有的定位針 */
+/** @component MR-C58 MapLegend — 地圖圖例：定位針的 icon＋文字（據點、長者、我），跟著地圖上真的有的定位針 */
 /**
  * 圖例項目由 logic/mapMarker.ts 的 legendOf(markers) 組出（T-126：不再列六種顏色的說明）。
  * 小圓點的顏色與定位針相同（primary／warn／grey／據點 grey-700），裡面放同一個白色 icon；「我」用企鵝頭像。

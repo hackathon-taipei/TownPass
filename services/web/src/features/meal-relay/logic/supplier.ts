@@ -2,8 +2,10 @@
  * 提供者頁 MR-P06 的邏輯（T-117）。合約 docs/system/11-meal-relay.md v2.2：
  * §2 提供者、§3 meal_food、M1、M5、M14、M19、§7 錯誤、§8 帳號與食物端點、V4、V21。
  *
- * 一般市民：申請（applySupplier）→ 審核中／未通過（getMySupplier）。審核中不能上架（V4）。
- * 提供者：食物點地圖（listPoints）、選點或新增食物點（createPoint）、上架（uploadImage → createFood）、
+ * 一般市民：申請（有店面照片先 uploadImage → applySupplier，個人不附照片，ADR-029）→ 審核中／未通過（getMySupplier）。
+ *         審核中不能上架（V4）。
+ * 提供者：食物點地圖（listPoints）、選點或新增食物點（有入口照片先 uploadImage → createPoint，ADR-028）、
+ *         上架（uploadImage → createFood）、
  *         我的庫存（listFoods mine）、改份數與最晚食用時間（updateFood，V21）、下架（updateFood closed）。
  * 讀取失敗用裝置上的資料（stale_at）、寫入停用（ADR-024）。錯誤顯示後端回傳的中文訊息（§7）。
  */
@@ -37,6 +39,7 @@ import type {
   SupplierApply,
 } from '../data'
 import { qtyHint, QTY_MAX_DEFAULT } from './foodQty'
+import { showsStorefrontPhoto, supplierPhotoOf } from './placePhoto'
 import type { Marker } from './mapMarker'
 import { toast } from './toast'
 
@@ -115,9 +118,17 @@ export function expiresError(local: string, now: number): string {
 
 /* ---------------------------------------------------------------- 表單 */
 
-export type ApplyForm = { name: string; org_type: OrgType | null; location: Location | null }
-export type PointForm = { name: string; location: Location | null }
+/** 申請表：店面照片選填，個人提供者（person）不顯示也不送（ADR-029） */
+export type ApplyForm = {
+  name: string
+  org_type: OrgType | null
+  location: Location | null
+  image: FoodImage | null
+  image_preview: string | null
+}
 export type FoodImage = { data: string; mime: string }
+/** 新增食物點：入口照片選填（ADR-028），image_preview 是 ImageInput 的預覽 data URL */
+export type PointForm = { name: string; location: Location | null; image: FoodImage | null; image_preview: string | null }
 export type FoodForm = {
   point_id: string | null
   name: string
@@ -132,10 +143,19 @@ export type FoodForm = {
 export type EditForm = { qty: number | null; expires_local: string }
 
 export function emptyApplyForm(): ApplyForm {
-  return { name: '', org_type: null, location: null }
+  return { name: '', org_type: null, location: null, image: null, image_preview: null }
 }
 export function emptyPointForm(): PointForm {
-  return { name: '', location: null }
+  return { name: '', location: null, image: null, image_preview: null }
+}
+
+/** MR-C06 壓縮後的圖片（base64，不含 data: 前綴）寫進表單；null ＝ 移除 */
+export function setFormImage(
+  form: { image: FoodImage | null; image_preview: string | null },
+  payload: { data: string; mime: string } | null,
+): void {
+  form.image = payload ? { data: payload.data, mime: payload.mime } : null
+  form.image_preview = payload ? `data:${payload.mime};base64,${payload.data}` : null
 }
 export function emptyFoodForm(now: number, point_id: string | null = null): FoodForm {
   return {
@@ -166,23 +186,28 @@ function __built<T>(errors: Record<string, string>, body: () => T): Built<T> {
   return Object.keys(bad).length ? { ok: false, errors: bad } : { ok: true, body: body() }
 }
 
-/** 申請表 → POST /suppliers 的內容（後端不收多的欄位） */
-export function buildSupplierApply(form: ApplyForm): Built<SupplierApply> {
+/** 申請表 → POST /suppliers 的內容（後端不收多的欄位）。image_id 由上傳店面照片後補上；個人提供者一律不送 */
+export function buildSupplierApply(form: ApplyForm, image_id: string | null = null): Built<SupplierApply> {
   return __built(
     {
       name: __nameError(form.name, '請輸入單位名稱'),
       org_type: form.org_type ? '' : '請選擇類型',
       location: form.location ? '' : '請在地圖上選位置',
     },
-    () => ({ name: form.name.trim(), org_type: form.org_type!, location: { ...form.location! } }),
+    () => ({
+      name: form.name.trim(),
+      org_type: form.org_type!,
+      location: { ...form.location! },
+      ...(image_id && showsStorefrontPhoto(form.org_type) ? { image_id } : {}),
+    }),
   )
 }
 
-/** 新增食物點 → POST /points（kind 一律 custom） */
-export function buildPointCreate(form: PointForm): Built<PointCreate> {
+/** 新增食物點 → POST /points（kind 一律 custom；image_id 由上傳入口照片後補上，ADR-028） */
+export function buildPointCreate(form: PointForm, image_id: string | null = null): Built<PointCreate> {
   return __built(
     { name: __nameError(form.name, '請輸入食物點名稱'), location: form.location ? '' : '請在地圖上選位置' },
-    () => ({ name: form.name.trim(), kind: 'custom', location: { ...form.location! } }),
+    () => ({ name: form.name.trim(), kind: 'custom', location: { ...form.location! }, ...(image_id ? { image_id } : {}) }),
   )
 }
 
@@ -349,6 +374,8 @@ export function useSupplierPage() {
   })
   const inventory = computed(() => sortInventory(foods.value))
   const totals = computed(() => inventoryTotals(foods.value))
+  /** 提供者頁頁首的店面照片（個人提供者、沒有照片 → null，ADR-029） */
+  const supplierPhoto = computed(() => supplierPhotoOf(supplier.value))
   const selectedPoint = computed(() => points.value.find((p) => p.id === foodForm.point_id) ?? null)
   const markers = computed(() => pointMarkers(points.value, foodForm.point_id))
   const sourceText = computed(() => pointSourceText(points.value))
@@ -443,13 +470,19 @@ export function useSupplierPage() {
     }
   }
 
-  /** 送出提供者申請（citizen） */
+  /** 送出提供者申請（citizen）。有店面照片（且不是個人）先 uploadImage，再 applySupplier（ADR-029） */
   async function apply(): Promise<boolean> {
     const setError = (m: string) => (applyError.value = m)
     if (!__guardWrite(setError)) return false
-    const built = buildSupplierApply(applyForm)
-    if (!built.ok) return (setError(Object.values(built.errors)[0]!), false)
-    const s = await __write(setError, () => applySupplier(built.body))
+    const check = buildSupplierApply(applyForm)
+    if (!check.ok) return (setError(Object.values(check.errors)[0]!), false)
+    const s = await __write(setError, async () => {
+      const photo = applyForm.image && showsStorefrontPhoto(applyForm.org_type) ? applyForm.image : null
+      const img = photo ? await uploadImage(`data:${photo.mime};base64,${photo.data}`) : null
+      const built = buildSupplierApply(applyForm, img?.id ?? null)
+      if (!built.ok) throw new MealApiError('VALIDATION_ERROR', Object.values(built.errors)[0]!, 422)
+      return applySupplier(built.body)
+    })
     if (!s) return false
     supplier.value = s
     Object.assign(applyForm, emptyApplyForm())
@@ -463,14 +496,19 @@ export function useSupplierPage() {
     addingPoint.value = false
   }
 
-  /** 新增食物點（只有 approved 的提供者），成功後直接選它 */
+  /** 新增食物點（只有 approved 的提供者），成功後直接選它。有入口照片先 uploadImage，再 createPoint（ADR-028） */
   async function addPoint(): Promise<boolean> {
     const setError = (m: string) => (pointError.value = m)
     if (!canPublish.value) return (setError(NOT_APPROVED_TEXT), false)
     if (!__guardWrite(setError)) return false
-    const built = buildPointCreate(pointForm)
-    if (!built.ok) return (setError(Object.values(built.errors)[0]!), false)
-    const p = await __write(setError, () => createPoint(built.body))
+    const check = buildPointCreate(pointForm)
+    if (!check.ok) return (setError(Object.values(check.errors)[0]!), false)
+    const p = await __write(setError, async () => {
+      const img = pointForm.image ? await uploadImage(`data:${pointForm.image.mime};base64,${pointForm.image.data}`) : null
+      const built = buildPointCreate(pointForm, img?.id ?? null)
+      if (!built.ok) throw new MealApiError('VALIDATION_ERROR', Object.values(built.errors)[0]!, 422)
+      return createPoint(built.body)
+    })
     if (!p) return false
     points.value = [...points.value, p]
     Object.assign(pointForm, emptyPointForm())
@@ -481,8 +519,7 @@ export function useSupplierPage() {
 
   /** 上架的圖片（MR-C06 壓縮後的 base64，不含 data: 前綴） */
   function setImage(payload: { data: string; mime: string } | null) {
-    foodForm.image = payload ? { data: payload.data, mime: payload.mime } : null
-    foodForm.image_preview = payload ? `data:${payload.mime};base64,${payload.data}` : null
+    setFormImage(foodForm, payload)
   }
 
   /** 上架（V4：審核中不送出）：有圖片先 uploadImage，再 createFood */
@@ -600,6 +637,7 @@ export function useSupplierPage() {
     staleAt,
     offline,
     canPublish,
+    supplierPhoto,
     view,
     inventory,
     totals,

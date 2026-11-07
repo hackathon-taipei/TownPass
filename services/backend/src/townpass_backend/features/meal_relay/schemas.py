@@ -63,6 +63,7 @@ class Supplier(BaseModel):
     status: SupplierStatus
     created_at: datetime
     reviewed_at: datetime | None
+    image_url: str | None = None  # 店面照片 /meal-relay/images/{image_id}；沒有或個人提供者 → null（ADR-029）
 
 
 class Station(BaseModel):
@@ -72,6 +73,7 @@ class Station(BaseModel):
     name: str
     location: Location
     source: str
+    image_url: str | None = None  # 入口照片 /meal-relay/images/{image_id}，沒有 → null（ADR-028）
 
 
 class Point(BaseModel):
@@ -82,6 +84,7 @@ class Point(BaseModel):
     source: str
     created_by: str | None
     open_food_count: int = 0  # 這個點目前 status = open 的食物數（依查詢條件篩選後）
+    image_url: str | None = None  # 入口照片 /meal-relay/images/{image_id}，沒有 → null（ADR-028）
 
 
 class Food(BaseModel):
@@ -107,6 +110,7 @@ class Food(BaseModel):
     status: FoodStatus  # M1
     unclaimed: bool  # M5
     image_url: str | None  # /meal-relay/images/{id}
+    point_image_url: str | None = None  # 食物點（取餐地點）的入口照片，沒有 → null（ADR-028）
 
 
 class Elder(BaseModel):
@@ -270,6 +274,7 @@ class SupplierApply(MealRequest):
     name: str = Field(min_length=1, max_length=60)
     org_type: OrgType
     location: Location
+    image_id: str | None = None  # 店面照片（先 POST /images）；org_type = person 時後端忽略、存 null（ADR-029）
 
 
 class PointCreate(MealRequest):
@@ -278,6 +283,7 @@ class PointCreate(MealRequest):
     name: str = Field(min_length=1, max_length=60)
     kind: PointKind = "custom"
     location: Location
+    image_id: str | None = None  # 入口照片（先 POST /images）；只拍入口或建築外觀（ADR-028）
 
 
 class FoodCreate(MealRequest):

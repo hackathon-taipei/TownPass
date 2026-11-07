@@ -1,5 +1,5 @@
 <script setup lang="ts">
-/** @component MR-C51 ReviewPanel — 提供者審核：待審核清單（MR-C19 ReviewList）＋剛審核的結果；離線時只顯示、不能審核 */
+/** @component MR-C51 ReviewPanel — 提供者審核：待審核清單（MR-C19 ReviewList，含店面照片縮圖）＋剛審核的結果；離線時只顯示、不能審核 */
 /**
  * 管理系統「審核」分頁。onDecide 由父層傳入（logic/admin.ts 的 review → reviewSupplier）。
  * offline（ADR-024）時不顯示通過／不通過按鈕，改成唯讀清單。
@@ -8,6 +8,7 @@ import { computed } from 'vue'
 import { BaseCard, BaseTag, ListItem, SectionTitle } from '@/ui'
 import type { ReviewDecision, Supplier } from '../logic/admin'
 import { ORG_TYPE_LABEL, shortTimeText } from '../logic/admin'
+import { supplierPhotoOf } from '../logic/placePhoto'
 import { SUPPLIER_STATUS_LABEL } from '../logic/shared'
 import ReviewList from './ReviewList.vue'
 
@@ -20,7 +21,7 @@ const props = defineProps<{
 }>()
 
 const detailOf = (s: Supplier) => `${ORG_TYPE_LABEL[s.org_type]}・申請於 ${shortTimeText(s.created_at)}`
-const items = computed(() => props.pending.map((s) => ({ id: s.id, name: s.name, detail: detailOf(s) })))
+const items = computed(() => props.pending.map((s) => ({ id: s.id, name: s.name, detail: detailOf(s), photo: supplierPhotoOf(s) })))
 </script>
 
 <template>

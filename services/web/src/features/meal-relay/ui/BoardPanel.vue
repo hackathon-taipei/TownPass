@@ -1,5 +1,5 @@
 <script setup lang="ts">
-/** @component MR-C52 BoardPanel — 看板：5 張統計卡（MR-C13）、食物去向（MR-C03），已結束的收合（MR-C56） */
+/** @component MR-C52 BoardPanel — 看板：5 張統計卡（MR-C13）、食物去向（MR-C03），已結束的收合（MR-C59） */
 /**
  * 管理系統「看板」分頁，資料來自 getBoard（logic/admin.ts 每 15 秒重新取得）。
  * T-126：拿掉總覽地圖，改用統計卡與清單；管理員只在登記或修改長者位置時看到地圖（MR-C53 的 LocationPicker）。

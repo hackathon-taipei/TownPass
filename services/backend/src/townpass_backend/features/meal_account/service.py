@@ -14,6 +14,7 @@ from townpass_backend.features.meal_relay import (
     repo,
     reset_demo,
     schemas,
+    supplier_image_id,
     to_me,
     to_supplier,
 )
@@ -52,6 +53,7 @@ def apply_supplier(session: Session, account: MealAccount, body: SupplierApply) 
 
     已有申請（任何狀態，含 rejected）→ ALREADY_APPLIED。帳號會記下 `supplier_id`（同種子的 u-sup-3）；
     沒匯入的一般市民在這時寫進 meal_account（role 仍是 citizen），審核通過時才有帳號可改。
+    店面照片 `image_id` 選填；個人提供者（`person`）忽略、存 null（ADR-029）。
     """
     if get_my_supplier(session, account) is not None:
         raise MealError("ALREADY_APPLIED", "這個帳號已經申請過提供者")
@@ -64,6 +66,7 @@ def apply_supplier(session: Session, account: MealAccount, body: SupplierApply) 
         lng=body.location.lng,
         status="pending",
         created_at=now(),
+        image_id=supplier_image_id(body.org_type, body.image_id),
     )
     repo.create_supplier(session, supplier, commit=False)
     __save_account(session, account.id, commit=False, supplier_id=supplier.id)
