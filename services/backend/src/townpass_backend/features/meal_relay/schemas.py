@@ -158,8 +158,9 @@ class Elder(BaseModel):
     last_meal_at: datetime | None
     next_care_at: datetime | None
     next_meal_at: datetime | None
-    primary_volunteer_id: str | None
+    primary_volunteer_id: str | None  # M9：最常照顧的志工（回報次數最多，同次數取最近）
     merged_into: str | None  # 一律 null（ADR-026：合併長者已取消）
+    preferred_volunteer_id: str | None = None  # v2.7（ADR-032）：管理員指定的同據點志工；null = 不指定
     # 計算欄位（M10）
     location: Location
     care_due: bool
@@ -168,6 +169,14 @@ class Elder(BaseModel):
     days_since_seen: int | None  # 從未見到 → null
     days_since_meal: int | None
     pending_request: bool = False  # 欄位保留但一律 false（ADR-025：長者不訂餐）
+
+
+class Volunteer(BaseModel):
+    """GET /volunteers（admin，v2.7）：管理員指定志工用；只有 id、名稱、據點。"""
+
+    id: str
+    name: str
+    station_id: str | None
 
 
 class ClaimElder(BaseModel):
@@ -365,6 +374,8 @@ class ElderCreate(MealRequest):
     station_id: str
     next_care_at: datetime | None = None
     next_meal_at: datetime | None = None
+    # v2.7（ADR-032）：同據點的志工帳號 id；null／不送 = 不指定（派送依最常照顧的志工）
+    preferred_volunteer_id: str | None = Field(default=None, min_length=1, max_length=64)
 
 
 class ElderUpdate(MealRequest):
@@ -378,6 +389,8 @@ class ElderUpdate(MealRequest):
     next_care_at: datetime | None = None
     next_meal_at: datetime | None = None
     primary_volunteer_id: str | None = None
+    # v2.7（ADR-032）：送 null 代表取消指定；改據點時要一起送合法的值或 null
+    preferred_volunteer_id: str | None = Field(default=None, min_length=1, max_length=64)
 
 
 class VisitCreate(MealRequest):

@@ -57,6 +57,14 @@ def approve_supplier(supplier_id: str, _: Admin, session: SessionDep) -> schemas
     return service.approve_supplier(session, supplier_id)
 
 
+@router.get("/volunteers")
+def list_volunteers(
+    _: Admin, session: SessionDep, station_id: str | None = None
+) -> list[schemas.Volunteer]:
+    """admin（v2.7，ADR-032）：志工帳號（id、名稱、據點），給長者名冊選指定志工；`station_id` 篩據點，找不到據點 → 404。"""
+    return service.list_volunteers(session, station_id)
+
+
 @router.post("/suppliers/{supplier_id}/reject")
 def reject_supplier(supplier_id: str, _: Admin, session: SessionDep) -> schemas.Supplier:
     """admin：不通過（只能審 pending，否則 409 INVALID_STATE）；申請人維持 citizen。"""

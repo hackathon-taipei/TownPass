@@ -1,5 +1,7 @@
 # 鄰食轉運站（meal-relay）系統規格與合約
 
+> v2.7 補充（2026-11-08，整合者要求，ADR-032）：**每位長者、每位志工都屬於一個據點**（建立長者據點必填且要存在；種子匯入時檢查，錯了拒絕匯入）。`meal_elder` 新增 `preferred_volunteer_id`?（管理員指定的**同據點**志工，`ElderCreate`／`ElderUpdate` 可帶，`Elder` 回應多這個欄位）；新增 admin 專用 `GET /volunteers?station_id=`（`listVolunteers`）與錯誤代碼 409 `VOLUNTEER_NOT_IN_STATION`。M9 的 `primary_volunteer_id` 改成「最常照顧的志工」（回報次數最多，同次數取最近）；M16 依「指定志工 > 最常照顧的志工」排序。管理系統長者表單多「指定志工」選單（MR-C113）。驗收 V10、V13 更新，新增 V22～V25。
+
 > v2.6 補充（T-140／#115）：管理員可於 `POST /stations`、`PATCH /stations/{id}`、`DELETE /stations/{id}` 管理據點。寫入欄位為名稱、地址、位置；刪除有任何長者、帳號、報到或任務關聯時回409 `STATION_IN_USE`。詳細請求、權限與資料保留規則見 [T-140](../meal-relay/T-140.md)，取代本文件僅允許種子建立據點的限制；既有回應與 QR 合約不改。管理台新增第四分頁 `tab=stations`，選據點可看其長者；長者讀取仍只有管理員。
 
 > 版本 v2.5｜2026-11-08｜v2.5：地址：`meal_station.address`、`meal_point.address`、`meal_supplier.address`（文字，空字串代表沒填）；`Food` 多計算欄位 `point_address`（取餐地點的地址）；`applySupplier`、`createPoint` 可帶選填的 `address`（最長 120 字）。據點與食物點用 T-115 的開放資料機構地址；提供者是模擬地址（標「（模擬）」）；個人提供者（`org_type = person`）後端存空字串，不存住家地址（ADR-030，T-133）。v2.4：提供者店面照片：`meal_supplier.image_id`（選填），`applySupplier` 可帶 `image_id`，`Supplier` 回應多 `image_url`；個人提供者（`org_type = person`）不顯示照片欄位、後端忽略並存 `null`；一般市民可以 `uploadImage`（申請前上傳店面照片）；照片只拍招牌或店門口，不能有人臉、車牌、個人資料（ADR-029，T-129）。v2.3：食物點與據點的入口照片：`meal_point.image_id`、`meal_station.image_id`（選填），`PointCreate` 可帶 `image_id`，`Point`、`Station` 回應多 `image_url`，`Food` 多 `point_image_url`（取餐地點的入口照片）；照片只拍入口或建築外觀，不能有人臉、車牌、門牌號碼（ADR-028，T-128）。v2.2 之後的補充：長者地址 `meal_elder.address`（模擬資料，ADR-027，T-125）。v2.2：長者不使用 App、志工只看得到派給自己的長者、據點 QR 定時更新、提供者看得到庫存去向（ADR-026，T-123）。v2.1：長者不訂餐，餐點一律由系統在志工報到時派發（ADR-025）。整合者 `n753951f` 定案。取代隊長版 `GLOSSARY.md`／`ARCHITECTURE.md` v1.1 的認領模式，沿用其中的拜訪結果、`refresh`、相對時間種子、錯誤代碼與驗收清單。
@@ -37,13 +39,13 @@
 
 | 表 | 欄位 | 說明 |
 |---|---|---|
-| `meal_account` 帳號 | `id` PK（前綴 `u`；或台北通 id）、`role`（預設 `citizen`）、`name`、`station_id`?、`supplier_id`?、`elder_id`?、`created_at` | `station_id`：志工與據點帳號必填。`elder_id` 保留不用（ADR-026） |
+| `meal_account` 帳號 | `id` PK（前綴 `u`；或台北通 id）、`role`（預設 `citizen`）、`name`、`station_id`?、`supplier_id`?、`elder_id`?、`created_at` | `station_id`：志工與據點帳號必填，而且要是存在的據點（每位志工只屬於一個據點；帳號只由種子匯入，匯入時檢查，v2.7）。`elder_id` 保留不用（ADR-026） |
 | `meal_station` 據點 | `id` PK（`st`）、`name`、`lat`、`lng`、`checkin_code`（QR 內容用，見 M15）、`source`（開放資料名稱或「模擬」）、`image_id`?（入口照片，v2.3）、`address`（據點地址，v2.5） | 社區照顧關懷據點。入口照片由管理員或種子資料提供（目前種子沒有照片），規定見 M19。`address` 是開放資料的機構地址，空字串代表沒填（ADR-030） |
 | `meal_supplier` 提供者 | `id` PK（`s`）、`account_id`、`name`、`org_type`、`lat`、`lng`、`status`、`created_at`、`reviewed_at`?、`image_id`?（店面照片，v2.4）、`address`（單位地址，v2.5） | 申請時填單位名稱、類型、位置，可附店面照片（M19）與單位地址（選填，最長 120 字）；個人提供者一律不存照片，也不存地址（ADR-029、ADR-030）。`address` 只存機構或店面地址，不存住家 |
 | `meal_point` 食物點 | `id` PK（`p`）、`name`、`kind`、`lat`、`lng`、`source`、`created_by`?、`image_id`?（入口照片，v2.3）、`address`（食物點地址，v2.5） | 多位提供者共用；開放資料預先載入。提供者新增食物點時可附入口照片（M19）與地址（選填）。`address` 是取餐地點的公開地址，空字串代表沒填（ADR-030） |
 | `meal_food` 食物 | `id` PK（`f`）、`point_id`、`supplier_id`、`name`、`category`、`allergens`（JSON）、`qty`、`expires_at`、`image_id`?、`source_note`、`closed`（下架，預設 false）、`created_at` | `remaining`、`dispatched_qty`、`delivered_qty`、`status`、`unclaimed` 不存，回應時計算（M1、M5） |
 | `meal_image` 圖片 | `id` PK（`img`）、`mime`、`data`（bytes）、`size`、`uploaded_by`、`created_at` | 食物圖片、放門口照片、食物點與據點的入口照片、提供者店面照片（M19） |
-| `meal_elder` 長者 | `id` PK（`e`）、`alias`、`account_id`?、`station_id`、`lat`、`lng`、`address`（文字，可空，ADR-027）、`allergens`（JSON）、`created_by`（管理員帳號 id）、`created_at`、`last_seen_at`?、`last_meal_at`?、`next_care_at`?、`next_meal_at`?、`primary_volunteer_id`?、`merged_into`? | 全部是模擬資料；不存姓名、身分證、電話。`address` 只能是模擬地址（門牌不存在、標「（模擬）」），只有管理員與被派到這位長者的志工看得到（M13、ADR-027）。`account_id`、`merged_into` 保留不用（ADR-026） |
+| `meal_elder` 長者 | `id` PK（`e`）、`alias`、`account_id`?、`station_id`、`lat`、`lng`、`address`（文字，可空，ADR-027）、`allergens`（JSON）、`created_by`（管理員帳號 id）、`created_at`、`last_seen_at`?、`last_meal_at`?、`next_care_at`?、`next_meal_at`?、`primary_volunteer_id`?、`merged_into`?、`preferred_volunteer_id`?（v2.7） | 全部是模擬資料；不存姓名、身分證、電話。`station_id` 必填且要是存在的據點（每位長者只屬於一個據點，v2.7）。`primary_volunteer_id` 是**最常照顧的志工**（M9，系統計算）；`preferred_volunteer_id` 是**管理員指定的志工**，必須是同據點的志工帳號（ADR-032）。`address` 只能是模擬地址（門牌不存在、標「（模擬）」），只有管理員與被派到這位長者的志工看得到（M13、ADR-027）。`account_id`、`merged_into` 保留不用（ADR-026） |
 | `meal_claim` 申請（送餐） | `id` PK（`c`）、`food_id`、`elder_id`、`qty`、`method`、`status`、`requested_by`、`volunteer_id`?、`assignment_id`?、`created_at`、`claimed_at`?、`picked_up_at`?、`done_at`?、`cancel_reason`? | 只由自動派送建立（M17），每筆綁一位長者；`method` 一律 `delivery`、`requested_by` 一律是志工帳號 id（欄位保留，資料表只增不減） |
 | `meal_visit` 拜訪 | `id` PK（`vi`）、`elder_id`、`volunteer_id`、`kind`、`claim_id`?、`assignment_id`?、`result`、`photo_image_id`?、`visited_at` | |
 | `meal_checkin` 報到 | `id` PK（`ck`）、`volunteer_id`（帳號 id）、`station_id`、`checked_in_at` | |
@@ -97,14 +99,14 @@
 | M6 | 過期：`expires_at` 已過，未完成的申請（`claimed`、`delivering`）一律 `cancelled`（`cancel_reason = expired`）。 |
 | M7 | **只有自動派送會建立申請**（M17）：初始狀態 `claimed`、`volunteer_id = 報到的志工`、`assignment_id = 任務`。一般市民、志工、提供者都沒有手動申請的入口，也沒有自取。 |
 | M8 | 狀態轉換：`claimed →(志工取餐) delivering →(回報) done`；`claimed`、`delivering` 可由該志工取消 → `cancelled`，份數退回（M1 自然成立），任務仍保留，可以只做關懷。 |
-| M9 | 拜訪回報：`seen` → 更新 `last_seen_at`，清空 `next_care_at`；`kind = meal` 的 `seen` 或 `left_at_door` → 申請 `done`、更新 `last_meal_at`、清空 `next_meal_at`；`returned` → 申請 `cancelled`（`cancel_reason = returned`）。`seen`、`left_at_door` 會把 `primary_volunteer_id` 設成這位志工。 |
+| M9 | 拜訪回報：`seen` → 更新 `last_seen_at`，清空 `next_care_at`；`kind = meal` 的 `seen` 或 `left_at_door` → 申請 `done`、更新 `last_meal_at`、清空 `next_meal_at`；`returned` → 申請 `cancelled`（`cancel_reason = returned`）。`seen`、`left_at_door` 回報後重算 `primary_volunteer_id`＝**最常照顧的志工**：這位長者全部 `seen`、`left_at_door` 拜訪紀錄（含這次）中回報次數最多的志工，同次數取最近回報的那位（v2.7，原本是「最後回報的志工」；種子的值是沒有拜訪紀錄時的初始值）。回報不改 `preferred_volunteer_id`。 |
 | M10 | 長者警示：`care_due = next_care_at 有值 ? now ≥ next_care_at : (last_seen_at 為空 或 超過 CARE_ALERT_DAYS)`；`meal_due` 同理用 `next_meal_at`、`last_meal_at`、`MEAL_ALERT_DAYS`。`alert = care_due 或 meal_due`。 |
 | M11 | `left_at_door` 必須 `kind = meal`、必須附 `photo_image_id`，生鮮蔬果（`produce`）不能放門口 → `FRESH_CANNOT_LEAVE`。 |
 | M12 | ~~新增長者時的附近重複提示~~：**取消**（ADR-026）。長者只由管理員建立，`POST /elders` 直接回傳建立的長者。 |
 | M13 | 長者的可見範圍：**志工沒有任何列出長者的端點**，只看得到自己 `assigned` 任務上的長者：`listMyAssignments` 只回傳 `assigned` 的任務，`listMyClaims` 只回傳 `claimed`、`delivering` 的申請；任務 `done` 或 `released` 後就不再回傳，長者位置從志工手機上消失。志工回報拜訪只能針對自己 `assigned` 任務上的長者，否則 `NOT_OWNER`。長者名冊（列出、新增、修改）只有管理員。合併長者已取消；`merged_into` 有值的長者一樣不出現、不派送。 |
 | M14 | 提供者只有 `approved` 才能新增食物點、上架、修改、下架；只能改自己的食物。修改可改 `qty`、`expires_at`、`closed`：`qty` 不能小於 `dispatched_qty + delivered_qty` → `QTY_BELOW_USED`；`expires_at` 不能早於現在 → `VALIDATION_ERROR`。 |
 | M15 | 據點 QR 定時更新：內容為 `meal-relay:checkin:<checkin_code>:<token>`；`window = floor(Unix 秒數 / QR_ROTATE_SEC)`，`token = HMAC-SHA256(MEAL_RELAY_QR_SECRET, "<checkin_code>:<window>")` 的前 10 個十六進位字元。報到時接受目前與前一個時間窗的 token；更舊或對不上 → `QR_EXPIRED`；格式不對或 `checkin_code` 找不到 → `NOT_FOUND`；是別的據點 → `WRONG_STATION`。`checkin_code` 由種子產生、不等於據點 id，只出現在 QR 裡。`GET /stations/mine` 回傳 `qr_text` 與 `qr_expires_at`（目前時間窗結束的時間），據點頁到期前重新取得。 |
-| M16 | 自動派送（志工報到時）：候選 = 該據點 `alert = true`、未合併、且沒有被別的志工以 `assigned` 任務持有的長者。排序：①`primary_volunteer_id` 是自己 ②沒有主要志工 ③主要志工今天沒報到；同組內依 `last_seen_at` 為空 > 逾期天數多 > 離據點近。取前 `DISPATCH_LIMIT` 位。主要志工今天已報到的長者留給他。 |
+| M16 | 自動派送（志工報到時）：候選 = 該據點 `alert = true`、未合併、且沒有被別的志工以 `assigned` 任務持有的長者。**負責志工**＝`preferred_volunteer_id`（管理員指定），沒有就用 `primary_volunteer_id`（最常照顧的志工，M9）（v2.7）。排序：①負責志工是自己 ②沒有負責志工 ③負責志工今天沒報到；同組內依 `last_seen_at` 為空 > 逾期天數多 > 離據點近。取前 `DISPATCH_LIMIT` 位。負責志工今天已報到的長者留給他。`GET /assignments/mine` 的排序用同一套分組。 |
 | M17 | 派送任務內容：`meal_due` → 自動挑食物（`open`、`remaining ≥ 1`、無過敏衝突，依離據點近、到期早排序）建立 `claimed` 的送餐申請；找不到合適食物 → `claim_id` 為空，任務仍保留關懷。自動建立的申請 `requested_by` 是志工帳號 id、`assignment_id` 是任務 id。同一位志工重複報到時回傳既有的進行中任務，不重複派送。 |
 | M18 | 任務完成：該長者有一筆拜訪回報就 `done`。任務超過 `expires_at` 未完成 → `released`：還沒取餐（`claimed`）的申請取消、份數退回；已在 `delivering` 的不動。 |
 | M19 | 圖片：前端壓縮後以 base64 上傳，後端檢查 mime 為 `image/jpeg`、`image/png`、`image/webp` 且大小 ≤ `IMAGE_MAX_BYTES`。**入口照片**（`meal_point`、`meal_station` 的 `image_id`，v2.3）：只拍入口或建築外觀，不能拍到人臉、車牌、門牌號碼；示範資料只用團隊自己拍的或開放授權的照片，並登記來源（ADR-028）。**店面照片**（`meal_supplier.image_id`，v2.4）：只拍招牌或店門口，不能拍到人臉、車牌，也不能出現個人資料；`org_type = person` 時前端不顯示照片欄位，後端忽略送來的 `image_id`、存 `null`，回應的 `image_url` 一律 `null`（避免拍到自家住址，ADR-029）。回應的 `image_url` 是 `/meal-relay/images/{image_id}`，沒有照片 → `null`，畫面有照片才顯示、不留空框。 |
@@ -135,6 +137,7 @@
 | `FRESH_CANNOT_LEAVE` | 409 | M11 |
 | `PHOTO_REQUIRED` | 422 | M11 |
 | `IMAGE_TOO_LARGE` | 413 | M19 |
+| `VOLUNTEER_NOT_IN_STATION` | 409 | v2.7：指定志工不是長者所屬據點的志工（含改據點時沒有一起換指定志工，ADR-032） |
 | `OFFLINE` | 0（只在前端） | 連不上後端；讀取改用裝置上的資料，寫入直接失敗 |
 
 ## 8. 端點（前綴 `/meal-relay`，全部要帶 `X-Demo-User`）
@@ -159,8 +162,9 @@
 | `pickupClaim` | `POST /claims/{id}/pickup` | volunteer（自己的） | `meal_claim` |
 | `cancelClaim` | `POST /claims/{id}/cancel` | volunteer（自己的） | `meal_claim` |
 | `listElders` | `GET /elders` | admin | `meal_elder` |
-| `createElder` | `POST /elders`（回傳 `Elder`） | admin | `meal_elder` |
-| `updateElder` | `PATCH /elders/{id}` | admin | `meal_elder` |
+| `createElder` | `POST /elders`（回傳 `Elder`；`station_id` 必填且要存在，否則 422／404；可帶 `preferred_volunteer_id`，v2.7） | admin | `meal_elder` |
+| `updateElder` | `PATCH /elders/{id}`（`station_id` 不可為 null；`preferred_volunteer_id` 送 null 取消指定；改據點時要一起送新據點的志工或 null，否則 409 `VOLUNTEER_NOT_IN_STATION`） | admin | `meal_elder` |
+| `listVolunteers` | `GET /volunteers?station_id=`（v2.7：選指定志工用，只回 `Volunteer`；據點不存在 → 404） | admin | `meal_account` |
 | `reportVisit` | `POST /visits`（只限自己 `assigned` 任務上的長者，M13） | volunteer | `meal_elder` |
 | `listStations` | `GET /stations` | 全部 | `meal_dispatch` |
 | `getMyStation` | `GET /stations/mine`（含 `qr_text`、`qr_expires_at`、今天的報到，M15） | station | `meal_dispatch` |
@@ -179,7 +183,9 @@
 - `Station`：`{id, name, location, source, image_url}`（不含 `checkin_code`；`image_url` 是入口照片，沒有 → `null`，v2.3）
 - `Point`：`{id, name, kind, location, source, created_by, open_food_count, image_url}`（`image_url` 同上，v2.3）
 - `PointCreate`：`{name, kind?, location, image_id?}`（`image_id` 選填，v2.3）
-- `Elder`：資料表欄位（含 `address`）＋ `location`、`care_due`、`meal_due`、`alert`、`days_since_seen`、`days_since_meal`（`pending_request` 欄位保留但一律 `false`，ADR-025；`account_id`、`merged_into` 一律 `null`，ADR-026）
+- `Elder`：資料表欄位（含 `address`、`preferred_volunteer_id`，v2.7）＋ `location`、`care_due`、`meal_due`、`alert`、`days_since_seen`、`days_since_meal`（`pending_request` 欄位保留但一律 `false`，ADR-025；`account_id`、`merged_into` 一律 `null`，ADR-026）
+- `Volunteer`（v2.7）：`{id, name, station_id}`（只給管理員；志工沒有列出志工或長者的端點，M13）
+- `ElderCreate`／`ElderUpdate` 的 `preferred_volunteer_id`（v2.7）：`string | null`，1～64 字；必須是同據點的志工帳號：不是志工或不存在 → 404 `NOT_FOUND`，別的據點 → 409 `VOLUNTEER_NOT_IN_STATION`
 - `Claim`：資料表欄位 ＋ `food`（`Food`）、`elder`（`{id, alias, location}`）
 - `Assignment`：資料表欄位 ＋ `elder`（`Elder`）、`claim`（`Claim|null`）
 - `CheckInResult`：`{checkin, station, assignments: Assignment[]}`
@@ -232,7 +238,7 @@
 | `points.json` | 食物點 | 6，含據點、里辦、學校、自訂；`address` 同樣用 T-115 的地址（v2.5） |
 | `foods.json` | 食物 | 6，含便當、生鮮、有過敏原的、快過期的；`f-1`～`f-4` 用 `image_file` 指向 `images/` 裡的照片（只在匯入時用，不進資料表） |
 | `images/*.jpg` | 示範食物的照片 | `f-1`～`f-4` 各 1 張，團隊提供；匯入時寫進 `meal_image`（id `img-seed-<食物 id>`、`mime = image/jpeg`）並填回 `image_id`；`f-5`、`f-6` 沒有照片 |
-| `elders.json` | 長者（模擬，`created_by` 是管理員） | 12：從未見到 2、逾期 3、最近才見過 3、有下次時間 2、有過敏 2；`u-vol-1` 是其中 4 位的主要志工 |
+| `elders.json` | 長者（模擬，`created_by` 是管理員） | 12：從未見到 2、逾期 3、最近才見過 3、有下次時間 2、有過敏 2；`u-vol-1` 是其中 4 位的主要志工（最常照顧）；指定志工 3 位（v2.7）：`e-3` → `u-vol-2`、`e-8` → `u-vol-1`（最常照顧的是 `u-vol-2`，示範指定優先）、`e-11` → `u-vol-3`。每位長者、志工與據點帳號都屬於存在的據點，匯入時檢查 |
 | `claims.json` | 申請 | 0（申請只由派送產生；檔案保留為空陣列） |
 
 時間可寫相對值：`"now"`、`"now+90m"`、`"now-2d"`，匯入時換算。種子的食物點、據點、提供者不放照片（`image_id` 一律空）；示範食物 `f-1`～`f-4` 有照片，是 `seed/images/` 裡團隊提供的 JPEG，匯入時寫進 `meal_image`，來源登記在 `data/SOURCES.md`。已部署的資料庫要管理員執行一次「重置示範資料」才會出現食物照片。之後要放示範用的入口照片，只能用團隊自己拍的或開放授權的圖，並登記在 `data/SOURCES.md`（ADR-028）。座標用開放資料的真實位置；長者座標放在路上或公共空間，不對應任何住家。`POST /demo/reset` 清空 `meal_` 開頭的表並重新匯入。已經有資料的資料庫（例如已部署的 Render）啟動時不重新匯入，只把 v2.1 以前的 `elder` 帳號改成 `citizen`（ADR-026）；要換成 v2.2 的種子，請管理員執行一次重置。v2.5 的地址（據點、食物點、提供者的 `address`）也一樣：已部署的資料庫啟動時只補欄位（值是空字串），種子地址要管理員執行「重置示範資料」後才會出現（ADR-030）。
@@ -250,10 +256,10 @@
 | V7 | 志工取消申請 | `remaining` 加回，任務仍在 |
 | V8 | 上架後超過 `CLAIM_WINDOW_SEC` | `unclaimed = true`，仍可被派送 |
 | V9 | 把 `expires_at` 設成過去再呼叫任一 API | 食物 `expired`，未完成申請 `cancelled` |
-| V10 | 回報 `seen` | `last_seen_at` 更新、`alert` 依 M10 重算、`primary_volunteer_id` 是該志工 |
+| V10 | 回報 `seen` | `last_seen_at` 更新、`alert` 依 M10 重算、`primary_volunteer_id` 是最常照顧的志工（沒有其他紀錄時就是該志工；別人回報次數比較多時不變，v2.7） |
 | V11 | 生鮮回報 `left_at_door` | 409 `FRESH_CANNOT_LEAVE` |
 | V12 | 掃其他據點的 QR | 403 `WRONG_STATION` |
-| V13 | `u-vol-1` 報到 | 先拿到自己是主要志工的警示長者，最多 `DISPATCH_LIMIT` 位 |
+| V13 | `u-vol-1` 報到 | 先拿到自己是負責志工（指定志工，沒有就最常照顧的志工）的警示長者，最多 `DISPATCH_LIMIT` 位 |
 | V14 | `u-vol-1` 已報到後 `u-vol-2` 報到 | 不會拿到 `u-vol-1` 持有或主要服務的長者 |
 | V15 | 同一志工重複報到 | 回傳同一批任務 |
 | V16 | 任務過了 `expires_at` | `released`，還沒取餐的申請取消、份數退回 |
@@ -262,6 +268,10 @@
 | V19 | 志工呼叫 `GET /elders` | 403 `FORBIDDEN_ROLE` |
 | V20 | 志工回報後再呼叫 `GET /assignments/mine` | 不再回傳那個任務；回報不屬於自己任務的長者 → 403 `NOT_OWNER` |
 | V21 | 提供者把份數改成小於已派出加已送達 | 409 `QTY_BELOW_USED`；`Food` 的 `dispatched_qty`、`delivered_qty` 與申請狀態一致 |
+| V22 | 建立長者沒給據點／據點不存在；種子的長者或志工據點錯誤 | 422 `VALIDATION_ERROR`／404 `NOT_FOUND`；種子匯入失敗、不寫進資料庫（v2.7） |
+| V23 | 指定志工是別據點的志工／不是志工；改據點但沒換指定志工；非 admin 設定 | 409 `VOLUNTEER_NOT_IN_STATION`／404 `NOT_FOUND`／409／403 `FORBIDDEN_ROLE`（v2.7） |
+| V24 | 長者指定 `u-vol-2`、最常照顧的是 `u-vol-1` | `u-vol-2` 報到排第 ①；`u-vol-1` 報到時排第 ③；`u-vol-2` 今天已報到 → 不派給 `u-vol-1`（v2.7） |
+| V25 | `u-vol-2` 回報 2 次、`u-vol-1` 回報 1 次 | `primary_volunteer_id = u-vol-2`；同次數取最近回報的志工（v2.7） |
 
 ## 12. 工單與平行開發波次
 

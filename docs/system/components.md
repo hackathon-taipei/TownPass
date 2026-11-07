@@ -71,8 +71,8 @@
 | MR-C50 | AdminShell | 管理系統白底外框：鄰食蜂頁首（MR-C60）＋右側動作；寬度 ≥ 1024px 多欄，以下一欄 | `features/meal-relay/ui/AdminShell.vue` |
 | MR-C51 | ReviewPanel | 待審核表格：單位名稱（店面照片 MR-C57）、類型、位置（地址，沒有就座標）、通過／不通過（先確認 MR-C67）＋剛審核的結果；離線時按鈕停用 | `features/meal-relay/ui/ReviewPanel.vue` |
 | MR-C52 | BoardPanel | 服務看板：今天的服務概況（5 張統計卡 MR-C13＋地圖 MR-C07 與圖例 MR-C58）、食物去向（照片、剩餘｜已派送｜已送達），已結束的收合（MR-C59） | `features/meal-relay/ui/BoardPanel.vue` |
-| MR-C53 | ElderForm | 長者表單：代號（長者 id，唯讀）、稱呼、所屬據點、模擬地址、過敏原（MR-C01）、下次關懷時間；「更多設定」（MR-C65）裡是下次送餐時間與位置（MR-C02）；「儲存變更」 | `features/meal-relay/ui/ElderForm.vue` |
-| MR-C54 | ElderRoster | 長者名冊清單：「新增長者」、每位長者的人像圖示、稱呼、代號與據點、狀態（需要送餐／需要關懷／近期已見到）、右箭頭；點一位發 edit | `features/meal-relay/ui/ElderRoster.vue` |
+| MR-C53 | ElderForm | 長者表單：代號（長者 id，唯讀）、稱呼、所屬據點、指定志工（MR-C113）、模擬地址、過敏原（MR-C01）、下次關懷時間；「更多設定」（MR-C65）裡是下次送餐時間與位置（MR-C02）；「儲存變更」 | `features/meal-relay/ui/ElderForm.vue` |
+| MR-C54 | ElderRoster | 長者名冊清單：「新增長者」、每位長者的人像圖示、稱呼、代號與據點、負責志工（指定志工／最常照顧）、狀態（需要送餐／需要關懷／近期已見到）、右箭頭；點一位發 edit | `features/meal-relay/ui/ElderRoster.vue` |
 | MR-C55 | FoodThumb | 食物照片縮圖：有照片才顯示，替代文字用食物名稱（M19） | `features/meal-relay/ui/FoodThumb.vue` |
 | MR-C56 | CategoryIcon | 分類 icon＋中文：食物類別、提供者類型、食物點種類（合約 §4，lucide 單色） | `features/meal-relay/ui/CategoryIcon.vue` |
 | MR-C57 | PlacePhoto | 地點照片縮圖（入口、店面）：點一下用底部面板（MR-C09）放大；圖片讀不到就整個隱藏 | `features/meal-relay/ui/PlacePhoto.vue` |
@@ -109,6 +109,7 @@
 | MR-C110 | StationManager | 據點管理：地圖／清單選據點、新增修改位置、刪除確認及所屬長者 | `features/meal-relay/ui/StationManager.vue` |
 | MR-C111 | StationManageForm | 據點名稱、地址、地圖選取座標與儲存／取消 | `features/meal-relay/ui/StationManageForm.vue` |
 | MR-C112 | StationElderList | 所選據點長者清單（僅管理員）：代稱、過敏原、送餐及關懷狀態 | `features/meal-relay/ui/StationElderList.vue` |
+| MR-C113 | PreferredVolunteerField | 長者表單的「指定志工」下拉選單：只列所屬據點的志工，預設「不指定（由系統依最常照顧的志工派送）」；下方顯示目前最常照顧的志工 | `features/meal-relay/ui/PreferredVolunteerField.vue` |
 | MR-P01 | HomePage | 鄰食蜂首頁：主視覺、依角色的主按鈕、長者不用操作 App、附近關懷據點（點開看位置）、想成為志工？ | `features/meal-relay/ui/HomePage.vue` |
 | MR-P04 | VolunteerPage | 志工首頁「今天的服務」：問候、報到卡（據點、報到時間、N 件待完成）、掃碼報到、步驟列（沒有長者清單或地圖） | `features/meal-relay/ui/VolunteerPage.vue` |
 | MR-P05 | TaskPage | 我的任務：收合式任務卡（一次展開一張）、確認已取餐、取消這份餐（先確認）、回報拜訪；最後一張回報完顯示完成畫面 | `features/meal-relay/ui/TaskPage.vue` |

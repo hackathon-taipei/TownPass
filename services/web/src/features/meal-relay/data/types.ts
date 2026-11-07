@@ -131,8 +131,11 @@ export interface Elder {
   last_meal_at: IsoDateTime | null
   next_care_at: IsoDateTime | null
   next_meal_at: IsoDateTime | null
+  /** M9（v2.7）：最常照顧的志工＝ seen／left_at_door 回報次數最多的志工（同次數取最近回報） */
   primary_volunteer_id: string | null
   merged_into: string | null
+  /** v2.7（ADR-032）：管理員指定的同據點志工；null = 不指定（派送依最常照顧的志工，M16） */
+  preferred_volunteer_id: string | null
   location: Location
   /** M10 */
   care_due: boolean
@@ -325,6 +328,8 @@ export interface ElderCreate {
   station_id: string
   next_care_at?: IsoDateTime | null
   next_meal_at?: IsoDateTime | null
+  /** v2.7（ADR-032）：同據點的志工帳號 id；null／不送 = 不指定 */
+  preferred_volunteer_id?: string | null
 }
 
 export interface ElderUpdate {
@@ -337,6 +342,15 @@ export interface ElderUpdate {
   next_care_at?: IsoDateTime | null
   next_meal_at?: IsoDateTime | null
   primary_volunteer_id?: string | null
+  /** v2.7（ADR-032）：送 null 代表取消指定；改據點時要一起送新據點的志工或 null，否則 409 VOLUNTEER_NOT_IN_STATION */
+  preferred_volunteer_id?: string | null
+}
+
+/** GET /volunteers（admin，v2.7）：選長者的指定志工用；只有 id、名稱、據點 */
+export interface Volunteer {
+  id: string
+  name: string
+  station_id: string | null
 }
 
 export interface VisitCreate {

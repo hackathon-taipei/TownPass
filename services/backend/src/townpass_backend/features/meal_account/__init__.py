@@ -10,6 +10,7 @@
 | `GET /suppliers/mine` | citizen、supplier（沒有申請回傳 null） |
 | `GET /suppliers?status=` | admin |
 | `POST /suppliers/{id}/approve`、`/reject` | admin（只能審 pending） |
+| `GET /volunteers?station_id=` | admin（v2.7：選長者的指定志工，ADR-032） |
 
 資料與共用規則都在 `meal_relay`（只從它的套件根 import，B5）。這個套件沒有自己的資料表與種子。
 """

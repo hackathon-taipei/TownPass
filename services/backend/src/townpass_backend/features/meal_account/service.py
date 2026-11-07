@@ -17,6 +17,7 @@ from townpass_backend.features.meal_relay import (
     supplier_image_id,
     to_me,
     to_supplier,
+    to_volunteer,
 )
 
 MealAccount = models.MealAccount
@@ -33,6 +34,13 @@ SupplierStatus = schemas.SupplierStatus
 def get_me(session: Session, account: MealAccount) -> Me:
     """GET /me。沒匯入的 id 由 `CurrentAccount` 給一般市民 citizen（V2）；沒有 elder 欄位（ADR-026）。"""
     return to_me(session, account)
+
+
+def list_volunteers(session: Session, station_id: str | None = None) -> list[schemas.Volunteer]:
+    """GET /volunteers（admin，ADR-032）：志工帳號，可依據點篩選；據點不存在 → NOT_FOUND。"""
+    if station_id is not None and repo.get_station(session, station_id) is None:
+        raise MealError("NOT_FOUND", "找不到這個據點")
+    return [to_volunteer(row) for row in repo.list_accounts(session, role="volunteer", station_id=station_id)]
 
 
 def reset(session: Session) -> DemoResetResult:

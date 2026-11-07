@@ -30,6 +30,7 @@ const wide = useWideLayout()
 const {
   access, accountId, accessError, now, version, offline, staleAt, pending, reviewed, board, markers, foods, sourceText,
   errors, roster, stations, draft, editing, formErrors, formMarkers, saving, formOpen, confirmingReset, resetting,
+  volunteers, volunteersError, formVolunteers, formCaretaker,
 } = admin
 
 const tabs = computed(() => adminTabs(pending.value.length))
@@ -112,6 +113,7 @@ onBeforeUnmount(() => admin.stop())
                     :stations="stations"
                     :active-id="editing?.id ?? null"
                     :error="errors.elders"
+                    :volunteers="volunteers"
                     @edit="admin.startEdit"
                     @add="admin.startNew()"
                   />
@@ -126,6 +128,9 @@ onBeforeUnmount(() => admin.stop())
                   :elder-id="editing?.id ?? null"
                   :saving="saving"
                   :disabled="offline"
+                  :volunteers="formVolunteers"
+                  :caretaker="formCaretaker"
+                  :volunteer-error="volunteersError"
                   @submit="admin.saveElder()"
                   @cancel="admin.resetForm()"
                 />
@@ -147,6 +152,9 @@ onBeforeUnmount(() => admin.stop())
         :elder-id="editing?.id ?? null"
         :saving="saving"
         :disabled="offline"
+        :volunteers="formVolunteers"
+        :caretaker="formCaretaker"
+        :volunteer-error="volunteersError"
         @submit="admin.saveElder()"
         @cancel="admin.resetForm(); formOpen = false"
       />

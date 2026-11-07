@@ -59,7 +59,9 @@
 | 報到 | check-in | 志工在據點掃定時更新的 QR code（M15） |
 | 自動派送 | dispatch | 報到時系統把需要送餐或關懷的長者派給志工（M16） |
 | 派送任務 | assignment | 自動派送的一位長者；完成或逾時釋出 |
-| 主要志工 | primary volunteer | 最近一次送達或見到某長者的志工，派送時優先派給他 |
+| 主要志工（最常照顧的志工） | primary volunteer | 見到本人或放門口回報次數最多的志工（同次數取最近回報），存在 `primary_volunteer_id`（M9 v2.7，ADR-032） |
+| 指定志工 | preferred volunteer | 管理員在長者名冊指定的同據點志工（`preferred_volunteer_id`），派送時優先於主要志工 |
+| 負責志工 | effective volunteer | 派送時看的志工：有指定志工就是他，沒有就是主要志工（M16） |
 | 警示 | alert | 長者該關懷或該送餐了（M10） |
 | 店面照片 | storefront photo | 提供者申請時附的招牌或店門口照片（選填），管理員審核時看；個人提供者沒有這個欄位（ADR-029） |
 | 入口照片 | entrance photo | 食物點或據點入口的照片（選填），志工到現場對照用；只拍入口或建築外觀，不能有人臉、車牌、門牌號碼（ADR-028） |
