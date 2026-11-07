@@ -1,7 +1,7 @@
 [
   {
     "id": "f-1",
-    "image_id": "img-seed-f-1",
+    "image_file": "images/f-1-paigu-bento.jpg",
     "point_id": "p-1",
     "supplier_id": "s-1",
     "name": "排骨便當（模擬）",
@@ -14,7 +14,7 @@
   },
   {
     "id": "f-2",
-    "image_id": "img-seed-f-2",
+    "image_file": "images/f-2-veg-bento.jpg",
     "point_id": "p-1",
     "supplier_id": "s-1",
     "name": "素食便當（模擬）",
@@ -27,7 +27,7 @@
   },
   {
     "id": "f-3",
-    "image_id": "img-seed-f-3",
+    "image_file": "images/f-3-greens.jpg",
     "point_id": "p-4",
     "supplier_id": "s-2",
     "name": "當季青菜一袋（模擬）",
@@ -40,7 +40,7 @@
   },
   {
     "id": "f-4",
-    "image_id": "img-seed-f-4",
+    "image_file": "images/f-4-guabao.jpg",
     "point_id": "p-3",
     "supplier_id": "s-1",
     "name": "刈包（活動多出來的）",
@@ -53,7 +53,6 @@
   },
   {
     "id": "f-5",
-    "image_id": "img-seed-f-5",
     "point_id": "p-4",
     "supplier_id": "s-2",
     "name": "保久乳（模擬）",
@@ -66,7 +65,6 @@
   },
   {
     "id": "f-6",
-    "image_id": "img-seed-f-6",
     "point_id": "p-5",
     "supplier_id": "s-2",
     "name": "鮪魚罐頭（模擬）",

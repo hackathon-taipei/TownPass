@@ -743,6 +743,20 @@ def __seed_row(model: type[SQLModel], record: dict[str, Any], at: datetime) -> S
     return model(**data)
 
 
+def __seed_image(folder: Path, record: dict[str, Any]) -> MealImage | None:
+    """種子的 `image_file`（相對 seed/ 的路徑）→ 建一筆 meal_image，並把 `image_id` 填回這筆資料。
+
+    Demo 用的食物照片（團隊提供，見 data/SOURCES.md）；重置後照片也會回來。
+    """
+    file = record.pop("image_file", None)
+    if not file:
+        return None
+    data = (folder / file).read_bytes()
+    image_id = f"img-seed-{record['id']}"
+    record["image_id"] = image_id
+    return MealImage(id=image_id, mime="image/jpeg", data=data, size=len(data), uploaded_by="seed")
+
+
 def import_seed(session: Session, at: datetime | None = None, seed_dir: Path | None = None) -> int:
     """讀 seed/*.json 寫進資料庫（相對時間以 `at` 換算）。回傳匯入筆數。不檢查是否已有資料。"""
     t = at or now()
@@ -753,27 +767,14 @@ def import_seed(session: Session, at: datetime | None = None, seed_dir: Path | N
         if not path.exists():
             continue
         records = json.loads(path.read_text(encoding="utf-8"))
-        rows.extend(__seed_row(model, r, t) for r in records)
-    rows.extend(__seed_images(folder / "images", t))
+        for record in records:
+            image = __seed_image(folder, record)
+            if image is not None:
+                rows.append(image)
+            rows.append(__seed_row(model, record, t))
     repo.save_all(session, rows)
     return len(rows)
 
-
-def __seed_images(folder: Path, at: datetime) -> list[MealImage]:
-    """seed/images/<image_id>.svg → meal_image：示範食物的照片（本團隊繪製的示意圖，data/SOURCES.md）。"""
-    if not folder.is_dir():
-        return []
-    return [
-        MealImage(
-            id=path.stem,
-            mime="image/svg+xml",
-            data=path.read_bytes(),
-            size=path.stat().st_size,
-            uploaded_by="seed",
-            created_at=at,
-        )
-        for path in sorted(folder.glob("*.svg"))
-    ]
 
 
 def seed(session: Session) -> None:

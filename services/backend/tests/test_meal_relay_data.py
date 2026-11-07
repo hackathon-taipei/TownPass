@@ -74,21 +74,6 @@ def test_seed_meets_contract_minimums(session: Session) -> None:
     assert f1 and f1.expires_at == T0 + timedelta(hours=3)
 
 
-def test_seed_foods_have_servable_photos(session: Session, client: TestClient) -> None:
-    """示範食物都有照片（本團隊繪製的示意圖），否則提供者庫存、志工任務、看板的食物縮圖全部空白。"""
-    foods = repo.list_foods(session)
-    assert foods and all(f.image_id for f in foods)
-    for food in foods:
-        assert food.image_id
-        image = repo.get_image(session, food.image_id)
-        assert image and image.mime == "image/svg+xml" and image.size == len(image.data) > 0
-        assert b"<script" not in image.data.lower()  # 圖片網址公開，示意圖不能帶程式碼
-        res = client.get(f"/meal-relay/images/{food.image_id}")
-        assert res.status_code == 200 and res.headers["content-type"].startswith("image/svg+xml")
-    listed = client.get("/meal-relay/foods", headers={"X-Demo-User": "u-admin-1"}).json()
-    assert all(f["image_url"] == f"/meal-relay/images/{f['image_id']}" for f in listed)
-
-
 def test_seed_is_idempotent(session: Session) -> None:
     before = len(repo.list_accounts(session)), len(repo.list_foods(session))
     mr.seed(session)
@@ -659,3 +644,14 @@ def test_read_routes_carry_address(client: TestClient, session: Session) -> None
     assert f1["point_address"] == T115_ADDRESSES["p-1"]
     suppliers = client.get("/meal-relay/suppliers", headers={"X-Demo-User": "u-admin-1"}).json()
     assert {s["id"]: s["address"] for s in suppliers} == SIMULATED_SUPPLIER_ADDRESSES
+
+
+def test_seed_food_photos(session: Session) -> None:  # Demo：種子食物附照片，重置後照片也回來
+    for food_id in ("f-1", "f-2", "f-3", "f-4"):
+        food = repo.get_food(session, food_id)
+        assert food and food.image_id == f"img-seed-{food_id}"
+        image = repo.get_image(session, food.image_id)
+        assert image and image.mime == "image/jpeg" and 0 < image.size <= mr.settings().IMAGE_MAX_BYTES
+        assert mr.to_food(session, food).image_url == f"/meal-relay/images/{food.image_id}"
+    no_photo = repo.get_food(session, "f-5")
+    assert no_photo and no_photo.image_id is None
