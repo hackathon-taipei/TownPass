@@ -182,7 +182,7 @@
 ### 後端（每個套件一張工單，彼此不改對方的檔案）
 | 套件 | 內容 | 誰做 |
 |---|---|---|
-| `features/meal_relay/` | 資料層（`models.py`、`repo.py`、`schemas.py`）、共用規則（`service.py`：`refresh`、M1、M4、M5、M10 計算、M13 的 `ensure_assigned_elder`、M15 的 `station_qr_text`／`verify_qr_text`／`qr_expires_at`、轉成回應型別、種子匯入與重置）、身分（`deps.py`：`CurrentAccount`、`require_roles`、錯誤）、種子 `seed/*.json`。**沒有路由** | T-107、T-122、T-123 |
+| `features/meal_relay/` | 資料層（`models.py`、`repo.py`、`schemas.py`）、共用規則（`service.py`：`refresh`、M1、M4、M5、M10 計算、M13 的 `ensure_assigned_elder`、M14 的 `ensure_food_update`、M15 的 `station_qr_text`／`verify_qr_text`／`qr_expires_at`、轉成回應型別、種子匯入與重置）、身分（`deps.py`：`CurrentAccount`、`require_roles`、錯誤）、種子 `seed/*.json`。**沒有路由** | T-107、T-122、T-123 |
 | `features/meal_account/` | 帳號、提供者申請與審核、重置 | T-108 |
 | `features/meal_food/` | 食物點、食物（含 M14 修改）、圖片 | T-109 |
 | `features/meal_claim/` | 志工自己的申請：取餐、取消 | T-110 |
@@ -225,7 +225,7 @@
 | `elders.json` | 長者（模擬，`created_by` 是管理員） | 12：從未見到 2、逾期 3、最近才見過 3、有下次時間 2、有過敏 2；`u-vol-1` 是其中 4 位的主要志工 |
 | `claims.json` | 申請 | 0（申請只由派送產生；檔案保留為空陣列） |
 
-時間可寫相對值：`"now"`、`"now+90m"`、`"now-2d"`，匯入時換算。座標用開放資料的真實位置；長者座標放在路上或公共空間，不對應任何住家。`POST /demo/reset` 清空 `meal_` 開頭的表並重新匯入。
+時間可寫相對值：`"now"`、`"now+90m"`、`"now-2d"`，匯入時換算。座標用開放資料的真實位置；長者座標放在路上或公共空間，不對應任何住家。`POST /demo/reset` 清空 `meal_` 開頭的表並重新匯入。已經有資料的資料庫（例如已部署的 Render）啟動時不重新匯入，只把 v2.1 以前的 `elder` 帳號改成 `citizen`（ADR-026）；要換成 v2.2 的種子，請管理員執行一次重置。
 
 ## 11. 驗收清單（各工單挑自己相關的寫成測試）
 
