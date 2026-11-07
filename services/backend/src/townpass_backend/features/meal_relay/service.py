@@ -776,6 +776,7 @@ def import_seed(session: Session, at: datetime | None = None, seed_dir: Path | N
     return len(rows)
 
 
+
 def seed(session: Session) -> None:
     """啟動時執行；冪等：已經有任何 meal_account 就不匯入種子。
 
