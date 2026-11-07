@@ -88,6 +88,7 @@ def create_point(
         lng=payload.location.lng,
         source="custom",
         created_by=account.id,
+        image_id=payload.image_id,  # ADR-028 入口照片（選填）
     )
     repo.create_point(session, row)
     return to_point(row, open_food_count=0)

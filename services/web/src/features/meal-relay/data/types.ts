@@ -58,6 +58,8 @@ export interface Station {
   name: string
   location: Location
   source: string
+  /** 入口照片（ADR-028），相對於後端網址；沒有 → null。顯示用 imageSrc() 轉成完整網址 */
+  image_url: string | null
 }
 
 export interface Point {
@@ -69,6 +71,8 @@ export interface Point {
   created_by: string | null
   /** 這個點目前 status = open 的食物數（依查詢條件篩選後） */
   open_food_count: number
+  /** 入口照片（ADR-028），相對於後端網址；沒有 → null */
+  image_url: string | null
 }
 
 export interface Food {
@@ -99,6 +103,8 @@ export interface Food {
   unclaimed: boolean
   /** 相對於後端網址，例：/meal-relay/images/img-xxxx；顯示用 imageSrc() 轉成完整網址 */
   image_url: string | null
+  /** 食物點（取餐地點）的入口照片（ADR-028）；沒有 → null */
+  point_image_url: string | null
 }
 
 export interface Elder {
@@ -262,6 +268,8 @@ export interface PointCreate {
   name: string
   kind?: PointKind
   location: Location
+  /** 入口照片（先 uploadImage）；只拍入口或建築外觀，不能有人臉、車牌、門牌（ADR-028） */
+  image_id?: string | null
 }
 
 export interface FoodCreate {

@@ -531,7 +531,13 @@ def to_supplier(row: MealSupplier) -> Supplier:
 
 
 def to_station(row: MealStation) -> Station:
-    return Station(id=row.id, name=row.name, location=to_location(row), source=row.source)
+    return Station(
+        id=row.id,
+        name=row.name,
+        location=to_location(row),
+        source=row.source,
+        image_url=image_url(row.image_id),  # ADR-028 入口照片
+    )
 
 
 def to_point(row: MealPoint, open_food_count: int = 0) -> Point:
@@ -543,6 +549,7 @@ def to_point(row: MealPoint, open_food_count: int = 0) -> Point:
         source=row.source,
         created_by=row.created_by,
         open_food_count=open_food_count,
+        image_url=image_url(row.image_id),  # ADR-028 入口照片
     )
 
 
@@ -575,6 +582,7 @@ def to_food(session: Session, row: MealFood, at: datetime | None = None) -> Food
         status=status,  # type: ignore[arg-type]
         unclaimed=food_unclaimed(row, status, t),
         image_url=image_url(row.image_id),
+        point_image_url=image_url(point.image_id) if point else None,  # ADR-028 取餐地點入口照片
     )
 
 

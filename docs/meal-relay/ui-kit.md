@@ -26,6 +26,7 @@
 | MR-C55 | `FoodThumb` | 食物照片縮圖（T-127）：有照片才畫，替代文字用食物名稱；沒照片什麼都不畫 | `food`（`image_url`、`name`）、`size?`（`md` 48px，預設；`lg` 64px） | 照片網址來自 `listFoods`、`listMyAssignments` 的 `image_url`，用 `imageSrc()` 轉換 |
 | MR-C56 | `CategoryIcon` | 分類 icon＋中文（T-130）：食物類別、提供者類型、食物點種類；單色 `currentColor`、18px、線寬 2，icon `aria-hidden` | `kind`（`food`／`org`／`point`）、`value`、`label?`（預設 true，顯示中文） | 上架表單類別選擇（`createFood`）、提供者申請類型選擇（`applySupplier`） |
 | MR-C23 | `VolunteerAvatar` | 志工的企鵝頭像：依志工 id 固定分到 6 隻之一，可輕輕搖擺 | `id`、`name?`、`size?`（預設 40）、`idle?`（預設 true） | 據點頁今天報到（`getMyStation` 的 `checkins`）、志工頁 |
+| MR-C57 | `PlacePhoto` | 地點照片縮圖（入口、店面）：點一下用 MR-C09 底部面板放大；圖片讀不到就整個隱藏（T-128，ADR-028） | `photo`（`logic/placePhoto.ts` 的 `PlacePhoto`：`src`、`alt`、`title`）、`size?`（`sm` 48px 方形，預設；`md` 滿版寬、高 128px） | 志工任務卡的取餐地點（`Food.point_image_url`）、首頁據點清單（`Station.image_url`） |
 
 邏輯層：`logic/motion.ts`（`MOTION`、`useMotionNumber`、`diffById`、`replayClass`、`reducedMotion`）、`logic/toast.ts`、`logic/mapMarker.ts`（定位針型別、顏色、中文）、`logic/foodQty.ts`（`qtyHint`、`qtyRangeText`、`FOOD_QTY_FIELDS`、`foodQtyCounts`）、`logic/volunteerAvatar.ts`（`penguinOf`、`idlePhaseOf`、`penguinSrc`）、`logic/mealLabels.ts`（合約 §4 的中文、`allergenConflicts`、`claimProgress`、`timeLeftText`）。動畫的 class 在 `ui/motion.css`，每個元件都已匯入。
 
@@ -129,6 +130,8 @@
 | 19 | 拍照按鈕沿用 MR-C06 ImageInput，不加相機 icon | 工單允許拍照這一步的主要按鈕加 icon，但按鈕在 MR-C06 裡面，不在 T-127 範圍；之後要加再開工單 |
 | 20 | 分類 icon 統一用 `lucide-vue-next`，不自繪、不用 emoji 或圖片檔（T-130） | 專案已安裝、開源（MIT）、單色跟著文字顏色，不新增顏色；icon 一律搭配中文，不單獨出現 |
 | 21 | 分類 icon 只放在選擇分類的地方（T-130 範圍縮小） | 和 #80 的美術方向一致：清單、晶片不加 icon，避免畫面太花 |
+| 16 | 入口照片（T-128）：有照片才放縮圖，沒有就不顯示、不放佔位圖；點縮圖用 MR-C09 放大 | 合約 v2.3（ADR-028）照片選填；空框會讓志工以為照片沒載入。顯示判斷集中在 `logic/placePhoto.ts`（`placePhotoOf`、`pickupPhotoOf`、`stationPhotoOf`、`pointPhotoOf`），網址一律用 `imageSrc()` |
+| 17 | 新增食物點（MR-C37）的入口照片欄位下方固定顯示拍攝規定 | 「只拍入口或建築外觀，不要拍到人臉、車牌、門牌號碼」（`ENTRANCE_PHOTO_RULE`）；系統無法自動檢查照片內容，只能靠提示 |
 
 ## 5. 素材來源與授權
 

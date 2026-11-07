@@ -5,6 +5,7 @@
  * M4：食物與長者的過敏原有交集時停用取餐（MR-C16，長者之後改過敏原時的保險）。
  * 斷網或處理中（disabled）時按鈕停用（ADR-024）。
  * T-127：食物有照片就顯示縮圖（MR-C55），點了用 MR-C09 BottomSheet 放大；沒照片就整塊不顯示，不放佔位圖。
+ * 取餐地點有入口照片（Food.point_image_url，ADR-028）才顯示縮圖（MR-C57，點一下放大）；沒有就不顯示這一行。
  *
  *   <TaskMeal :claim="task.claim" :elder="task.assignment.elder" :disabled="busy || offline" @pickup="…" @cancel="…" />
  */
@@ -12,17 +13,20 @@ import './motion.css'
 import { computed, ref } from 'vue'
 import { BaseButton } from '@/ui'
 import { foodPhotoOf } from '../logic/shared'
+import { pickupPhotoOf } from '../logic/placePhoto'
 import type { Claim, Elder } from '../logic/volunteer'
 import AllergenWarning from './AllergenWarning.vue'
 import BottomSheet from './BottomSheet.vue'
 import ClaimRow from './ClaimRow.vue'
 import FoodThumb from './FoodThumb.vue'
+import PlacePhoto from './PlacePhoto.vue'
 
 const props = defineProps<{ claim: Claim; elder: Pick<Elder, 'alias' | 'allergens'>; disabled?: boolean; busy?: boolean }>()
 const emit = defineEmits<{ pickup: []; cancel: [] }>()
 const conflict = ref(false)
 const photo = computed(() => foodPhotoOf(props.claim.food))
 const zoom = ref(false)
+const pickupPhoto = computed(() => pickupPhotoOf(props.claim.food))
 </script>
 
 <template>
@@ -45,6 +49,10 @@ const zoom = ref(false)
         <img :src="photo.src" :alt="photo.alt" class="max-h-[70vh] w-full rounded-xl bg-grey-50 object-contain" />
       </BottomSheet>
     </template>
+    <div v-if="pickupPhoto" class="flex items-center gap-3">
+      <PlacePhoto :photo="pickupPhoto" />
+      <p class="min-w-0 flex-1 text-sm text-grey-700">取餐地點入口：{{ claim.food.point_name }}<span class="block text-xs text-grey-500">點照片可以放大</span></p>
+    </div>
     <AllergenWarning
       v-model:conflict="conflict"
       :food-allergens="claim.food.allergens"
