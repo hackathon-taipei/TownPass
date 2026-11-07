@@ -1,16 +1,10 @@
 <script setup lang="ts">
-/** @component MR-C30 HomeIntro — 首頁說明：長者不用操作 App，需要送餐或關懷請洽里長或最近的社區關懷據點（§1、§2） */
-import { BaseCard } from '@/ui'
+/** @component MR-C30 HomeIntro — 首頁提醒卡：長者不用操作 App，需要送餐或關懷請洽里長或社區關懷據點（§1、§2） */
+/** 設計 v2（docs/meal-relay/design-v2/README.md §3.1 第 3 項）：用 MR-C64 InfoNote，文字固定。 */
+import { Users } from 'lucide-vue-next'
+import InfoNote from './InfoNote.vue'
 </script>
 
 <template>
-  <BaseCard>
-    <div>
-      <div class="space-y-2 text-base text-grey-700">
-        <p class="font-semibold text-grey-900">把多出來的食物，送到需要的長者手上</p>
-        <p>提供者把多出來的食物上架；志工到社區關懷據點報到後，系統會自動派給他要送餐、關懷的長者，並避開長者的過敏原。</p>
-        <p><span class="font-semibold text-grey-900">長者不用操作 App。</span>家裡的長輩需要送餐或關懷，請洽里長或最近的社區關懷據點。</p>
-      </div>
-    </div>
-  </BaseCard>
+  <InfoNote text="長者不用操作 App" detail="需要送餐或關懷，請洽里長或社區關懷據點" :icon="Users" />
 </template>

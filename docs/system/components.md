@@ -49,10 +49,10 @@
 | MR-C21 | PageTransition | 頁面切換：載入骨架 → 內容淡入上移；身分或資料重置時舊畫面淡出再換新（E1、E2、E3） | `features/meal-relay/ui/PageTransition.vue` |
 | MR-C22 | ResetDemoButton | 重置示範資料：送出中轉圈，成功後提示並通知頁面淡出淡入（E3） | `features/meal-relay/ui/ResetDemoButton.vue` |
 | MR-C23 | VolunteerAvatar | 志工的企鵝頭像：依志工 id 固定分到 6 隻之一，可輕輕搖擺 | `features/meal-relay/ui/VolunteerAvatar.vue` |
-| MR-C30 | HomeIntro | 首頁說明：長者不用操作 App，需要送餐或關懷請洽里長或最近的社區關懷據點（§1、§2） | `features/meal-relay/ui/HomeIntro.vue` |
-| MR-C31 | HomeStationList | 首頁的社區關懷據點清單（實體管道，listStations）＋資料來源 | `features/meal-relay/ui/HomeStationList.vue` |
-| MR-C32 | HomeVolunteerInfo | 想當志工：正式版由據點經臺北市志工管理整合平臺招募、在臺北 E 大受訓（§1），本作品不做志工申請 | `features/meal-relay/ui/HomeVolunteerInfo.vue` |
-| MR-C33 | HomeEntryCard | 首頁依角色的主要按鈕：進入志工／提供者／據點頁，或一般市民的「我要提供食物」（§9） | `features/meal-relay/ui/HomeEntryCard.vue` |
+| MR-C30 | HomeIntro | 首頁提醒卡：長者不用操作 App，需要送餐或關懷請洽里長或社區關懷據點（§1、§2） | `features/meal-relay/ui/HomeIntro.vue` |
+| MR-C31 | HomeStationList | 首頁「附近關懷據點」：每列定位圖示、據點名稱、地址、右箭頭，點一列開地址與地圖面板 | `features/meal-relay/ui/HomeStationList.vue` |
+| MR-C32 | HomeVolunteerInfo | 「想成為志工？」收合列：正式版由據點經臺北市志工管理整合平臺招募、在臺北 E 大受訓（§1），本作品不做志工申請 | `features/meal-relay/ui/HomeVolunteerInfo.vue` |
+| MR-C33 | HomeEntryCard | 首頁依角色的主按鈕：圖示＋文字＋右箭頭（我要提供食物／管理我的食物／進入志工頁／打開報到 QR） | `features/meal-relay/ui/HomeEntryCard.vue` |
 | MR-C35 | SupplierApplyForm | 申請成為提供者：單位名稱、類型、位置（MR-C02）、店面照片（MR-C06，選填，個人不顯示）→ applySupplier | `features/meal-relay/ui/SupplierApplyForm.vue` |
 | MR-C36 | PointPicker | 食物點清單：選一個食物點上架，或新增食物點（MR-C37） | `features/meal-relay/ui/PointPicker.vue` |
 | MR-C37 | PointCreateForm | 新增食物點：名稱、位置（MR-C02）、入口照片（MR-C06，選填）→ createPoint（kind = custom） | `features/meal-relay/ui/PointCreateForm.vue` |
@@ -87,7 +87,8 @@
 | MR-C66 | SegmentedTabs | 兩到三格的分段切換：v-model，可與網址 ?tab= 同步，格子可帶數字徽章 | `features/meal-relay/ui/SegmentedTabs.vue` |
 | MR-C67 | ConfirmDialog | 確認視窗：標題、說明、確認／取消；危險動作的確認鍵是紅色，開啟時焦點在「取消」，Esc 等於取消 | `features/meal-relay/ui/ConfirmDialog.vue` |
 | MR-C68 | NumberStepper | −／數字／+：有上下限，到限制時按鈕停用，中間的數字可以直接輸入 | `features/meal-relay/ui/NumberStepper.vue` |
-| MR-P01 | HomePage | 鄰食轉運站首頁：說明、社區關懷據點、志工從哪裡來、依角色進入（一般市民「我要提供食物」） | `features/meal-relay/ui/HomePage.vue` |
+| MR-C70 | HomeStationSheet | 首頁據點面板：底部面板顯示據點地址，以及只有這個據點的地圖 | `features/meal-relay/ui/HomeStationSheet.vue` |
+| MR-P01 | HomePage | 鄰食蜂首頁：主視覺、依角色的主按鈕、長者不用操作 App、附近關懷據點（點開看位置）、想成為志工？ | `features/meal-relay/ui/HomePage.vue` |
 | MR-P04 | VolunteerPage | 志工頁：掃描據點 QR 報到、今天的狀態、前往我的任務（沒有長者清單或地圖） | `features/meal-relay/ui/VolunteerPage.vue` |
 | MR-P05 | TaskPage | 我的任務：只有進行中的任務，取餐、取消、拜訪回報，回報後任務消失 | `features/meal-relay/ui/TaskPage.vue` |
 | MR-P06 | SupplierPage | 提供者頁：申請與審核狀態、上架、我的庫存（剩餘／派出中／已送達，已結束的收合）、修改、下架 | `features/meal-relay/ui/SupplierPage.vue` |
