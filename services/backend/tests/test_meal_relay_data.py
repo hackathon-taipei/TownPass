@@ -187,7 +187,7 @@ def test_m1_remaining_and_status_priority(session: Session) -> None:
     food = mr.to_food(session, f1, T0)
     assert food.remaining == 5  # 種子沒有申請
     assert food.dispatched_qty == 0 and food.delivered_qty == 0
-    assert food.status == "open" and food.location.lat == pytest.approx(25.0368)
+    assert food.status == "open" and food.location.lat == pytest.approx(repo.get_point(session, "p-1").lat)
     assert food.point_name and food.supplier_name
 
     # 全數申請 → claimed
