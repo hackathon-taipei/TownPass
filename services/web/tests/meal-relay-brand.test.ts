@@ -374,8 +374,8 @@ describe('InfoNote、BrandHeader、BrandHero、MascotBadge', () => {
   })
   it('BrandHero 預設兩行標語與完整標誌', () => {
     const el = mount(() => h(BrandHero))
-    expect(el.textContent).toContain('把多出來的食物，')
-    expect(el.textContent).toContain('送到需要的人手上')
+    expect(el.textContent).toContain('長者不必用手機，')
+    expect(el.textContent).toContain('也能收到餐食與關懷')
     expect(el.querySelector('img')!.getAttribute('src')).toBe('/meal-relay/brand/logo.webp')
     const custom = mount(() => h(BrandHero, { lines: ['甲', '乙'] }))
     expect(custom.textContent).toContain('甲')

@@ -92,13 +92,13 @@ export const ORG_TYPE_LABEL: Record<OrgType, string> = {
   other: '其他',
 }
 
-/** 看板統計卡（MR-C13）的順序、名稱與圖示（設計 v2 §3.6；數字來自 Board.stats，算法見 T-113） */
+/** 看板統計卡（MR-C13）：先呈現關懷接觸，再呈現送餐與報到；alerts 含需送餐或關懷者，見 T-113。 */
 export const STAT_FIELDS: { key: keyof BoardStats; label: string; icon: Component; tone?: 'alert' }[] = [
-  { key: 'foods_open', label: '可派送食物', icon: ConciergeBell },
-  { key: 'delivered_today', label: '今日送達', icon: CircleCheck },
   { key: 'seen_today', label: '今日見到', icon: Users },
-  { key: 'alerts', label: '需關懷長者', icon: Heart, tone: 'alert' },
+  { key: 'alerts', label: '待服務長者', icon: Heart, tone: 'alert' },
+  { key: 'delivered_today', label: '今日送達', icon: CircleCheck },
   { key: 'checkins_today', label: '今日報到', icon: CalendarCheck },
+  { key: 'foods_open', label: '可派送食物', icon: ConciergeBell },
 ]
 
 /** ADR-024 隱私提示，放在長者表單旁 */

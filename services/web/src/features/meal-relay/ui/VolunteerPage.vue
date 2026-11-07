@@ -60,7 +60,7 @@ const {
       <EmptyState
         v-else-if="!isVolunteer"
         title="這一頁給志工使用"
-        description="志工帳號由據點匯入；需要送餐的長者請洽里長或最近的社區關懷據點"
+        description="志工帳號由據點匯入；需要送餐或關懷的長者請洽里長或社區關懷據點"
         :icon="UserRound"
       >
         <BaseButton variant="outline" :to="mealHomeRoute">回首頁</BaseButton>

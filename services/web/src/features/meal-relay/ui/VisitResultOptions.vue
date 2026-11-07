@@ -44,7 +44,7 @@ watch(doorBlock, (block) => block && result.value === 'left_at_door' && (result.
         :disabled="disabledOf(opt.value)"
       />
       <span class="min-w-0 flex-1">
-        <span class="block text-base font-bold">{{ opt.label }}</span>
+        <span class="block text-base font-bold">{{ opt.value === 'returned' && kind === 'care' ? '未見到本人' : opt.label }}</span>
         <span v-if="disabledOf(opt.value)" class="block text-sm text-grey-500">{{ doorBlock }}</span>
       </span>
     </label>
