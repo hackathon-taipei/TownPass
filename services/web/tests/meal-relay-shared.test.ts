@@ -3,14 +3,18 @@ import {
   base64Bytes,
   countdownText,
   ELDER_TAG_LABEL,
+  FOOD_CATEGORY_ICON,
   elderTagsOf,
   fitSize,
+  foodPhotoOf,
   foodQtyText,
   homeRouteOf,
   IMAGE_MAX_BYTES,
   IMAGE_MAX_EDGE,
   IMAGE_QUALITY_STEPS,
   isImageMime,
+  ORG_TYPE_ICON,
+  POINT_KIND_ICON,
   staleText,
 } from '@/features/meal-relay/logic/shared'
 
@@ -163,4 +167,45 @@ describe('圖片常數（M19、§5）', () => {
     expect(steps).toEqual(sorted)
     expect(steps).toEqual([0.85, 0.7, 0.55, 0.4])
   })
+})
+
+describe('foodPhotoOf（M19，T-127）', () => {
+  it('沒有照片回 null（畫面不顯示，也不放佔位圖）', () => {
+    expect(foodPhotoOf({ image_url: null, name: '排骨便當' })).toBeNull()
+    expect(foodPhotoOf({ image_url: '', name: '排骨便當' })).toBeNull()
+  })
+  it('有照片：用 imageSrc() 把相對路徑轉成完整網址', () => {
+    const photo = foodPhotoOf({ image_url: '/meal-relay/images/img-1', name: '排骨便當' })
+    expect(photo?.src).toMatch(/^https?:\/\/.+\/meal-relay\/images\/img-1$/)
+  })
+  it('data: 與完整網址原樣使用', () => {
+    expect(foodPhotoOf({ image_url: 'data:image/jpeg;base64,AAAA', name: '刈包' })?.src).toBe('data:image/jpeg;base64,AAAA')
+    expect(foodPhotoOf({ image_url: 'https://example.org/a.jpg', name: '刈包' })?.src).toBe('https://example.org/a.jpg')
+  })
+  it('替代文字用食物名稱；名稱是空的才用「食物照片」', () => {
+    expect(foodPhotoOf({ image_url: '/meal-relay/images/img-1', name: ' 刈包（含花生粉） ' })?.alt).toBe('刈包（含花生粉）')
+    expect(foodPhotoOf({ image_url: '/meal-relay/images/img-1', name: '  ' })?.alt).toBe('食物照片')
+  })
+})
+
+describe('分類 icon 對照（合約 §4，T-130）', () => {
+  // 照合約 docs/system/11-meal-relay.md §4 逐一列出；合約加了值而對照表沒跟上，這裡會失敗
+  const CONTRACT = {
+    FoodCategory: ['meal_box', 'bakery', 'produce', 'dry_goods', 'drink', 'other'],
+    OrgType: ['person', 'school', 'agency', 'shop', 'other'],
+    PointKind: ['station', 'village_office', 'school', 'custom'],
+  }
+  const TABLES = { FoodCategory: FOOD_CATEGORY_ICON, OrgType: ORG_TYPE_ICON, PointKind: POINT_KIND_ICON }
+
+  for (const [name, values] of Object.entries(CONTRACT) as [keyof typeof CONTRACT, string[]][]) {
+    it(`${name} 每個值都有 icon，沒有多也沒有少`, () => {
+      const table = TABLES[name] as Record<string, unknown>
+      expect(Object.keys(table).sort()).toEqual([...values].sort())
+      for (const v of values) expect(table[v], `${name}.${v}`).toBeTruthy()
+    })
+    it(`${name} 同一組裡的 icon 不重複`, () => {
+      const icons = Object.values(TABLES[name])
+      expect(new Set(icons).size).toBe(icons.length)
+    })
+  }
 })

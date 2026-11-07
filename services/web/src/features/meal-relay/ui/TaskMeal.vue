@@ -1,30 +1,54 @@
 <script setup lang="ts">
-/** @component MR-C41 TaskMeal — 任務卡的送餐區：要送的餐（申請列）、過敏原警告、取餐與取消這份餐 */
+/** @component MR-C41 TaskMeal — 任務卡的送餐區：要送的餐（申請列）、食物照片（點了放大）、過敏原警告、取餐與取消這份餐 */
 /**
  * 合約 M8：claimed →（取餐）delivering；claimed、delivering 都可以取消，份數退回，任務保留只做關懷（V7）。
  * M4：食物與長者的過敏原有交集時停用取餐（MR-C16，長者之後改過敏原時的保險）。
  * 斷網或處理中（disabled）時按鈕停用（ADR-024）。
+ * T-127：食物有照片就顯示縮圖（MR-C55），點了用 MR-C09 BottomSheet 放大；沒照片就整塊不顯示，不放佔位圖。
  * 取餐地點有入口照片（Food.point_image_url，ADR-028）才顯示縮圖（MR-C57，點一下放大）；沒有就不顯示這一行。
  *
  *   <TaskMeal :claim="task.claim" :elder="task.assignment.elder" :disabled="busy || offline" @pickup="…" @cancel="…" />
  */
+import './motion.css'
 import { computed, ref } from 'vue'
 import { BaseButton } from '@/ui'
+import { foodPhotoOf } from '../logic/shared'
 import { pickupPhotoOf } from '../logic/placePhoto'
 import type { Claim, Elder } from '../logic/volunteer'
 import AllergenWarning from './AllergenWarning.vue'
+import BottomSheet from './BottomSheet.vue'
 import ClaimRow from './ClaimRow.vue'
+import FoodThumb from './FoodThumb.vue'
 import PlacePhoto from './PlacePhoto.vue'
 
 const props = defineProps<{ claim: Claim; elder: Pick<Elder, 'alias' | 'allergens'>; disabled?: boolean; busy?: boolean }>()
 const emit = defineEmits<{ pickup: []; cancel: [] }>()
 const conflict = ref(false)
+const photo = computed(() => foodPhotoOf(props.claim.food))
+const zoom = ref(false)
 const pickupPhoto = computed(() => pickupPhotoOf(props.claim.food))
 </script>
 
 <template>
   <div class="space-y-2">
     <ClaimRow :claim="claim" />
+    <template v-if="photo">
+      <button
+        type="button"
+        class="press flex w-full items-center gap-3 rounded-xl bg-white p-2 text-left ring-1 ring-grey-100"
+        :aria-label="`放大「${photo.alt}」的照片`"
+        @click="zoom = true"
+      >
+        <FoodThumb :food="claim.food" size="lg" />
+        <span class="min-w-0 text-sm text-grey-700">
+          <span class="block truncate font-medium text-grey-900">{{ photo.alt }}</span>
+          看照片找這一批，點一下放大
+        </span>
+      </button>
+      <BottomSheet v-model="zoom" :title="photo.alt">
+        <img :src="photo.src" :alt="photo.alt" class="max-h-[70vh] w-full rounded-xl bg-grey-50 object-contain" />
+      </BottomSheet>
+    </template>
     <div v-if="pickupPhoto" class="flex items-center gap-3">
       <PlacePhoto :photo="pickupPhoto" />
       <p class="min-w-0 flex-1 text-sm text-grey-700">取餐地點入口：{{ claim.food.point_name }}<span class="block text-xs text-grey-500">點照片可以放大</span></p>
