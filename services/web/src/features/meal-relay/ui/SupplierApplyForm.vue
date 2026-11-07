@@ -4,10 +4,12 @@
  * 一般市民（citizen）用；放在 MR-C18 SupplierGate 的 #apply 插槽。
  * 表單狀態在 logic/supplier.ts 的 useSupplierPage()（applyForm），這裡只綁欄位、發 submit。
  * 送出鍵在必填欄位都填好前停用（D4），離線時也停用（ADR-024）。
+ * T-130：類型選項用 MR-C56 CategoryIcon（lucide icon＋中文）。
  */
 import { computed } from 'vue'
 import { BaseChip, BaseInput, SectionTitle } from '@/ui'
-import { ORG_TYPES, ORG_TYPE_LABEL, buildSupplierApply, type ApplyForm } from '../logic/supplier'
+import { ORG_TYPES, buildSupplierApply, type ApplyForm } from '../logic/supplier'
+import CategoryIcon from './CategoryIcon.vue'
 import LocationPicker from './LocationPicker.vue'
 import SubmitButton from './SubmitButton.vue'
 
@@ -28,7 +30,7 @@ const ready = computed(() => buildSupplierApply(props.form).ok)
       <legend class="mb-2 text-sm font-medium text-grey-700">類型</legend>
       <div class="flex flex-wrap gap-2">
         <BaseChip v-for="t in ORG_TYPES" :key="t" :active="form.org_type === t" @click="form.org_type = t">
-          {{ ORG_TYPE_LABEL[t] }}
+          <CategoryIcon kind="org" :value="t" />
         </BaseChip>
       </div>
     </fieldset>

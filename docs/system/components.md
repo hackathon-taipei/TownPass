@@ -39,7 +39,7 @@
 | MR-C11 | QtyInput | 份數輸入框：只能輸入 min 到 max 的整數 | `features/meal-relay/ui/QtyInput.vue` |
 | MR-C12 | ToastHost | 提示訊息：底部上移淡入、4 秒後淡出 | `features/meal-relay/ui/ToastHost.vue` |
 | MR-C13 | StatCard | 統計卡：數字平滑變化並底色提示一次 | `features/meal-relay/ui/StatCard.vue` |
-| MR-C14 | FoodRow | 食物列：剩餘、派出中、已送達份數平滑變化、狀態晶片換色、到期倒數條、過期變淡 | `features/meal-relay/ui/FoodRow.vue` |
+| MR-C14 | FoodRow | 食物列：剩餘、派出中、已送達份數平滑變化、狀態晶片換色、到期倒數條、過期變淡、有照片時左側縮圖 | `features/meal-relay/ui/FoodRow.vue` |
 | MR-C15 | ClaimRow | 申請列：狀態晶片換色、送餐進度條（已派送 → 配送中 → 完成） | `features/meal-relay/ui/ClaimRow.vue` |
 | MR-C16 | AllergenWarning | 過敏原衝突警告：有交集時展開（C3） | `features/meal-relay/ui/AllergenWarning.vue` |
 | MR-C17 | VisitResultPicker | 拜訪結果三選一：選「放門口」時拍照鈕展開（C4） | `features/meal-relay/ui/VisitResultPicker.vue` |
@@ -56,10 +56,10 @@
 | MR-C35 | SupplierApplyForm | 申請成為提供者：單位名稱、類型、位置（MR-C02）→ applySupplier | `features/meal-relay/ui/SupplierApplyForm.vue` |
 | MR-C36 | PointPicker | 食物點地圖（MR-C07）與清單：選一個食物點上架，或新增食物點（MR-C37） | `features/meal-relay/ui/PointPicker.vue` |
 | MR-C37 | PointCreateForm | 新增食物點：名稱、位置（MR-C02）、入口照片（MR-C06，選填）→ createPoint（kind = custom） | `features/meal-relay/ui/PointCreateForm.vue` |
-| MR-C38 | FoodPublishForm | 上架食物：名稱、類別、過敏原（MR-C01）、份數（MR-C11）、最晚食用時間、圖片（MR-C06） | `features/meal-relay/ui/FoodPublishForm.vue` |
+| MR-C38 | FoodPublishForm | 上架食物：先拍照（MR-C06，可略過），再填名稱、類別、過敏原（MR-C01）、份數（MR-C11）、最晚食用時間 | `features/meal-relay/ui/FoodPublishForm.vue` |
 | MR-C39 | FoodEditSheet | 修改一批食物（份數、最晚食用時間，M14、V21）或確認下架，用 MR-C09 BottomSheet | `features/meal-relay/ui/FoodEditSheet.vue` |
 | MR-C40 | TaskCard | 派送任務卡：長者代號、地址（可複製）、警示、要做的事、位置（只有這位長者）、過敏、要送的餐、回報 | `features/meal-relay/ui/TaskCard.vue` |
-| MR-C41 | TaskMeal | 任務卡的送餐區：要送的餐（申請列）、過敏原警告、取餐與取消這份餐 | `features/meal-relay/ui/TaskMeal.vue` |
+| MR-C41 | TaskMeal | 任務卡的送餐區：要送的餐（申請列）、食物照片（點了放大）、過敏原警告、取餐與取消這份餐 | `features/meal-relay/ui/TaskMeal.vue` |
 | MR-C42 | VisitReportSheet | 拜訪回報底部面板：結果三選一、放門口拍照、送出 | `features/meal-relay/ui/VisitReportSheet.vue` |
 | MR-C43 | CheckinPanel | 志工報到：App 掃描據點 QR，沒有 App 時貼上 QR 文字 | `features/meal-relay/ui/CheckinPanel.vue` |
 | MR-C44 | TodayStatus | 志工今天的狀態：報到的據點、報到時間、進行中的任務數、前往我的任務 | `features/meal-relay/ui/TodayStatus.vue` |
@@ -73,6 +73,8 @@
 | MR-C52 | BoardPanel | 看板：5 張統計卡（MR-C13）、據點／食物點／長者地圖（MR-C07）、食物去向（MR-C03） | `features/meal-relay/ui/BoardPanel.vue` |
 | MR-C53 | ElderForm | 登記或修改長者：代號、地址（選填，模擬）、位置（MR-C02）、據點（必填）、過敏原（MR-C01）、下次關懷／送餐時間，附隱私提示 | `features/meal-relay/ui/ElderForm.vue` |
 | MR-C54 | ElderRoster | 長者名冊：每位長者的代號、據點、地址、警示標籤（MR-C04）、過敏原、最近見到與下次時間，加「修改」 | `features/meal-relay/ui/ElderRoster.vue` |
+| MR-C55 | FoodThumb | 食物照片縮圖：有照片才顯示，替代文字用食物名稱（M19） | `features/meal-relay/ui/FoodThumb.vue` |
+| MR-C56 | CategoryIcon | 分類 icon＋中文：食物類別、提供者類型、食物點種類（合約 §4，lucide 單色） | `features/meal-relay/ui/CategoryIcon.vue` |
 | MR-C57 | PlacePhoto | 地點照片縮圖（入口、店面）：點一下用底部面板（MR-C09）放大；圖片讀不到就整個隱藏 | `features/meal-relay/ui/PlacePhoto.vue` |
 | MR-P01 | HomePage | 鄰食轉運站首頁：說明、社區關懷據點、志工從哪裡來、依角色進入（一般市民「我要提供食物」） | `features/meal-relay/ui/HomePage.vue` |
 | MR-P04 | VolunteerPage | 志工頁：掃描據點 QR 報到、今天的狀態、前往我的任務（沒有長者清單或地圖） | `features/meal-relay/ui/VolunteerPage.vue` |

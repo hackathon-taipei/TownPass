@@ -2,6 +2,7 @@
  * 鄰食轉運站第 2 波頁面共用的邏輯（T-114），給 MR-C01～C06 與 MR-P01～P08 用。合約 docs/system/11-meal-relay.md v2.2。
  * 中文名稱沿用 kit 的 ./mealLabels.ts 與 ./foodQty.ts，不重寫；之後整理時 mealLabels.ts 的內容可搬進這裡。
  */
+import { imageSrc } from '../data'
 import type { Elder, Food, Role } from '../data/types'
 import { FOOD_QTY_FIELDS, foodQtyCounts } from './foodQty'
 import { timeLeftText } from './mealLabels'
@@ -98,3 +99,17 @@ export function base64Bytes(b64: string): number {
 
 /** 依序嘗試的 JPEG 品質；壓到 ≤ IMAGE_MAX_BYTES 為止，最後一個還太大就回報 IMAGE_TOO_LARGE */
 export const IMAGE_QUALITY_STEPS = [0.85, 0.7, 0.55, 0.4] as const
+
+/* ---------------------------------------------------------------- 食物照片（M19，T-127） */
+
+export type FoodPhoto = { src: string; alt: string }
+
+/**
+ * 食物照片要顯示的網址與替代文字；沒有照片回 null（畫面不顯示，也不放佔位圖）。
+ * 網址用 imageSrc() 把後端的相對路徑轉成完整網址；替代文字用食物名稱，名稱是空的才用「食物照片」。
+ */
+export function foodPhotoOf(food: Pick<Food, 'image_url' | 'name'>): FoodPhoto | null {
+  const src = imageSrc(food.image_url)
+  if (!src) return null
+  return { src, alt: food.name.trim() || '食物照片' }
+}
