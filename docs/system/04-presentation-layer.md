@@ -12,12 +12,13 @@
 | 有機體 Organism | O## | `ui/organisms/` | 獨立的介面區塊 | O04 ChatComposer、O05 ChatThread |
 | 模板 Template | T## | `ui/templates/` | 頁面骨架，用插槽填內容 | T01 PageContainer、T02 DetailPage |
 | 頁面 Page | P## | `pages/` | 框架層級的路由頁 | P01 HomePage |
-| 功能頁面 | `XX-P##` | `features/x/ui/` | 功能的路由頁 | EX-P02 PlaceDetailPage |
-| 功能元件 | `XX-C##` | `features/x/ui/` | 只有該功能用的元件 | EX-C02 FavoriteButton |
+| 功能頁面 | `XX-P##`（可到三位數 `XX-P###`） | `features/x/ui/` | 功能的路由頁 | EX-P02 PlaceDetailPage |
+| 功能元件 | `XX-C##`（可到三位數 `XX-C###`） | `features/x/ui/` | 只有該功能用的元件 | EX-C02 FavoriteButton |
 
 **編號規則**
 - 每個 `.vue` 檔第一行（`<script setup>` 內）：`/** @component A06 IconBadge — 圓形圖示底 */`
 - 新增時取該等級下一個號碼；**號碼不重用**（刪掉的元件號碼空著）
+- 共用的 A／M／O／T／P 固定兩位數；功能的 `XX-P`／`XX-C` 用完 99 後接三位數（`MR-C100`），不補零成 `C083`。`components.md` 依數字排序（C99 在 C100 前）
 - 共用元件（A/M/O/T）要從 `ui/index.ts` 匯出並在行尾註記編號
 - 改完執行 `node tools/check-arch.mjs --catalog` 更新目錄
 

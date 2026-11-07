@@ -145,7 +145,8 @@ for (const file of walk(WEB, ['.vue'])) {
   const feat = r.match(/^features\/([^/]+)\/ui\//)?.[1]
   const addon = r.match(/^addons\/([^/]+)\/ui\//)?.[1]
   const ownerCode = feat ? featureCodes.get(feat) : addon ? featureCodes.get(`addon:${addon}`) : null
-  const featRe = ownerCode ? new RegExp(`^${ownerCode}-[PC]\\d{2}$`) : null
+  // feature/add-on IDs: 2 digits, or 3 once a feature runs past 99 (XX-C100)
+  const featRe = ownerCode ? new RegExp(`^${ownerCode}-[PC]\\d{2,3}$`) : null
   if (!m) { flag('W8', file, 1, 'missing `/** @component <ID> <Name> — 說明 */` header'); continue }
   const [, id, name, desc] = m
   const re = expect ?? featRe
@@ -205,7 +206,7 @@ for (const file of walk(BE, ['.py'])) {
 
 // ---------------------------------------------------------------- output
 const catalogFile = join(ROOT, 'docs/system/components.md')
-const catalogRows = [...catalog].sort((a, b) => a.id.localeCompare(b.id)).map((c) => `| ${c.id} | ${c.name} | ${c.desc} | \`${c.file}\` |`)
+const catalogRows = [...catalog].sort((a, b) => a.id.localeCompare(b.id, 'en', { numeric: true })).map((c) => `| ${c.id} | ${c.name} | ${c.desc} | \`${c.file}\` |`)
 const catalogText = `# 元件目錄（自動產生）\n\n> 由 \`node tools/check-arch.mjs --catalog\` 從各元件的 \`@component\` 標頭產生，請勿手動編輯。\n\n| 編號 | 元件 | 說明 | 檔案（services/web/src/） |\n|---|---|---|---|\n${catalogRows.join('\n')}\n`
 if (process.argv.includes('--catalog')) {
   writeFileSync(catalogFile, catalogText)
