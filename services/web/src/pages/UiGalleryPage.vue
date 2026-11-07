@@ -142,6 +142,17 @@ const thread: ThreadMessage[] = [
         <OsmMap :markers="[{ lat: 25.0375, lng: 121.5637, label: '臺北市政府' }]" />
       </section>
       <section>
+        <SectionTitle title="O02 OsmMap（多個標記 + fit）" />
+        <OsmMap
+          fit
+          :markers="[
+            { lat: 25.0375, lng: 121.5637, label: '臺北市政府', detail: '信義區市府路 1 號' },
+            { lat: 25.0339, lng: 121.5645, label: '台北 101', detail: '觀景台 09:00–22:00' },
+            { lat: 25.0408, lng: 121.5576, label: '國父紀念館', detail: '施工中，部分出入口封閉', tone: 'warning' },
+          ]"
+        />
+      </section>
+      <section>
         <SectionTitle title="O02 OsmMap（隨附底圖）" />
         <OsmMap basemap="offline" :markers="[{ lat: 25.0375, lng: 121.5637, label: '臺北市政府' }]" />
       </section>
