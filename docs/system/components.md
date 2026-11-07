@@ -27,7 +27,7 @@
 | M11 | ChatQuote | 對話框內的原文（逐字顯示、可朗讀） | `ui/molecules/ChatQuote.vue` |
 | ML-C01 | DeviceModelCard | 手機硬體、選用模型與理由、模型揭露 | `addons/model/ui/DeviceModelCard.vue` |
 | O01 | BaseSheet | 底部面板 | `ui/organisms/BaseSheet.vue` |
-| O02 | OsmMap | OpenStreetMap 地圖（斷網時改用隨附的臺北底圖） | `ui/organisms/OsmMap.vue` |
+| O02 | OsmMap | 地圖（隨附臺北向量底圖，縮小時精簡路名；可切換 OSM 圖磚） | `ui/organisms/OsmMap.vue` |
 | O03 | NoticeList | 注意事項清單（第一項預設展開） | `ui/organisms/NoticeList.vue` |
 | O04 | ChatComposer | 對話輸入列（快捷 chips + 輸入框 + 送出） | `ui/organisms/ChatComposer.vue` |
 | O05 | ChatThread | 對話紀錄（泡泡 + 地圖／圖片／原文 + 結果卡片 + 建議） | `ui/organisms/ChatThread.vue` |

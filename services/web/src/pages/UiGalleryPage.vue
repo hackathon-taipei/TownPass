@@ -153,8 +153,8 @@ const thread: ThreadMessage[] = [
         />
       </section>
       <section>
-        <SectionTitle title="O02 OsmMap（隨附底圖）" />
-        <OsmMap basemap="offline" :markers="[{ lat: 25.0375, lng: 121.5637, label: '臺北市政府' }]" />
+        <SectionTitle title="O02 OsmMap（OSM 圖磚，basemap=&quot;osm&quot;）" />
+        <OsmMap basemap="osm":markers="[{ lat: 25.0375, lng: 121.5637, label: '臺北市政府' }]" />
       </section>
       <section>
         <SectionTitle title="O08 ChatMap" />

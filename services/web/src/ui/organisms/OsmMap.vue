@@ -1,20 +1,23 @@
 <script setup lang="ts">
-/** @component O02 OsmMap — OpenStreetMap 地圖（斷網時改用隨附的臺北底圖） */
+/** @component O02 OsmMap — 地圖（隨附臺北向量底圖，縮小時精簡路名；可切換 OSM 圖磚） */
 /**
- * OpenStreetMap via Leaflet. Competition rules forbid commercial map SDKs (e.g. Google Maps),
+ * OpenStreetMap data via Leaflet. Competition rules forbid commercial map SDKs (e.g. Google Maps),
  * so use this component for every map. Attribution must stay visible (OSM licence).
  *
- * Basemap: OSM tiles while online. Offline, or when tiles fail, it switches to maps/taipei.pmtiles,
- * a vector extract shipped with the site. The OSM tile policy forbids downloading their tiles in
- * advance, so the offline map can't be a tile cache.
+ * Basemap (ADR-017, ADR-022): by default the vector extract shipped with the site
+ * (maps/taipei.pmtiles, protomaps-leaflet), online and offline, so road labels can be thinned by
+ * zoom. basemap="osm" uses OSM raster tiles instead and still switches to the vector basemap when
+ * offline or when tiles fail. The OSM tile policy forbids downloading their tiles in advance, so
+ * the offline map can't be a tile cache.
  *
- * Look: token-coloured pin markers (L.divIcon + inline SVG), a slightly desaturated OSM basemap so
- * the pins stand out, kit-styled zoom buttons / popup / attribution. All Leaflet overrides live in
- * the non-scoped <style> below and are prefixed with the `.tp-map` root class, so nothing leaks.
+ * Look: token-coloured pin markers (L.divIcon + inline SVG), kit-styled zoom buttons / popup /
+ * attribution, and a slightly desaturated OSM raster layer in "osm" mode. All Leaflet overrides
+ * live in the non-scoped <style> below and are prefixed with the `.tp-map` root class.
  */
 import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
+import type { Feature, LabelRule } from 'protomaps-leaflet'
 
 export type MapMarker = { lat: number; lng: number; label?: string; detail?: string; tone?: 'default' | 'warning' }
 
@@ -44,8 +47,8 @@ const props = withDefaults(
     markers?: MapMarker[]
     /** zoom to show every marker */
     fit?: boolean
-    /** 'offline' always uses the shipped basemap */
-    basemap?: 'auto' | 'offline'
+    /** 'auto' / 'offline': shipped Taipei vector basemap; 'osm': OSM raster tiles (vector when offline) */
+    basemap?: 'auto' | 'offline' | 'osm'
   }>(),
   { center: () => [25.0375, 121.5637], zoom: 14, markers: () => [], basemap: 'auto' },
 )
@@ -91,13 +94,58 @@ function __popupOf(m: MapMarker): HTMLElement {
   return box
 }
 
-let onlineLayer: L.TileLayer | undefined
-let usingOffline = false
+/**
+ * Labels by zoom, so the zoomed-out map stays clean. The Taipei extract tags roads as
+ * kind=highway|major_road|minor_road|path with the OSM class in kind_detail.
+ * - roads: highway / trunk / primary from 12 (flavor default), secondary / tertiary / medium_road
+ *   from 15, minor_road / other / path from 16 (flavor default)
+ * - places: cities/towns as the flavor does, districts (suburb, e.g. 信義區) from 12 (the data has them from 13),
+ *   villages (e.g. 興雅) from 15, hamlets and other old place names from 16
+ */
+const __MAIN_ROADS = new Set(['motorway', 'trunk', 'primary'])
+const __PLACE_MINZOOM: Record<string, number> = { village: 15, hamlet: 16, locality: 16, isolated_dwelling: 16 }
+const __kind = (f: Feature, key = 'kind') => String(f.props[key] ?? '')
+// suburb = 行政區; macrohood/quarter in this extract are shopping areas (e.g. 光華商場), so they stay out
+const __district = (f: Feature) => __kind(f) === 'neighbourhood' && __kind(f, 'kind_detail') === 'suburb'
+const __mainRoad =(f: Feature) => __kind(f) === 'highway' || __MAIN_ROADS.has(__kind(f, 'kind_detail').replace(/_link$/, ''))
 
-async function useOfflineBasemap() {
-  if (usingOffline || !map) return
-  usingOffline = true
-  onlineLayer?.remove()
+/** Thin the flavor's default label rules instead of rewriting the style. */
+function __thinLabels(rules: LabelRule[]): LabelRule[] {
+  // classify a rule by asking its own filter about a sample feature
+  const takes = (r: LabelRule, layer: string, kind: string) =>
+    r.dataLayer === layer && (r.filter?.(16, { props: { kind } } as unknown as Feature) ?? false)
+  const out: LabelRule[] = []
+  let roadsDone = false
+  for (const r of rules) {
+    const keep = r.filter ?? (() => true)
+    if (takes(r, 'roads', 'major_road') || takes(r, 'roads', 'highway')) {
+      if (roadsDone) continue // the flavor lists this rule twice
+      roadsDone = true
+      out.push({ ...r, filter: (z, f) => keep(z, f) && (z >= 15 || __mainRoad(f)) })
+    } else if (takes(r, 'roads', 'minor_road')) {
+      out.push({ ...r, minzoom: Math.max(r.minzoom ?? 0, 16) })
+      out.push({ ...r, minzoom: 15, filter: (_z, f) => __kind(f) === 'medium_road' })
+    } else if (takes(r, 'places', 'locality')) {
+      out.push({ ...r, filter: (z, f) => keep(z, f) && z >= (__PLACE_MINZOOM[__kind(f, 'kind_detail')] ?? 0) })
+      if (r.minzoom !== undefined && r.maxzoom === undefined) {
+        // the flavor has no district labels; reuse its town-label style for them
+        out.push({ ...r, minzoom: 12, filter: (_z, f) => __district(f) })
+      }
+    } else {
+      out.push(r)
+    }
+  }
+  return out
+}
+
+let osmLayer: L.TileLayer | undefined
+let usingVector = false
+
+/** Shipped Taipei vector basemap (maps/taipei.pmtiles). Default online and offline (ADR-017, ADR-022). */
+async function useVectorBasemap() {
+  if (usingVector || !map) return
+  usingVector = true
+  osmLayer?.remove()
   // protomaps-leaflet extends the global L, so it has to exist before the library loads
   ;(window as unknown as { L: typeof L }).L = L
   const { leafletLayer } = await import('protomaps-leaflet')
@@ -107,20 +155,24 @@ async function useOfflineBasemap() {
     flavor: 'light',
     lang: 'zh',
     maxDataZoom: 14,
+    maxZoom: 18,
     attribution: `${__ATTRIBUTION} &middot; Protomaps`,
-  }) as unknown as L.Layer
-  layer.addTo(map)
+  })
+  layer.labelRules = __thinLabels(layer.labelRules)
+  layer.clearLayout() // rebuild the labeler with the thinned rules
+  ;(layer as unknown as L.Layer).addTo(map)
 }
 
-function useOnlineBasemap() {
-  onlineLayer = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+/** basemap="osm": OSM raster tiles, falling back to the vector basemap when tiles fail. */
+function useOsmBasemap() {
+  osmLayer = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
     maxZoom: 19,
     attribution: __ATTRIBUTION,
-    // only this layer gets the calmer filter (see <style>); the offline layer is left as is
+    // only this layer gets the calmer filter (see <style>); the vector layer is left as is
     className: 'tp-map__osm',
   })
-  onlineLayer.on('tileerror', () => void useOfflineBasemap())
-  onlineLayer.addTo(map!)
+  osmLayer.on('tileerror', () => void useVectorBasemap())
+  osmLayer.addTo(map!)
 }
 
 onMounted(() => {
@@ -138,8 +190,8 @@ onMounted(() => {
     close?.setAttribute('aria-label', '關閉')
     close?.setAttribute('title', '關閉')
   })
-  if (props.basemap === 'offline' || !navigator.onLine) void useOfflineBasemap()
-  else useOnlineBasemap()
+  if (props.basemap === 'osm' && navigator.onLine) useOsmBasemap()
+  else void useVectorBasemap()
   drawMarkers()
 })
 watch(() => props.markers, drawMarkers, { deep: true })
