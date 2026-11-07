@@ -1,11 +1,12 @@
 /**
- * LOGIC LAYER - 志工頁 MR-P04（掃描報到、今天的狀態）與我的任務 MR-P05（取餐、取消、拜訪回報），T-118。
+ * LOGIC LAYER - 志工頁 MR-P04（掃描報到、今天的狀態）與我的任務 MR-P05（取餐、取消、拜訪回報），T-118；
+ * 設計 v2 的畫面狀態（步驟列、任務卡晶片與主按鈕、取消確認、完成畫面）T-135，見 docs/meal-relay/T-118.md「設計 v2」。
  * 合約 docs/system/11-meal-relay.md v2.2：§2 志工、M8、M9、M11、M13、M15、M17、M18、§7、§9 掃描與斷網。
  *
  * M13：志工畫面只有自己 assigned 任務上的長者；這裡沒有、也不能呼叫任何列出長者的端點。
  * 回報後任務從清單移除，裝置上快取的任務與申請也一起清掉（§9）。
  */
-import { computed, onBeforeUnmount, onMounted, ref, type Ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch, type Ref } from 'vue'
 import { featureRoute } from '@/framework'
 import { isInApp, request as bridgeRequest } from '@/platform/bridge'
 import { readJson, writeJson } from '@/platform/storage'
@@ -33,6 +34,7 @@ import {
   type VisitKind,
   type VisitResult,
 } from '../data'
+import { openedInGroup, setOpenInGroup } from './brand'
 import { IMAGE_MAX_BYTES, IMAGE_QUALITY_STEPS, base64Bytes, fitSize, isImageMime } from './shared'
 import { toast } from './toast'
 
@@ -139,6 +141,89 @@ export function taskViews(assignments: readonly Assignment[], claims: readonly C
 /** 可以回報了嗎：送餐要先取餐（delivering）；還沒取餐的可以先取餐，或取消這份餐改成只做關懷（M8） */
 export function reportReady(task: Pick<TaskView, 'claim'>): boolean {
   return !task.claim || task.claim.status === 'delivering'
+}
+
+/* ---------------------------------------------------------------- 設計 v2 的畫面狀態（T-135，design-v2/README.md §3.2、§3.3） */
+
+/** 志工首頁步驟列（MR-C63）的步驟；目前步驟是 volunteerStepOf() 的值，3 = 全部完成（三步都打勾） */
+export const VOLUNTEER_STEP_LABELS = ['報到', '取餐', '回報'] as const
+export type VolunteerStep = 0 | 1 | 2 | 3
+
+/**
+ * 志工首頁步驟列的目前步驟：還沒報到 → 0「報到」；有待取餐（申請 claimed）的任務 → 1「取餐」；
+ * 其他進行中的任務都在配送中或純關懷 → 2「回報」；報到了但沒有進行中的任務 → 3（全部完成）。
+ * 申請狀態用任務上附的 `claim`（listMyAssignments 已帶），志工首頁不另外呼叫 listMyClaims。
+ */
+export function volunteerStepOf(checkedIn: boolean, assignments: readonly Pick<Assignment, 'status' | 'claim'>[]): VolunteerStep {
+  if (!checkedIn) return 0
+  const active = assignments.filter((a) => a.status === 'assigned')
+  if (active.some((a) => a.claim?.status === 'claimed')) return 1
+  return active.length ? 2 : 3
+}
+
+/** 任務卡的狀態：待取餐（申請 claimed）、配送中（delivering）、純關懷（沒有進行中的申請） */
+export type TaskStatus = 'pickup' | 'delivering' | 'care'
+export const TASK_STATUS_LABEL: Record<TaskStatus, string> = { pickup: '待取餐', delivering: '配送中', care: '純關懷' }
+
+export function taskStatusOf(task: Pick<TaskView, 'claim'>): TaskStatus {
+  if (!task.claim) return 'care'
+  return task.claim.status === 'claimed' ? 'pickup' : 'delivering'
+}
+
+/** 任務卡標題列的晶片：送餐任務是「送餐+關懷」（或「送餐」）＋狀態；沒有申請只有「純關懷」 */
+export type TaskChip = { label: string; kind: 'todo' | 'status' }
+export function taskChipsOf(task: Pick<TaskView, 'claim' | 'todo'>): TaskChip[] {
+  const status = taskStatusOf(task)
+  if (status === 'care') return [{ label: TASK_STATUS_LABEL.care, kind: 'status' }]
+  return [
+    { label: task.todo.includes('care') ? '送餐+關懷' : '送餐', kind: 'todo' },
+    { label: TASK_STATUS_LABEL[status], kind: 'status' },
+  ]
+}
+
+/** 任務卡的主按鈕：待取餐 →「確認已取餐」（pickupClaim）；配送中或純關懷 →「回報拜訪」（開回報面板） */
+export type TaskAction = { action: 'pickup' | 'report'; label: string }
+export function taskActionOf(task: Pick<TaskView, 'claim'>): TaskAction {
+  return taskStatusOf(task) === 'pickup' ? { action: 'pickup', label: '確認已取餐' } : { action: 'report', label: '回報拜訪' }
+}
+
+/** 食物那一行的小字：「1 份・最晚 12:30 食用」（時間讀不到就只顯示份數） */
+export function mealLineOf(claim: Pick<Claim, 'qty'> & { food: Pick<Claim['food'], 'expires_at'> }): string {
+  const clock = clockText(claim.food.expires_at)
+  return clock ? `${claim.qty} 份・最晚 ${clock} 食用` : `${claim.qty} 份`
+}
+
+/** 取餐地點：食物點名稱＋地址（Food.point_address，T-133）；地址沒填 → null，畫面不顯示那一行 */
+export function pickupPlaceOf(food: { point_name: string; point_address?: string | null }): { name: string; address: string | null } {
+  const address = food.point_address?.trim()
+  return { name: food.point_name, address: address ? address : null }
+}
+
+/** 任務卡群組（MR-C65 Accordion `group`）的名稱：一次只展開一張 */
+export const TASK_GROUP = 'meal-relay.tasks'
+
+/**
+ * 要展開哪一張任務卡：原本展開的那張還在就不變；沒有展開的、或展開的那張已經離開（回報完）→ 第一張。
+ * 只在任務清單（id）改變時套用，所以志工自己全部收合後，取餐不會又把卡片打開。
+ */
+export function firstOpenTask(ids: readonly string[], opened: string | null): string | null {
+  if (opened && ids.includes(opened)) return opened
+  return ids[0] ?? null
+}
+
+/** 回報面板的三個選項（04 中圖的文字）；放門口只限送餐、生鮮不行（M11） */
+export const REPORT_OPTIONS: readonly { value: VisitResult; label: string }[] = [
+  { value: 'seen', label: '見到本人' },
+  { value: 'left_at_door', label: '放門口，附照片' },
+  { value: 'returned', label: '未見到，帶回' },
+]
+export const REPORT_NOTE = '放門口需要拍照；生鮮蔬果不適用'
+
+/** 「放門口」不能選的原因（選項停用並顯示這段文字，V11）；可以選時回空字串 */
+export function leaveAtDoorBlockText(kind: VisitKind, category: FoodCategory | undefined): string {
+  if (kind !== 'meal') return '這次只做關懷，沒有餐可以放門口'
+  if (category === 'produce') return '生鮮蔬果不能放門口'
+  return ''
 }
 
 /* ---------------------------------------------------------------- 長者地址（ADR-027：只能是模擬資料） */
@@ -277,7 +362,30 @@ function __useNow(): Ref<number> {
   return now
 }
 
-/** MR-P04 志工頁：掃描報到、今天的狀態（報到的據點、任務數）。沒有長者清單或地圖（M13）。 */
+/**
+ * 這次開啟 App 期間最後一次報到（只在記憶體，不存裝置、不含長者資料）。
+ * 讓「完成畫面 →回到志工首頁」後仍顯示「已報到」與報到的據點（合約沒有「我今天的報到」端點，T-118 #6）；
+ * 只在同一位志工、同一天（臺北時間）有效。
+ */
+type __RememberedCheckin = { volunteerId: string; station: Station; checked_in_at: string }
+let __remembered: __RememberedCheckin | null = null
+
+function __taipeiDay(t: number): string {
+  return new Date(t).toLocaleDateString('sv-SE', { timeZone: 'Asia/Taipei' })
+}
+
+/** 忘掉記憶體裡的報到（換帳號、測試用） */
+export function forgetCheckin(): void {
+  __remembered = null
+}
+
+/** 重新開啟頁面時的報到時間：進行中任務最早的 assigned_at（任務在報到當下派出，時間相同，M16） */
+export function checkinTimeOf(assignments: readonly Pick<Assignment, 'status' | 'assigned_at'>[]): string | null {
+  const times = assignments.filter((a) => a.status === 'assigned' && a.assigned_at).map((a) => a.assigned_at)
+  return times.length ? times.sort()[0]! : null
+}
+
+/** MR-P04 志工頁：掃描報到、今天的狀態（報到的據點、任務數、步驟）。沒有長者清單或地圖（M13）。 */
 export function useVolunteerPage() {
   const now = __useNow()
   const me = ref<Cached<Me> | null>(null)
@@ -289,21 +397,32 @@ export function useVolunteerPage() {
   const checkinError = ref('')
   const notice = ref('')
   const pasted = ref('')
-  /** 這次開啟頁面後報到的結果（不存長者資料）；重新開啟頁面時改由進行中任務的據點推得 */
+  /** 這次開啟 App 後報到的結果（不存長者資料）；沒有時改由進行中任務的據點推得 */
   const lastCheckin = ref<{ station: Station; checked_in_at: string } | null>(null)
   const scannable = canScan()
 
   const staleAt = computed(() => staleOf(me.value, assignments.value))
   const offline = computed(() => !!staleAt.value)
   const isVolunteer = computed(() => me.value?.role === 'volunteer')
+  const name = computed(() => me.value?.name?.trim() || '志工')
   const taskCount = computed(() => (assignments.value ?? []).filter((a) => a.status === 'assigned').length)
   const station = computed<Station | null>(() => {
     if (lastCheckin.value) return lastCheckin.value.station
     const first = (assignments.value ?? [])[0]
     return first ? (stations.value.find((s) => s.id === first.station_id) ?? null) : null
   })
-  const checkedInAt = computed(() => lastCheckin.value?.checked_in_at ?? null)
+  const checkedInAt = computed(() => lastCheckin.value?.checked_in_at ?? checkinTimeOf(assignments.value ?? []))
   const checkedIn = computed(() => !!lastCheckin.value || taskCount.value > 0)
+  /** 步驟列的目前步驟（MR-C63）：報到 → 取餐 → 回報 */
+  const step = computed(() => volunteerStepOf(checkedIn.value, assignments.value ?? []))
+
+  function __restoreCheckin(volunteerId: string) {
+    const r = __remembered
+    if (!r || lastCheckin.value || r.volunteerId !== volunteerId) return
+    const at = Date.parse(r.checked_in_at)
+    if (Number.isNaN(at) || __taipeiDay(at) !== __taipeiDay(Date.now())) return
+    lastCheckin.value = { station: r.station, checked_in_at: r.checked_in_at }
+  }
 
   async function load() {
     loading.value = true
@@ -311,6 +430,7 @@ export function useVolunteerPage() {
     try {
       me.value = await getMe()
       if (me.value.role === 'volunteer') {
+        __restoreCheckin(me.value.id)
         assignments.value = await listMyAssignments()
         if (assignments.value.length && !lastCheckin.value) stations.value = await listStations().catch(() => [])
       }
@@ -331,6 +451,7 @@ export function useVolunteerPage() {
     try {
       const result = await checkIn(qrText)
       lastCheckin.value = { station: result.station, checked_in_at: result.checkin.checked_in_at }
+      __remembered = { volunteerId: result.checkin.volunteer_id, ...lastCheckin.value }
       assignments.value = result.assignments
       pasted.value = ''
       notice.value = isRepeatCheckin(known, result)
@@ -373,6 +494,7 @@ export function useVolunteerPage() {
     staleAt,
     offline,
     isVolunteer,
+    name,
     scannable,
     pasted,
     submitting,
@@ -382,6 +504,7 @@ export function useVolunteerPage() {
     checkedIn,
     checkedInAt,
     taskCount,
+    step,
     scan,
     submitPasted,
     reload: load,
@@ -414,6 +537,29 @@ export function useMyTasks() {
     },
   })
   const blockReason = computed(() => (reportTask.value ? reportBlockReason(reportTask.value, form.value, offline.value) : ''))
+
+  /** 這次開啟頁面後回報成功的件數（完成畫面的「已完成 N 件任務」，T-135） */
+  const reportedCount = ref(0)
+  /** 最後一個任務回報完：顯示完成畫面（這次頁面裡至少回報過一件，而且已經沒有進行中的任務） */
+  const allDone = computed(() => reportedCount.value > 0 && !loading.value && !loadError.value && tasks.value.length === 0)
+
+  /** 「取消這份餐」要先確認（MR-C67 ConfirmDialog，danger） */
+  const cancelOpen = ref(false)
+  const cancelTarget = ref<TaskView | null>(null)
+
+  // 任務卡群組：清單第一次出現或展開的那張離開時，展開第一張（design-v2 §3.3）
+  watch(
+    () => tasks.value.map((t) => t.id).join('\n'),
+    () => {
+      const opened = openedInGroup(TASK_GROUP)
+      const next = firstOpenTask(
+        tasks.value.map((t) => t.id),
+        opened,
+      )
+      if (next !== opened) setOpenInGroup(TASK_GROUP, next)
+    },
+    { immediate: true },
+  )
 
   async function load() {
     loading.value = !assignments.value
@@ -466,6 +612,21 @@ export function useMyTasks() {
     }
   }
 
+  /** 按「取消這份餐」：先開確認視窗，還不呼叫 cancelClaim（斷網或沒有申請時不開） */
+  function askCancel(task: TaskView) {
+    if (!task.claim || offline.value || busyId.value) return
+    cancelTarget.value = task
+    cancelOpen.value = true
+  }
+
+  /** 確認視窗按「取消這份餐」：呼叫 cancelClaim，卡片改成純關懷（V7） */
+  async function confirmCancel() {
+    const task = cancelTarget.value
+    cancelOpen.value = false
+    cancelTarget.value = null
+    if (task) await cancel(task)
+  }
+
   function openReport(task: TaskView) {
     if (!reportReady(task)) return
     reportTask.value = task
@@ -513,8 +674,10 @@ export function useMyTasks() {
     try {
       await reportVisit(buildVisit(task, form.value))
       await __dropTask(task)
+      reportedCount.value += 1
       reportTask.value = null
-      toast(`已回報${task.assignment.elder.alias}的拜訪，謝謝你`)
+      // 提示只寫「已回報」，不帶長者代號：最後一張回報完，完成畫面寫著「長者資料已從此頁移除」（M13）
+      toast('已回報，謝謝你')
       void load() // 重新取得，裝置上的快取也換成最新的
     } catch (e) {
       reportError.value = errorText(e)
@@ -541,6 +704,12 @@ export function useMyTasks() {
     busyId,
     pickup,
     cancel,
+    cancelOpen,
+    cancelTarget,
+    askCancel,
+    confirmCancel,
+    reportedCount,
+    allDone,
     reportTask,
     reportOpen,
     form,

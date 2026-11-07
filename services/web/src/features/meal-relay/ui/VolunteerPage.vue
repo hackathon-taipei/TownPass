@@ -1,10 +1,13 @@
 <script setup lang="ts">
-/** @component MR-P04 VolunteerPage — 志工頁：掃描據點 QR 報到、今天的狀態、前往我的任務（沒有長者清單或地圖） */
+/** @component MR-P04 VolunteerPage — 志工首頁「今天的服務」：問候、報到卡（據點、報到時間、N 件待完成）、掃碼報到、步驟列（沒有長者清單或地圖） */
 /**
- * 合約 v2.2 §9：MR-P04 = T01 PageContainer {
- *   MR-C05 StaleBanner、MR-C23 VolunteerAvatar＋名字、
- *   MR-C43 CheckinPanel（qr_code_scan 或貼上 QR 文字 → checkIn）、
- *   MR-C44 TodayStatus（報到據點、任務數 → volunteer/tasks）、A07 SourceNote（據點來源）、MR-C12 ToastHost }
+ * 設計 v2 01 中（docs/meal-relay/design-v2/README.md §3.2，T-135）：
+ * MR-P04 = T01 PageContainer {
+ *   h1「今天的服務」、MR-C05 StaleBanner、MR-C75 VolunteerGreeting（MR-C62 MascotBadge＋Me.name＋已報到／還沒報到）、
+ *   已報到：MR-C44 TodayStatus（據點、今天 HH:MM 報到、N 件待完成、查看我的任務 → volunteer/tasks）、
+ *   MR-C43 CheckinPanel（已報到：「重新掃碼報到」＋「重複報到不會重複派送」；還沒報到：「掃描據點 QR 報到」）、
+ *   MR-C76 VolunteerSteps（MR-C63 報到 → 取餐 → 回報）、A07 SourceNote（據點來源）、MR-C12 ToastHost }
+ * 台北通的標題列與返回鍵是 App 自己的，網頁不畫（README §0）。
  * M13：這一頁不顯示任何長者，只有任務數。
  */
 import { CircleAlert, UserRound } from 'lucide-vue-next'
@@ -14,16 +17,17 @@ import CheckinPanel from './CheckinPanel.vue'
 import StaleBanner from './StaleBanner.vue'
 import TodayStatus from './TodayStatus.vue'
 import ToastHost from './ToastHost.vue'
-import VolunteerAvatar from './VolunteerAvatar.vue'
+import VolunteerGreeting from './VolunteerGreeting.vue'
+import VolunteerSteps from './VolunteerSteps.vue'
 
 const {
   now,
-  me,
   loading,
   loadError,
   staleAt,
   offline,
   isVolunteer,
+  name,
   scannable,
   pasted,
   submitting,
@@ -33,6 +37,7 @@ const {
   checkedIn,
   checkedInAt,
   taskCount,
+  step,
   scan,
   submitPasted,
   reload,
@@ -40,8 +45,9 @@ const {
 </script>
 
 <template>
-  <PageContainer title="志工" back>
-    <div class="space-y-4 pt-2">
+  <PageContainer>
+    <div class="space-y-5 pt-4">
+      <h1 class="text-3xl font-extrabold text-grey-900">今天的服務</h1>
       <StaleBanner :stale-at="staleAt" :now="now" />
 
       <SkeletonBlock v-if="loading" :lines="5" />
@@ -58,23 +64,7 @@ const {
       />
 
       <template v-else>
-        <div v-if="me" class="flex items-center gap-3">
-          <VolunteerAvatar :id="me.id" :size="56" />
-          <div class="min-w-0">
-            <p class="truncate text-lg font-semibold text-grey-900">{{ me.name || '志工' }}</p>
-            <p class="text-sm text-grey-500">{{ checkedIn ? '已報到' : '目前沒有進行中的任務' }}</p>
-          </div>
-        </div>
-
-        <CheckinPanel
-          v-model:pasted="pasted"
-          :scannable="scannable"
-          :submitting="submitting"
-          :disabled="offline"
-          :error="checkinError"
-          @scan="scan"
-          @submit-pasted="submitPasted"
-        />
+        <VolunteerGreeting :name="name" :checked-in="checkedIn" />
 
         <Transition name="fade-up">
           <p v-if="notice" class="text-base text-grey-800" role="status">{{ notice }}</p>
@@ -87,6 +77,19 @@ const {
           :task-count="taskCount"
           :tasks-to="tasksRoute"
         />
+
+        <CheckinPanel
+          v-model:pasted="pasted"
+          :checked-in="checkedIn"
+          :scannable="scannable"
+          :submitting="submitting"
+          :disabled="offline"
+          :error="checkinError"
+          @scan="scan"
+          @submit-pasted="submitPasted"
+        />
+
+        <VolunteerSteps :current="step" />
 
         <SourceNote v-if="station" :source="station.source" />
       </template>

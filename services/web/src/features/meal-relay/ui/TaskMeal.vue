@@ -1,57 +1,57 @@
 <script setup lang="ts">
-/** @component MR-C41 TaskMeal — 任務卡的送餐區：要送的餐（申請列）、食物照片（點了放大）、過敏原警告、取餐與取消這份餐 */
+/** @component MR-C41 TaskMeal — 任務卡的食物區：照片（點了放大）、名稱、「1 份・最晚 HH:MM 食用」、取餐地點（名稱＋地址＋入口照片）、過敏原衝突警告 */
 /**
- * 合約 M8：claimed →（取餐）delivering；claimed、delivering 都可以取消，份數退回，任務保留只做關懷（V7）。
- * M4：食物與長者的過敏原有交集時停用取餐（MR-C16，長者之後改過敏原時的保險）。
- * 斷網或處理中（disabled）時按鈕停用（ADR-024）。
- * T-127：食物有照片就顯示縮圖（MR-C55），點了用 MR-C09 BottomSheet 放大；沒照片就整塊不顯示，不放佔位圖。
- * 取餐地點有入口照片（Food.point_image_url，ADR-028）才顯示縮圖（MR-C57，點一下放大）；沒有就不顯示這一行。
+ * 設計 v2 01 右（design-v2/README.md §3.3 第 1 項）：照片、名稱、份數與最晚食用時間、黃底「取餐地點：{食物點名稱}」、食物點地址（T-133）。
+ * 取餐、取消的按鈕在 MR-C40 TaskCard（主按鈕與「取消這份餐」）。
+ * M4：食物與長者的過敏原有交集時顯示 MR-C16 AllergenWarning，`v-model:conflict` 讓任務卡停用「確認已取餐」。
+ * T-127：食物有照片就顯示縮圖（MR-C55），點了用 MR-C09 BottomSheet 放大；沒照片就不放佔位圖。
+ * T-128：取餐地點有入口照片（Food.point_image_url，ADR-028）才顯示縮圖（MR-C57，點一下放大）。
  *
- *   <TaskMeal :claim="task.claim" :elder="task.assignment.elder" :disabled="busy || offline" @pickup="…" @cancel="…" />
+ *   <TaskMeal v-model:conflict="conflict" :claim="task.claim" :elder="task.assignment.elder" />
  */
 import './motion.css'
 import { computed, ref } from 'vue'
-import { BaseButton } from '@/ui'
 import { foodPhotoOf } from '../logic/shared'
 import { pickupPhotoOf } from '../logic/placePhoto'
-import type { Claim, Elder } from '../logic/volunteer'
+import { mealLineOf, pickupPlaceOf, type Claim, type Elder } from '../logic/volunteer'
 import AllergenWarning from './AllergenWarning.vue'
 import BottomSheet from './BottomSheet.vue'
-import ClaimRow from './ClaimRow.vue'
 import FoodThumb from './FoodThumb.vue'
 import PlacePhoto from './PlacePhoto.vue'
 
-const props = defineProps<{ claim: Claim; elder: Pick<Elder, 'alias' | 'allergens'>; disabled?: boolean; busy?: boolean }>()
-const emit = defineEmits<{ pickup: []; cancel: [] }>()
-const conflict = ref(false)
+const props = defineProps<{ claim: Claim; elder: Pick<Elder, 'alias' | 'allergens'> }>()
+const conflict = defineModel<boolean>('conflict', { default: false })
 const photo = computed(() => foodPhotoOf(props.claim.food))
 const zoom = ref(false)
 const pickupPhoto = computed(() => pickupPhotoOf(props.claim.food))
+const place = computed(() => pickupPlaceOf(props.claim.food))
 </script>
 
 <template>
   <div class="space-y-2">
-    <ClaimRow :claim="claim" />
-    <template v-if="photo">
+    <div class="flex items-start gap-3">
       <button
+        v-if="photo"
         type="button"
-        class="press flex w-full items-center gap-3 rounded-xl bg-white p-2 text-left ring-1 ring-grey-100"
+        class="press shrink-0 rounded-xl"
         :aria-label="`放大「${photo.alt}」的照片`"
         @click="zoom = true"
       >
         <FoodThumb :food="claim.food" size="lg" />
-        <span class="min-w-0 text-sm text-grey-700">
-          <span class="block truncate font-medium text-grey-900">{{ photo.alt }}</span>
-          看照片找這一批，點一下放大
-        </span>
       </button>
-      <BottomSheet v-model="zoom" :title="photo.alt">
-        <img :src="photo.src" :alt="photo.alt" class="max-h-[70vh] w-full rounded-xl bg-grey-50 object-contain" />
-      </BottomSheet>
-    </template>
+      <div class="min-w-0 flex-1">
+        <p class="text-lg font-extrabold break-words text-grey-900">{{ claim.food.name }}</p>
+        <p class="text-sm text-grey-600">{{ mealLineOf(claim) }}</p>
+        <p class="mt-1 inline-block rounded-lg bg-secondary-100 px-2 py-0.5 text-sm font-bold text-grey-900">取餐地點：{{ place.name }}</p>
+        <p v-if="place.address" class="mt-0.5 text-sm break-words text-grey-600">{{ place.address }}</p>
+      </div>
+    </div>
+    <BottomSheet v-if="photo" v-model="zoom" :title="photo.alt">
+      <img :src="photo.src" :alt="photo.alt" class="max-h-[70vh] w-full rounded-xl bg-grey-50 object-contain" />
+    </BottomSheet>
     <div v-if="pickupPhoto" class="flex items-center gap-3">
       <PlacePhoto :photo="pickupPhoto" />
-      <p class="min-w-0 flex-1 text-sm text-grey-700">取餐地點入口：{{ claim.food.point_name }}<span class="block text-xs text-grey-500">點照片可以放大</span></p>
+      <p class="min-w-0 flex-1 text-sm text-grey-700">取餐地點入口<span class="block text-xs text-grey-500">點照片可以放大</span></p>
     </div>
     <AllergenWarning
       v-model:conflict="conflict"
@@ -60,17 +60,5 @@ const pickupPhoto = computed(() => pickupPhotoOf(props.claim.food))
       :food-name="claim.food.name"
       :elder-name="elder.alias"
     />
-    <div class="flex gap-2">
-      <BaseButton
-        v-if="claim.status === 'claimed'"
-        class="flex-1"
-        :loading="busy"
-        :disabled="disabled || conflict"
-        @click="emit('pickup')"
-      >
-        取餐
-      </BaseButton>
-      <BaseButton class="flex-1" variant="outline" :disabled="disabled || busy" @click="emit('cancel')">取消這份餐</BaseButton>
-    </div>
   </div>
 </template>
