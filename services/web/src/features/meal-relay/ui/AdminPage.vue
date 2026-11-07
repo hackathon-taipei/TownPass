@@ -4,7 +4,7 @@
  * 網址 /#/f/meal-relay/admin?as=<admin id>（§2）。不是 admin → 顯示沒有權限與說明。
  * 樹：MR-C50 AdminShell { #actions: MR-C22 ResetDemoButton, MR-C21 PageTransition {
  *   M01+M05（沒有權限／無法確認身分）｜ MR-C05 StaleBanner, MR-C08 TabBar, MR-C21 PageTransition(refresh) {
- *     審核 MR-C51 ReviewPanel｜看板 MR-C52 BoardPanel｜名冊 MR-C54 ElderRoster + MR-C53 ElderForm + A07 SourceNote } }, MR-C12 ToastHost }
+ *     審核 MR-C51 ReviewPanel｜看板 MR-C52 BoardPanel（統計卡與清單，沒有總覽地圖）｜名冊 MR-C54 ElderRoster + MR-C53 ElderForm + A07 SourceNote } }, MR-C12 ToastHost }
  */
 import { onBeforeUnmount, onMounted, ref } from 'vue'
 import { ShieldX, WifiOff } from 'lucide-vue-next'
@@ -23,7 +23,7 @@ import ToastHost from './ToastHost.vue'
 
 const admin = useAdmin()
 const {
-  access, accountId, accessError, tab, now, version, offline, staleAt, pending, reviewed, board, markers, foods, sourceText,
+  access, accountId, accessError, tab, now, version, offline, staleAt, pending, reviewed, board, foods, sourceText,
   errors, roster, stations, draft, editing, formErrors, formMarkers, saving,
 } = admin
 
@@ -75,7 +75,6 @@ onBeforeUnmount(() => admin.stop())
             <BoardPanel
               v-else-if="tab === 'board'"
               :board="board"
-              :markers="markers"
               :foods="foods"
               :now="now"
               :source-text="sourceText"

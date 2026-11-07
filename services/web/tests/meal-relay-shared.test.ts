@@ -12,7 +12,9 @@ import {
   IMAGE_MAX_BYTES,
   IMAGE_MAX_EDGE,
   IMAGE_QUALITY_STEPS,
+  isEnded,
   isImageMime,
+  splitEnded,
   ORG_TYPE_ICON,
   POINT_KIND_ICON,
   staleText,
@@ -169,6 +171,28 @@ describe('圖片常數（M19、§5）', () => {
   })
 })
 
+describe('isEnded／splitEnded（已結束的收合，T-126）', () => {
+  it('已過期、已下架、取消算結束', () => {
+    for (const s of ['expired', 'closed', 'cancelled']) expect(isEnded(s), s).toBe(true)
+  })
+  it('可派送、已全數派出（還在配送）、已派送、配送中、完成不算結束', () => {
+    for (const s of ['open', 'claimed', 'delivering', 'done']) expect(isEnded(s), s).toBe(false)
+  })
+  it('splitEnded 拆成進行中與已結束，各自保持順序', () => {
+    const items = [
+      { id: 'a', status: 'open' },
+      { id: 'b', status: 'expired' },
+      { id: 'c', status: 'claimed' },
+      { id: 'd', status: 'closed' },
+    ]
+    const { active, ended } = splitEnded(items)
+    expect(active.map((x) => x.id)).toEqual(['a', 'c'])
+    expect(ended.map((x) => x.id)).toEqual(['b', 'd'])
+  })
+  it('空清單', () => {
+    expect(splitEnded([])).toEqual({ active: [], ended: [] })
+  })
+})
 describe('foodPhotoOf（M19，T-127）', () => {
   it('沒有照片回 null（畫面不顯示，也不放佔位圖）', () => {
     expect(foodPhotoOf({ image_url: null, name: '排骨便當' })).toBeNull()

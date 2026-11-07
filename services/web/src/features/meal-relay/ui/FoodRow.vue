@@ -1,5 +1,5 @@
 <script setup lang="ts">
-/** @component MR-C14 FoodRow — 食物列：剩餘、派出中、已送達份數平滑變化、狀態晶片換色、到期倒數條、過期變淡、有照片時左側縮圖 */
+/** @component MR-C14 FoodRow — 食物列：剩餘、派出中、已送達份數平滑變化、狀態晶片（三色）、到期倒數條、過期變淡、有照片時左側縮圖 */
 /**
  * 舊規格的「上架列」（B8、B9、B13）改成合約 v2.2 的 Food。
  * 三個數字照 M1：剩餘 remaining、派出中 dispatched_qty（claimed＋delivering）、已送達 delivered_qty（done）。
@@ -31,8 +31,8 @@ const hasPhoto = computed(() => foodPhotoOf(props.food) !== null)
 const faded = computed(() => props.food.status === 'expired' || props.food.status === 'closed')
 
 const CHIP: Record<Food['status'], string> = {
-  open: 'bg-secondary-100 text-secondary-800',
-  claimed: 'bg-primary-50 text-primary-700',
+  open: 'bg-primary-50 text-primary-700',
+  claimed: 'bg-grey-50 text-grey-500',
   expired: 'bg-grey-50 text-grey-500',
   closed: 'bg-grey-50 text-grey-500',
 }

@@ -16,8 +16,8 @@ const step = useMotionNumber(() => progress.value?.step ?? 0)
 
 const CHIP: Record<Claim['status'], string> = {
   claimed: 'bg-primary-50 text-primary-700',
-  delivering: 'bg-primary-500 text-white',
-  done: 'bg-success/15 text-success',
+  delivering: 'bg-primary-50 text-primary-700',
+  done: 'bg-grey-50 text-grey-500',
   cancelled: 'bg-grey-50 text-grey-500',
 }
 </script>
@@ -36,8 +36,7 @@ const CHIP: Record<Claim['status'], string> = {
       <div v-if="progress" class="mt-2 flex items-center gap-2">
         <div class="h-1.5 flex-1 overflow-hidden rounded-full bg-grey-100" role="progressbar" :aria-valuenow="progress.step" aria-valuemin="0" :aria-valuemax="progress.total" aria-label="送餐進度">
           <div
-            class="h-full origin-left rounded-full transition-transform duration-300"
-            :class="claim.status === 'done' ? 'bg-success' : 'bg-primary-500'"
+            class="h-full origin-left rounded-full bg-primary-500 transition-transform duration-300"
             :style="{ transform: `scaleX(${progress.step / progress.total})` }"
           />
         </div>

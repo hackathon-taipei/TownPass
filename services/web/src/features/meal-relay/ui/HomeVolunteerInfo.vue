@@ -1,7 +1,6 @@
 <script setup lang="ts">
 /** @component MR-C32 HomeVolunteerInfo — 想當志工：正式版由據點經臺北市志工管理整合平臺招募、在臺北 E 大受訓（§1），本作品不做志工申請 */
 /** 連結由父層用 bridge open_link 開啟（@open(url)） */
-import { ExternalLink } from 'lucide-vue-next'
 import { BaseButton, BaseCard, SectionTitle } from '@/ui'
 import type { VolunteerLink } from '../logic/home'
 
@@ -22,7 +21,6 @@ defineEmits<{ open: [url: string] }>()
           :key="l.url"
           variant="outline"
           block
-          :icon="ExternalLink"
           @click="$emit('open', l.url)"
         >
           {{ l.label }}

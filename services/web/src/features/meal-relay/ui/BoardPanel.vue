@@ -1,18 +1,21 @@
 <script setup lang="ts">
-/** @component MR-C52 BoardPanel — 看板：5 張統計卡（MR-C13）、據點／食物點／長者地圖（MR-C07）、食物去向（MR-C03） */
+/** @component MR-C52 BoardPanel — 看板：5 張統計卡（MR-C13）、食物去向（MR-C03），已結束的收合（MR-C59） */
 /**
  * 管理系統「看板」分頁，資料來自 getBoard（logic/admin.ts 每 15 秒重新取得）。
- * 長者定位針只出現在管理系統（M13）。據點與食物點是開放資料，下方放 SourceNote。
+ * T-126：拿掉總覽地圖，改用統計卡與清單；管理員只在登記或修改長者位置時看到地圖（MR-C53 的 LocationPicker）。
+ * 食物去向：進行中的直接列出，已過期、已下架的收合成「已結束 N 批」。據點與食物點是開放資料，下方放 SourceNote。
  */
+import { computed } from 'vue'
 import { BaseCard, SectionTitle, SourceNote } from '@/ui'
 import type { Board, Food } from '../logic/admin'
 import { STAT_FIELDS } from '../logic/admin'
-import type { Marker } from '../logic/mapMarker'
+import { splitEnded } from '../logic/shared'
+import EndedGroup from './EndedGroup.vue'
 import FoodCard from './FoodCard.vue'
-import MapView from './MapView.vue'
 import StatCard from './StatCard.vue'
 
-defineProps<{ board: Board | null; markers: Marker[]; foods: Food[]; now: number; sourceText: string; error?: string }>()
+const props = defineProps<{ board: Board | null; foods: Food[]; now: number; sourceText: string; error?: string }>()
+const groups = computed(() => splitEnded(props.foods))
 </script>
 
 <template>
@@ -22,21 +25,16 @@ defineProps<{ board: Board | null; markers: Marker[]; foods: Food[]; now: number
       <StatCard v-for="f in STAT_FIELDS" :key="f.key" :label="f.label" :value="board.stats[f.key]" :tone="f.tone" />
     </div>
 
-    <div class="grid gap-4 lg:grid-cols-3">
-      <BaseCard class="lg:col-span-2">
-        <SectionTitle title="地圖：據點、食物點、長者" />
-        <MapView :markers="markers" />
-        <p class="mt-2 text-xs text-grey-500">長者：紅色是需要送餐或關懷、綠色是近期已見到本人。食物點：黃色可派送、紅色還沒被派出、藍色已全數派出、灰色已過期或已下架。</p>
-      </BaseCard>
-
-      <BaseCard>
-        <SectionTitle :title="`食物去向（${foods.length}）`" />
-        <div v-if="foods.length" class="flex flex-col gap-3">
-          <FoodCard v-for="f in foods" :key="f.id" :food="f" :now="now" />
-        </div>
-        <p v-else class="py-4 text-center text-sm text-grey-500">目前沒有上架的食物</p>
-      </BaseCard>
-    </div>
+    <BaseCard>
+      <SectionTitle :title="`食物去向（${groups.active.length}）`" />
+      <div v-if="groups.active.length" class="flex flex-col gap-3">
+        <FoodCard v-for="f in groups.active" :key="f.id" :food="f" :now="now" />
+      </div>
+      <p v-else class="py-4 text-center text-sm text-grey-500">目前沒有進行中的食物</p>
+      <EndedGroup class="mt-3" :count="groups.ended.length">
+        <FoodCard v-for="f in groups.ended" :key="f.id" :food="f" :now="now" />
+      </EndedGroup>
+    </BaseCard>
 
     <SourceNote v-if="sourceText" :source="sourceText" />
   </div>

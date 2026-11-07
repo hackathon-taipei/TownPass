@@ -1,7 +1,9 @@
 <script setup lang="ts">
-/** @component MR-C40 TaskCard — 派送任務卡：長者代號、地址（可複製）、警示、要做的事、位置（只有這位長者）、過敏、要送的餐、回報 */
+/** @component MR-C40 TaskCard — 派送任務卡：長者代號、地址（可複製）、警示、要做的事、地圖（據點、這位長者、我）、過敏、要送的餐、回報 */
 /**
- * 合約 v2.2 §9 MR-P05、M13：只顯示自己 assigned 任務上的這一位長者；地圖（MR-C07）只有這一根定位針，不做導航。
+ * 合約 v2.2 §9 MR-P05、M13：只顯示自己 assigned 任務上的這一位長者，不做導航。
+ * 地圖（MR-C07）只有：任務的據點、這位長者、我的位置（企鵝，T-126）；圖例 MR-C58。
+ * 我的位置來自裝置定位（useMyLocation），不送後端、不存；拒絕定位就只有據點和長者。
  * 地址只能是模擬資料（ADR-027），任務完成或釋出後後端就不再回傳；沒填就不顯示這一行。
  * 送餐：MR-C41 TaskMeal（取餐、取消）；回報要先取餐，或取消這份餐改成只做關懷（reportReady）。
  *
@@ -10,10 +12,11 @@
  */
 import { computed, ref } from 'vue'
 import { BaseButton, BaseCard, BaseTag } from '@/ui'
-import type { Marker } from '../logic/mapMarker'
+import { legendOf, taskMarkers, useMyLocation } from '../logic/mapMarker'
 import { ALLERGEN_LABEL, countdownText } from '../logic/shared'
 import { addressLine, copyAddress, reportReady, type TaskView } from '../logic/volunteer'
 import ElderStatusTag from './ElderStatusTag.vue'
+import MapLegend from './MapLegend.vue'
 import MapView from './MapView.vue'
 import TaskMeal from './TaskMeal.vue'
 
@@ -21,9 +24,16 @@ const props = defineProps<{ task: TaskView; now: number; busy?: boolean; offline
 const emit = defineEmits<{ pickup: []; cancel: []; report: [] }>()
 
 const elder = computed(() => props.task.assignment.elder)
-const markers = computed<Marker[]>(() => [
-  { id: elder.value.id, kind: 'elder', location: elder.value.location, status: elder.value.alert ? 'alert' : 'ok', label: elder.value.alias },
-])
+const myLocation = useMyLocation()
+const markers = computed(() =>
+  taskMarkers({
+    station: props.task.station,
+    elder: elder.value,
+    me: myLocation.value ? { id: props.task.assignment.volunteer_id, location: myLocation.value } : null,
+    base: import.meta.env.BASE_URL,
+  }),
+)
+const legend = computed(() => legendOf(markers.value))
 const allergens = computed(() => elder.value.allergens.map((a) => ALLERGEN_LABEL[a]).join('、') || '沒有過敏原')
 const ready = computed(() => reportReady(props.task))
 const address = computed(() => addressLine(elder.value))
@@ -57,11 +67,13 @@ async function onCopyAddress() {
 
     <div class="mt-3 flex flex-wrap items-center gap-2">
       <span class="text-sm text-grey-600">要做的事</span>
-      <BaseTag v-for="k in task.todo" :key="k" :tone="k === 'meal' ? 'primary' : 'secondary'">{{ k === 'meal' ? '送餐' : '關懷' }}</BaseTag>
+      <BaseTag v-for="k in task.todo" :key="k" tone="primary">{{ k === 'meal' ? '送餐' : '關懷' }}</BaseTag>
     </div>
     <p v-if="task.note" class="mt-1 text-sm text-grey-600">{{ task.note }}</p>
 
-    <MapView class="mt-3" :markers="markers" :center="elder.location" />
+    <!-- 據點讀到後重建一次地圖，讓第一次縮放包含據點與長者 -->
+    <MapView :key="task.station ? 'with-station' : 'elder-only'" class="mt-3" :markers="markers" />
+    <MapLegend class="mt-2" :items="legend" />
 
     <p class="mt-3 text-base text-grey-800">
       <span class="text-sm text-grey-600">過敏</span>

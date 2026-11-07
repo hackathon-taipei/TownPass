@@ -1,5 +1,5 @@
 <script setup lang="ts">
-/** @component MR-P06 SupplierPage — 提供者頁：申請與審核狀態、食物點地圖、上架、我的庫存（剩餘／派出中／已送達）、修改、下架 */
+/** @component MR-P06 SupplierPage — 提供者頁：申請與審核狀態、上架、我的庫存（剩餘／派出中／已送達，已結束的收合）、修改、下架 */
 /**
  * MR-P06 = T01 PageContainer {
  *   MR-C05 StaleBanner,
@@ -8,8 +8,8 @@
  *       #apply: MR-C35 SupplierApplyForm（一般市民）
  *       審核中／未通過：Gate 的狀態卡＋V4 提示（不能上架）
  *       通過：MR-C57 PlacePhoto（店面照片，有才顯示，ADR-029）、MR-C08 TabBar {
- *         我的庫存：MR-C13 StatCard×4、MR-C03 FoodCard×N（修改、下架）、A07 SourceNote
- *         上架食物：MR-C36 PointPicker（MR-C07 地圖、M02 清單、MR-C37 新增食物點）、MR-C38 FoodPublishForm
+ *         我的庫存（沒有地圖）：MR-C13 StatCard×4、MR-C03 FoodCard×N（修改、下架）、MR-C59 EndedGroup（已結束 N 批）、A07 SourceNote
+ *         上架食物：MR-C36 PointPicker（M02 清單、MR-C37 新增食物點＋LocationPicker 選位置）、MR-C38 FoodPublishForm
  *       }
  *     }
  *   },
@@ -17,10 +17,12 @@
  * }
  * 狀態與 API 都在 logic/supplier.ts 的 useSupplierPage()。
  */
-import { onBeforeUnmount, onMounted } from 'vue'
+import { computed, onBeforeUnmount, onMounted } from 'vue'
 import { CircleAlert, Store } from 'lucide-vue-next'
 import { BaseButton, BaseCard, EmptyState, PageContainer, SourceNote } from '@/ui'
+import { splitEnded } from '../logic/shared'
 import { NOT_APPROVED_TEXT, useSupplierPage, type SupplierTab } from '../logic/supplier'
+import EndedGroup from './EndedGroup.vue'
 import FoodCard from './FoodCard.vue'
 import FoodEditSheet from './FoodEditSheet.vue'
 import FoodPublishForm from './FoodPublishForm.vue'
@@ -36,6 +38,8 @@ import ToastHost from './ToastHost.vue'
 
 const s = useSupplierPage()
 const { now, saving, offline, tab } = s
+/** 已過期、已下架的收合成「已結束 N 批」（T-126） */
+const stock = computed(() => splitEnded(s.inventory.value))
 const TABS: { value: SupplierTab; label: string }[] = [
   { value: 'inventory', label: '我的庫存' },
   { value: 'publish', label: '上架食物' },
@@ -84,7 +88,7 @@ onBeforeUnmount(s.stop)
                   </EmptyState>
                   <TransitionGroup name="list" tag="div" class="flex flex-col gap-3">
                     <FoodCard
-                      v-for="f in s.inventory.value"
+                      v-for="f in stock.active"
                       :key="f.id"
                       :class="{ flash: f.id === s.freshFoodId.value }"
                       :food="f"
@@ -94,6 +98,9 @@ onBeforeUnmount(s.stop)
                       @close="s.openSheet($event, 'close')"
                     />
                   </TransitionGroup>
+                  <EndedGroup :count="stock.ended.length">
+                    <FoodCard v-for="f in stock.ended" :key="f.id" :food="f" :now="now" />
+                  </EndedGroup>
                   <SourceNote v-if="s.inventory.value.length" :source="`食物點 ${s.sourceText.value}；食物為模擬資料`" />
                 </section>
 
