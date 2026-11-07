@@ -37,6 +37,7 @@ class MealStation(SQLModel, table=True):
     lng: float = 0.0
     checkin_code: str = Field(default="", index=True)  # M15：QR 內容用，不等於據點 id
     source: str = "模擬"
+    image_id: str | None = None  # 入口照片（ADR-028）：只拍入口或建築外觀，不能有人臉、車牌、門牌
 
 
 class MealSupplier(SQLModel, table=True):
@@ -63,6 +64,7 @@ class MealPoint(SQLModel, table=True):
     lng: float = 0.0
     source: str = "模擬"
     created_by: str | None = None
+    image_id: str | None = None  # 入口照片（ADR-028）：只拍入口或建築外觀，不能有人臉、車牌、門牌
 
 
 class MealFood(SQLModel, table=True):
