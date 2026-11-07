@@ -12,7 +12,8 @@ from pydantic import BaseModel, ConfigDict, Field
 
 # ---------------------------------------------------------------- 列舉值（§4）
 
-Role = Literal["elder", "volunteer", "supplier", "station", "admin"]
+# ADR-026：長者不是帳號（elder 已取消）；沒匯入的帳號是一般市民 citizen
+Role = Literal["citizen", "volunteer", "supplier", "station", "admin"]
 Allergen = Literal[
     "crustacean", "mango", "peanut", "milk", "egg", "nut", "sesame", "gluten", "soy", "fish", "sulfite"
 ]
@@ -20,6 +21,7 @@ FoodCategory = Literal["meal_box", "bakery", "produce", "dry_goods", "drink", "o
 OrgType = Literal["person", "school", "agency", "shop", "other"]
 SupplierStatus = Literal["pending", "approved", "rejected"]
 PointKind = Literal["station", "village_office", "school", "custom"]
+# M1：open 可派送、claimed 已全數派出、expired 已過期、closed 已下架
 FoodStatus = Literal["open", "claimed", "expired", "closed"]
 # ADR-025：申請只由報到派送建立（M7、M17），只剩送餐；pickup、requested、ready_for_pickup 已取消
 ClaimMethod = Literal["delivery"]
@@ -100,6 +102,8 @@ class Food(BaseModel):
     point_name: str
     supplier_name: str
     remaining: int  # M1
+    dispatched_qty: int  # M1 派出中
+    delivered_qty: int  # M1 已送達
     status: FoodStatus  # M1
     unclaimed: bool  # M5
     image_url: str | None  # /meal-relay/images/{id}
@@ -108,7 +112,7 @@ class Food(BaseModel):
 class Elder(BaseModel):
     id: str
     alias: str
-    account_id: str | None
+    account_id: str | None  # 一律 null（ADR-026：長者不是帳號）
     station_id: str
     allergens: list[Allergen]
     created_by: str
@@ -118,7 +122,7 @@ class Elder(BaseModel):
     next_care_at: datetime | None
     next_meal_at: datetime | None
     primary_volunteer_id: str | None
-    merged_into: str | None
+    merged_into: str | None  # 一律 null（ADR-026：合併長者已取消）
     # 計算欄位（M10）
     location: Location
     care_due: bool
@@ -202,24 +206,19 @@ class MyStation(BaseModel):
     """GET /stations/mine：據點頁顯示 QR 與今天的報到。"""
 
     station: Station
-    qr_text: str  # M15：meal-relay:checkin:<checkin_code>
+    qr_text: str  # M15：meal-relay:checkin:<checkin_code>:<token>，token 每 QR_ROTATE_SEC 換一次
+    qr_expires_at: datetime  # M15：目前時間窗結束的時間，據點頁在這之前重新取得
     checkins: list[Checkin]
 
 
 class Me(BaseModel):
+    """GET /me（`elder` 欄位已移除，ADR-026）"""
+
     id: str
     role: Role
     name: str
     station_id: str | None
     supplier: Supplier | None
-    elder: Elder | None
-
-
-class ElderCreated(BaseModel):
-    """POST /elders 的回應：M12 附近已有的長者只提示，不阻擋。"""
-
-    elder: Elder
-    nearby: list[Elder]
 
 
 class ImageUploaded(BaseModel):
@@ -294,9 +293,10 @@ class FoodCreate(MealRequest):
 
 
 class FoodUpdate(MealRequest):
-    """PATCH /foods/{id}（只能改份數與下架）"""
+    """PATCH /foods/{id}（M14：可改份數、到期時間（最晚食用時間）與下架；只改有送的欄位）"""
 
-    qty: int | None = Field(default=None, ge=0, le=999)
+    qty: int | None = Field(default=None, ge=0, le=999)  # 不能小於已派出加已送達 → QTY_BELOW_USED
+    expires_at: datetime | None = None  # 不能早於現在 → VALIDATION_ERROR
     closed: bool | None = None
 
 
@@ -312,27 +312,19 @@ class ClaimCancel(MealRequest):
     reason: str | None = Field(default=None, max_length=100)
 
 
-class ElderMeUpsert(MealRequest):
-    """PUT /elders/me"""
-
-    location: Location
-    allergens: list[Allergen] = Field(default_factory=list)
-    alias: str | None = Field(default=None, max_length=20)
-
-
 class ElderCreate(MealRequest):
-    """POST /elders。志工建立時 station_id 省略＝自己的據點；管理員必填。"""
+    """POST /elders（admin）：管理員登記長者名冊，回傳建立的 Elder（ADR-026）。"""
 
     alias: str = Field(min_length=1, max_length=20)
     location: Location
     allergens: list[Allergen] = Field(default_factory=list)
-    station_id: str | None = None
+    station_id: str
     next_care_at: datetime | None = None
     next_meal_at: datetime | None = None
 
 
 class ElderUpdate(MealRequest):
-    """PATCH /elders/{id}：只改有送的欄位。"""
+    """PATCH /elders/{id}（admin）：只改有送的欄位。"""
 
     alias: str | None = Field(default=None, min_length=1, max_length=20)
     location: Location | None = None
@@ -343,14 +335,8 @@ class ElderUpdate(MealRequest):
     primary_volunteer_id: str | None = None
 
 
-class ElderMerge(MealRequest):
-    """POST /elders/{id}/merge"""
-
-    into: str
-
-
 class VisitCreate(MealRequest):
-    """POST /visits（M9、M11）。next_*_at 可順便約下次時間。"""
+    """POST /visits（M9、M11）。只限志工自己 assigned 任務上的長者（M13）。next_*_at 可順便約下次時間。"""
 
     elder_id: str
     kind: VisitKind
@@ -363,6 +349,6 @@ class VisitCreate(MealRequest):
 
 
 class CheckInCreate(MealRequest):
-    """POST /checkins"""
+    """POST /checkins：qr_text = 掃到的據點 QR（M15）"""
 
     qr_text: str = Field(min_length=1, max_length=200)

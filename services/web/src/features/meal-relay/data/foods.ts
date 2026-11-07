@@ -2,7 +2,7 @@
 import { imageSrc, mealGet, mealSend } from './client'
 import type { Cached, Food, FoodCategory, FoodCreate, FoodUpdate, ImageUploaded, Point, PointCreate } from './types'
 
-/** GET /points?category=&for_elder= */
+/** GET /points?category=&for_elder=（supplier、admin） */
 export function listPoints(query: { category?: FoodCategory; for_elder?: string } = {}): Promise<Cached<Point[]>> {
   return mealGet<Point[]>('/points', query)
 }
@@ -12,14 +12,14 @@ export function createPoint(body: PointCreate): Promise<Point> {
   return mealSend<Point>('POST', '/points', body)
 }
 
-/** GET /foods?point_id=&category=&for_elder=&mine=1（mine 限 supplier） */
+/** GET /foods?point_id=&category=&for_elder=&mine=1（supplier：mine 只看自己的；admin）。含剩餘、派出中、已送達（M1） */
 export function listFoods(
   query: { point_id?: string; category?: FoodCategory; for_elder?: string; mine?: boolean } = {},
 ): Promise<Cached<Food[]>> {
   return mealGet<Food[]>('/foods', { ...query, mine: query.mine ? 1 : undefined })
 }
 
-/** GET /foods/{id} */
+/** GET /foods/{id}（supplier、volunteer、admin） */
 export function getFood(id: string): Promise<Cached<Food>> {
   return mealGet<Food>(`/foods/${encodeURIComponent(id)}`)
 }
@@ -29,7 +29,7 @@ export function createFood(body: FoodCreate): Promise<Food> {
   return mealSend<Food>('POST', '/foods', body)
 }
 
-/** PATCH /foods/{id}（supplier，自己的；只能改 qty、closed） */
+/** PATCH /foods/{id}（supplier，自己的；可改 qty、expires_at、closed，M14） */
 export function updateFood(id: string, body: FoodUpdate): Promise<Food> {
   return mealSend<Food>('PATCH', `/foods/${encodeURIComponent(id)}`, body)
 }
