@@ -68,11 +68,11 @@
 | MR-C47 | CheckinList | 今天報到的志工清單：標題「今天報到・N 位」，新的在上 | `features/meal-relay/ui/CheckinList.vue` |
 | MR-C48 | CheckinRow | 今天報到的一位志工：企鵝頭像、名字、報到時間（淺灰圓角列） | `features/meal-relay/ui/CheckinRow.vue` |
 | MR-C49 | StationQrCard | 據點名稱膠囊、掃描說明、報到 QR code 與更新倒數 | `features/meal-relay/ui/StationQrCard.vue` |
-| MR-C50 | AdminShell | 管理系統外框：電腦瀏覽器寬度為主（最寬 6xl），手機也能用；標題列右側放重置等動作 | `features/meal-relay/ui/AdminShell.vue` |
-| MR-C51 | ReviewPanel | 提供者審核：待審核清單（MR-C19 ReviewList，含店面照片縮圖）＋剛審核的結果；離線時只顯示、不能審核 | `features/meal-relay/ui/ReviewPanel.vue` |
-| MR-C52 | BoardPanel | 看板：5 張統計卡（MR-C13）、食物去向（MR-C03），已結束的收合（MR-C59） | `features/meal-relay/ui/BoardPanel.vue` |
-| MR-C53 | ElderForm | 登記或修改長者：代號、地址（選填，模擬）、位置（MR-C02）、據點（必填）、過敏原（MR-C01）、下次關懷／送餐時間，附隱私提示 | `features/meal-relay/ui/ElderForm.vue` |
-| MR-C54 | ElderRoster | 長者名冊：每位長者的代號、據點、地址、警示標籤（MR-C04）、過敏原、最近見到與下次時間，加「修改」 | `features/meal-relay/ui/ElderRoster.vue` |
+| MR-C50 | AdminShell | 管理系統外框：鄰食蜂頁首（MR-C60）＋右側動作；寬度 ≥ 1024px 多欄，以下一欄（最寬 7xl） | `features/meal-relay/ui/AdminShell.vue` |
+| MR-C51 | ReviewPanel | 待審核表格：單位名稱（店面照片 MR-C57）、類型、位置（地址，沒有就座標）、通過／不通過（先確認 MR-C67）＋剛審核的結果；離線時按鈕停用 | `features/meal-relay/ui/ReviewPanel.vue` |
+| MR-C52 | BoardPanel | 服務看板：今天的服務概況（5 張統計卡 MR-C13＋地圖 MR-C07 與圖例 MR-C58）、食物去向（照片、剩餘｜已派送｜已送達），已結束的收合（MR-C59） | `features/meal-relay/ui/BoardPanel.vue` |
+| MR-C53 | ElderForm | 長者表單：代號（長者 id，唯讀）、稱呼、所屬據點、模擬地址、過敏原（MR-C01）、下次關懷時間；「更多設定」（MR-C65）裡是下次送餐時間與位置（MR-C02）；「儲存變更」 | `features/meal-relay/ui/ElderForm.vue` |
+| MR-C54 | ElderRoster | 長者名冊清單：「新增長者」、每位長者的人像圖示、稱呼、代號與據點、狀態（需要送餐／需要關懷／近期已見到）、右箭頭；點一位發 edit | `features/meal-relay/ui/ElderRoster.vue` |
 | MR-C55 | FoodThumb | 食物照片縮圖：有照片才顯示，替代文字用食物名稱（M19） | `features/meal-relay/ui/FoodThumb.vue` |
 | MR-C56 | CategoryIcon | 分類 icon＋中文：食物類別、提供者類型、食物點種類（合約 §4，lucide 單色） | `features/meal-relay/ui/CategoryIcon.vue` |
 | MR-C57 | PlacePhoto | 地點照片縮圖（入口、店面）：點一下用底部面板（MR-C09）放大；圖片讀不到就整個隱藏 | `features/meal-relay/ui/PlacePhoto.vue` |
@@ -103,7 +103,7 @@
 | MR-P05 | TaskPage | 我的任務：只有進行中的任務，取餐、取消、拜訪回報，回報後任務消失 | `features/meal-relay/ui/TaskPage.vue` |
 | MR-P06 | SupplierPage | 提供者頁（設計 v2）：申請 → 審核中／未通過 → 我的庫存｜上架食物（分頁與網址 ?tab= 同步） | `features/meal-relay/ui/SupplierPage.vue` |
 | MR-P07 | StationPage | 據點頁：鄰食蜂頁首、據點名稱、定時更新的報到 QR code 與倒數、今天報到 | `features/meal-relay/ui/StationPage.vue` |
-| MR-P08 | AdminPage | 管理系統：審核提供者、看板與統計、長者名冊（新增、修改）、重置 Demo；只有 admin 能用 | `features/meal-relay/ui/AdminPage.vue` |
+| MR-P08 | AdminPage | 管理系統：待審核（數字徽章）｜服務看板｜長者名冊三個分頁（與網址 ?tab= 同步）、重置示範資料（先確認）；只有 admin 能用 | `features/meal-relay/ui/AdminPage.vue` |
 | O01 | BaseSheet | 底部面板 | `ui/organisms/BaseSheet.vue` |
 | O02 | OsmMap | 地圖（隨附臺北向量底圖，縮小時精簡路名；可切換 OSM 圖磚） | `ui/organisms/OsmMap.vue` |
 | O03 | NoticeList | 注意事項清單（第一項預設展開） | `ui/organisms/NoticeList.vue` |

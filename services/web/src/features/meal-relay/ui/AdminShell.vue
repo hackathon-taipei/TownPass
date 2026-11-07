@@ -1,27 +1,30 @@
 <script setup lang="ts">
-/** @component MR-C50 AdminShell — 管理系統外框：電腦瀏覽器寬度為主（最寬 6xl），手機也能用；標題列右側放重置等動作 */
+/** @component MR-C50 AdminShell — 管理系統外框：鄰食蜂頁首（MR-C60）＋右側動作；寬度 ≥ 1024px 多欄，以下一欄（最寬 7xl） */
 /**
  * 管理系統是獨立網頁、不在 App 裡（§2），T01 PageContainer 固定 max-w-md（手機寬），
  * 看板與名冊需要並排，所以本頁用這個外框。只有版面，不呼叫 API。
+ * 設計 v2（docs/meal-relay/design-v2/02-admin.webp）：左邊企鵝＋「鄰食蜂｜管理系統」，右邊放「管理員」與「重置示範資料」。
+ * 寬度 ≥ 1024px（lg）時頁首與動作同一列；以下動作排到頁首下方。
  *
- *   <AdminShell title="管理系統" :subtitle="`目前帳號：${accountId}`">
- *     <template #actions><ResetDemoButton :on-reset="reset" /></template>
+ *   <AdminShell>
+ *     <template #actions>管理員｜重置示範資料</template>
  *     …內容…
  *   </AdminShell>
  */
-defineProps<{ title: string; subtitle?: string }>()
+import BrandHeader from './BrandHeader.vue'
+
+withDefaults(defineProps<{ title?: string }>(), { title: '管理系統' })
 </script>
 
 <template>
   <div class="min-h-dvh bg-grey-50">
-    <div class="mx-auto flex w-full max-w-6xl flex-col gap-4 px-4 py-4 sm:px-6 sm:py-6">
-      <header class="flex flex-wrap items-center justify-between gap-3">
-        <div class="min-w-0">
-          <h1 class="truncate text-xl font-bold text-grey-900 sm:text-h1">{{ title }}</h1>
-          <p v-if="subtitle" class="truncate text-sm text-grey-500">{{ subtitle }}</p>
+    <div class="mx-auto flex w-full max-w-7xl flex-col gap-4 px-4 py-4 sm:px-6 sm:py-6">
+      <div class="overflow-hidden rounded-2xl bg-primary-50 shadow-card lg:flex lg:items-center">
+        <BrandHeader :title="title" class="min-w-0 lg:flex-1" />
+        <div v-if="$slots.actions" class="flex flex-wrap items-center justify-end gap-3 px-4 pb-3 lg:py-3">
+          <slot name="actions" />
         </div>
-        <div v-if="$slots.actions" class="w-full sm:w-48"><slot name="actions" /></div>
-      </header>
+      </div>
       <main class="flex flex-col gap-4"><slot /></main>
     </div>
   </div>
