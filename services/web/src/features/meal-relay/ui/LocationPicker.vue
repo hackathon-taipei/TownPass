@@ -34,11 +34,9 @@ const props = withDefaults(
   },
 )
 
-const emit = defineEmits<{ 'update:modelValue': [value: Location | null] }>()
-
 /** 點地圖時寫回 v-model；disabled 時不傳 on-pick，地圖不會回應點擊 */
 function onPick(location: Location) {
-  emit('update:modelValue', location)
+  model.value = location
 }
 
 const coordText = computed(() => {

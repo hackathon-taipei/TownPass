@@ -26,6 +26,12 @@
 | M10 | ChatImage | 對話框內的圖片（圖說 + 來源，載入失敗時顯示替代文字） | `ui/molecules/ChatImage.vue` |
 | M11 | ChatQuote | 對話框內的原文（逐字顯示、可朗讀） | `ui/molecules/ChatQuote.vue` |
 | ML-C01 | DeviceModelCard | 手機硬體、選用模型與理由、模型揭露 | `addons/model/ui/DeviceModelCard.vue` |
+| MR-C01 | AllergenChecklist | 過敏原勾選：包 MR-C20 AllergenChips，加上說明與已選摘要 | `features/meal-relay/ui/AllergenChecklist.vue` |
+| MR-C02 | LocationPicker | 在地圖上選位置：包 MR-C07 MapView，不用 Google Maps | `features/meal-relay/ui/LocationPicker.vue` |
+| MR-C03 | FoodCard | 一批食物：包 MR-C14 FoodRow，加上提供者的修改與下架按鈕 | `features/meal-relay/ui/FoodCard.vue` |
+| MR-C04 | ElderStatusTag | 長者警示標籤：需要送餐／需要關懷／從未見到（M10） | `features/meal-relay/ui/ElderStatusTag.vue` |
+| MR-C05 | StaleBanner | 斷網時顯示上次更新時間，提醒送出鍵停用（ADR-024） | `features/meal-relay/ui/StaleBanner.vue` |
+| MR-C06 | ImageInput | 拍照或選圖，前端壓縮成 base64（M19，≤ IMAGE_MAX_BYTES） | `features/meal-relay/ui/ImageInput.vue` |
 | MR-C07 | MapView | 鄰食地圖：定位針依狀態上色、落下／換色脈衝／淡出動畫、可選點 | `features/meal-relay/ui/MapView.vue` |
 | MR-C08 | TabBar | 分頁列：底線滑動、內容交叉淡入 | `features/meal-relay/ui/TabBar.vue` |
 | MR-C09 | BottomSheet | 底部面板：遮罩淡入、面板由下滑入 | `features/meal-relay/ui/BottomSheet.vue` |
