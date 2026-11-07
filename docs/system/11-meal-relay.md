@@ -41,7 +41,7 @@
 | `meal_point` 食物點 | `id` PK（`p`）、`name`、`kind`、`lat`、`lng`、`source`、`created_by`? | 多位提供者共用；開放資料預先載入 |
 | `meal_food` 食物 | `id` PK（`f`）、`point_id`、`supplier_id`、`name`、`category`、`allergens`（JSON）、`qty`、`expires_at`、`image_id`?、`source_note`、`closed`（下架，預設 false）、`created_at` | `remaining`、`dispatched_qty`、`delivered_qty`、`status`、`unclaimed` 不存，回應時計算（M1、M5） |
 | `meal_image` 圖片 | `id` PK（`img`）、`mime`、`data`（bytes）、`size`、`uploaded_by`、`created_at` | 食物圖片與放門口照片（M19） |
-| `meal_elder` 長者 | `id` PK（`e`）、`alias`、`account_id`?、`station_id`、`lat`、`lng`、`allergens`（JSON）、`created_by`（管理員帳號 id）、`created_at`、`last_seen_at`?、`last_meal_at`?、`next_care_at`?、`next_meal_at`?、`primary_volunteer_id`?、`merged_into`? | 全部是模擬資料；不存姓名、身分證、電話、地址文字。`account_id`、`merged_into` 保留不用（ADR-026） |
+| `meal_elder` 長者 | `id` PK（`e`）、`alias`、`account_id`?、`station_id`、`lat`、`lng`、`address`（文字，可空，ADR-027）、`allergens`（JSON）、`created_by`（管理員帳號 id）、`created_at`、`last_seen_at`?、`last_meal_at`?、`next_care_at`?、`next_meal_at`?、`primary_volunteer_id`?、`merged_into`? | 全部是模擬資料；不存姓名、身分證、電話。`address` 只能是模擬地址（門牌不存在、標「（模擬）」），只有管理員與被派到這位長者的志工看得到（M13、ADR-027）。`account_id`、`merged_into` 保留不用（ADR-026） |
 | `meal_claim` 申請（送餐） | `id` PK（`c`）、`food_id`、`elder_id`、`qty`、`method`、`status`、`requested_by`、`volunteer_id`?、`assignment_id`?、`created_at`、`claimed_at`?、`picked_up_at`?、`done_at`?、`cancel_reason`? | 只由自動派送建立（M17），每筆綁一位長者；`method` 一律 `delivery`、`requested_by` 一律是志工帳號 id（欄位保留，資料表只增不減） |
 | `meal_visit` 拜訪 | `id` PK（`vi`）、`elder_id`、`volunteer_id`、`kind`、`claim_id`?、`assignment_id`?、`result`、`photo_image_id`?、`visited_at` | |
 | `meal_checkin` 報到 | `id` PK（`ck`）、`volunteer_id`（帳號 id）、`station_id`、`checked_in_at` | |
@@ -170,7 +170,7 @@
 
 - `Me`：`{id, role, name, station_id, supplier: Supplier|null}`（`elder` 已移除，ADR-026）
 - `Food`：資料表欄位 ＋ `location`（食物點位置）、`point_name`、`supplier_name`、`remaining`、`dispatched_qty`、`delivered_qty`、`status`、`unclaimed`、`image_url`
-- `Elder`：資料表欄位 ＋ `location`、`care_due`、`meal_due`、`alert`、`days_since_seen`、`days_since_meal`（`pending_request` 欄位保留但一律 `false`，ADR-025；`account_id`、`merged_into` 一律 `null`，ADR-026）
+- `Elder`：資料表欄位（含 `address`）＋ `location`、`care_due`、`meal_due`、`alert`、`days_since_seen`、`days_since_meal`（`pending_request` 欄位保留但一律 `false`，ADR-025；`account_id`、`merged_into` 一律 `null`，ADR-026）
 - `Claim`：資料表欄位 ＋ `food`（`Food`）、`elder`（`{id, alias, location}`）
 - `Assignment`：資料表欄位 ＋ `elder`（`Elder`）、`claim`（`Claim|null`）
 - `CheckInResult`：`{checkin, station, assignments: Assignment[]}`
