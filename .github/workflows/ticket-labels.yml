@@ -1,0 +1,107 @@
+# 工單狀態自動化（docs/WORKFLOW.md「工單狀態」）：不用再手動改 status 標籤。
+#   認領（指派負責人）        → status:in-progress
+#   開 PR（Closes #n，非草稿） → status:review；草稿 PR → status:in-progress
+#   PR 合併                  → 移除 status 標籤（合併到 main 時 GitHub 自動關閉工單）
+#   PR 沒合併就關閉           → 回到 status:in-progress
+#   依賴都關閉了              → blocked 換成 status:ready（工單內文「blocked by」那一行列出的 #編號，支援 #44～#51）
+# 只讀寫 issue 標籤與留言，不 checkout 程式碼，所以用 pull_request_target 也安全（fork 的 PR 也拿得到寫入權限）。
+name: Ticket labels
+
+on:
+  issues:
+    types: [assigned, closed]
+  pull_request_target:
+    types: [opened, reopened, edited, ready_for_review, converted_to_draft, closed]
+
+permissions:
+  issues: write
+  pull-requests: read
+
+concurrency:
+  group: ticket-labels
+  cancel-in-progress: false
+
+jobs:
+  labels:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/github-script@v7
+        with:
+          script: |
+            const { owner, repo } = context.repo
+            const STATUS = ['status:ready', 'status:in-progress', 'status:review']
+            const names = (issue) => issue.labels.map((l) => (typeof l === 'string' ? l : l.name))
+
+            // PR 內文的 Closes／Fixes／Resolves #n
+            const linked = (body) =>
+              [...(body || '').matchAll(/\b(?:close[sd]?|fix(?:e[sd])?|resolve[sd]?)\s*:?\s*#(\d+)/gi)].map((m) => +m[1])
+
+            // 工單內文含「blocked by」的那幾行裡的 #編號（含範圍 #44～#51）
+            const blockers = (body) => {
+              const nums = new Set()
+              for (const line of (body || '').split('\n')) {
+                if (!/blocked by/i.test(line)) continue
+                for (const m of line.matchAll(/#(\d+)\s*[～~–-]\s*#(\d+)/g))
+                  for (let i = +m[1]; i <= +m[2] && i - +m[1] < 200; i++) nums.add(i)
+                for (const m of line.matchAll(/#(\d+)/g)) nums.add(+m[1])
+              }
+              return [...nums]
+            }
+
+            // 只改有 ticket 標籤的 issue：拿掉其他 status，加上 label（null = 全部拿掉）
+            async function setStatus(n, label) {
+              const { data: issue } = await github.rest.issues.get({ owner, repo, issue_number: n })
+              if (issue.pull_request || !names(issue).includes('ticket')) return
+              for (const s of STATUS)
+                if (s !== label && names(issue).includes(s))
+                  await github.rest.issues.removeLabel({ owner, repo, issue_number: n, name: s }).catch(() => {})
+              if (label && !names(issue).includes(label))
+                await github.rest.issues.addLabels({ owner, repo, issue_number: n, labels: [label] })
+              core.info(`#${n} → ${label ?? '(no status)'}`)
+            }
+
+            // 依賴都關閉（合併）的 blocked 工單 → status:ready；justClosed = 剛合併、GitHub 還沒來得及關的工單
+            async function unblock(justClosed = []) {
+              const blocked = await github.paginate(github.rest.issues.listForRepo, {
+                owner, repo, state: 'open', labels: 'ticket,blocked', per_page: 100,
+              })
+              const closed = new Map(justClosed.map((n) => [n, true]))
+              for (const issue of blocked) {
+                const deps = blockers(issue.body).filter((n) => n !== issue.number)
+                if (!deps.length) continue
+                let ready = true
+                for (const n of deps) {
+                  if (!closed.has(n)) {
+                    const { data } = await github.rest.issues.get({ owner, repo, issue_number: n }).catch(() => ({ data: { state: 'open' } }))
+                    closed.set(n, data.state === 'closed')
+                  }
+                  if (!closed.get(n)) { ready = false; break }
+                }
+                if (!ready) continue
+                await github.rest.issues.removeLabel({ owner, repo, issue_number: issue.number, name: 'blocked' }).catch(() => {})
+                await setStatus(issue.number, 'status:ready')
+                await github.rest.issues.createComment({
+                  owner, repo, issue_number: issue.number,
+                  body: `依賴都已完成（${deps.map((n) => '#' + n).join('、')}），自動從 \`blocked\` 換成 \`status:ready\`，可以開工了：從 \`origin/main\` 開分支。`,
+                })
+              }
+            }
+
+            const { eventName, payload } = context
+            if (eventName === 'issues') {
+              if (payload.action === 'assigned' && names(payload.issue).includes('status:ready'))
+                await setStatus(payload.issue.number, 'status:in-progress')
+              if (payload.action === 'closed') await unblock([payload.issue.number])
+              return
+            }
+
+            const pr = payload.pull_request
+            const issues = linked(pr.body)
+            if (payload.action === 'closed') {
+              const toMain = pr.merged && pr.base.ref === payload.repository.default_branch
+              for (const n of issues) await setStatus(n, pr.merged ? (toMain ? null : 'status:review') : 'status:in-progress')
+              if (toMain) await unblock(issues)
+              return
+            }
+            if (pr.state !== 'open') return
+            for (const n of issues) await setStatus(n, pr.draft ? 'status:in-progress' : 'status:review')

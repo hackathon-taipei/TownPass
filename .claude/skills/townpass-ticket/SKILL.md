@@ -28,7 +28,7 @@ Format: `docs/tickets/TEMPLATE.md`. Example: `docs/tickets/T-000-example.md`.
    ```bash
    gh issue create -R hackathon-taipei/TownPass --label ticket,status:ready --title "[T-012] ..." --body-file ticket.md
    ```
-7. Dependencies: write `blocked by #<issue>`; label `blocked` until they merge.
+7. Dependencies: write `blocked by #<issue>` (ranges like `#44～#51` work) on one line; label `blocked`. When every issue on that line is closed, `.github/workflows/ticket-labels.yml` swaps `blocked` → `status:ready` and comments.
 
 ## B. Executing a ticket
 
@@ -37,8 +37,8 @@ write the implementation, and it does not merge: the integrator does (`docs/DEPL
 session for the implementation, and keep this one for checking.
 
 ### Main agent
-1. **Claim:** comment `開始處理`, assign yourself, swap the label to `status:in-progress`
-   (`gh issue edit <n> --add-assignee @me --add-label status:in-progress --remove-label status:ready`),
+1. **Claim:** comment `開始處理` and assign yourself (`gh issue edit <n> --add-assignee @me`); the workflow
+   `ticket-labels.yml` swaps the label to `status:in-progress`,
    then branch `t-<number>-<short-name>` from the latest `origin/main`.
 2. **Read** the ticket and everything under 必讀, and load the skills it names.
 3. **Start a subagent** on that branch in its own worktree (Claude Code: Agent tool with
@@ -59,7 +59,7 @@ session for the implementation, and keep this one for checking.
 6. **Report:**
    - Sync: `git fetch origin && git rebase origin/main`, push
    - Open a PR with `gh pr create -R hackathon-taipei/TownPass` (always `-R`: this is a fork, and without it
-     the PR can land on the official upstream repo) and the template filled in, `Closes #<issue>`, label `status:review`; add
+     the PR can land on the official upstream repo) and the template filled in, `Closes #<issue>` (the workflow then sets the issue to `status:review`; it closes on merge to `main`); add
      `deviation` if there are any. Comment on the issue with the PR link and a 3-line summary
    - **Stop here. Don't merge**, even when CI is green, unless the integrator tells you in this session
      to merge that PR. GitHub refuses a merge from anyone else; don't try to get around it.

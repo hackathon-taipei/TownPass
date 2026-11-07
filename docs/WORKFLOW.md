@@ -63,9 +63,10 @@ gh issue view <編號> -R hackathon-taipei/TownPass
 工單是 GitHub Issue（標籤 `ticket`），寫法與規則見 [tickets/README.md](tickets/README.md)。AI 會列出 `status:ready` 的工單，**由隊員選**；認領：
 ```powershell
 gh issue comment <編號> --body "開始處理"
-gh issue edit <編號> --add-assignee "@me" --add-label status:in-progress --remove-label status:ready
+gh issue edit <編號> --add-assignee "@me"
 git switch -c t-<編號>-<名稱>
 ```
+**工單狀態自動改**（`.github/workflows/ticket-labels.yml`）：指派負責人 → `status:in-progress`；開 PR（內文有 `Closes #編號`，非草稿）→ `status:review`；PR 合併到 `main` → 工單自動關閉、狀態標籤移除；工單內文「blocked by」那一行列出的 #編號都關閉後 → `blocked` 自動換成 `status:ready` 並留言。PR 沒寫 `Closes #編號` 就不會動，所以一定要寫。
 沒有工單時由派發者開（`townpass-ticket` skill 的 A 節）。
 
 ### 6. 實作（子代理）
@@ -104,8 +105,8 @@ cd ../..; flutter analyze --no-fatal-infos --no-fatal-warnings   # 有改 App �
 git fetch origin; git rebase origin/main
 git push -u origin HEAD
 gh pr create -R hackathon-taipei/TownPass --fill-first --body-file <填好 PR 範本的檔案>
-gh issue edit <編號> --add-label status:review --remove-label status:in-progress
 ```
+（工單會自動變成 `status:review`；沒變的話檢查 PR 內文有沒有 `Closes #編號`。）
 **`-R` 不能省略：** 這個 repo 是 fork，沒指定時 `gh pr create` 可能把 PR 開到上游官方的 `taipei-doit/TownPass`。
 
 PR 用 [範本](../.github/pull_request_template.md)，寫 `Closes #<編號>`，逐條對照驗收標準，**列出所有偏離**（有偏離加標籤 `deviation`）。
