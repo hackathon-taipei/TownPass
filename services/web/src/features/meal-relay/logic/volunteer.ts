@@ -514,6 +514,8 @@ export function useVolunteerPage() {
 /** MR-P05 我的任務：只有進行中的任務，取餐、取消、回報；回報後任務消失（M13、V20） */
 export function useMyTasks() {
   const now = __useNow()
+  const me = ref<Cached<Me> | null>(null)
+  const isVolunteer = computed(() => me.value?.role === 'volunteer')
   const assignments = ref<Cached<Assignment[]> | null>(null)
   const claims = ref<Cached<Claim[]> | null>(null)
   const loading = ref(true)
@@ -541,7 +543,7 @@ export function useMyTasks() {
   /** 這次開啟頁面後回報成功的件數（完成畫面的「已完成 N 件任務」，T-135） */
   const reportedCount = ref(0)
   /** 最後一個任務回報完：顯示完成畫面（這次頁面裡至少回報過一件，而且已經沒有進行中的任務） */
-  const allDone = computed(() => reportedCount.value > 0 && !loading.value && !loadError.value && tasks.value.length === 0)
+  const allDone = computed(() => isVolunteer.value && reportedCount.value > 0 && !loading.value && !loadError.value && tasks.value.length === 0)
 
   /** 「取消這份餐」要先確認（MR-C67 ConfirmDialog，danger） */
   const cancelOpen = ref(false)
@@ -565,6 +567,12 @@ export function useMyTasks() {
     loading.value = !assignments.value
     loadError.value = ''
     try {
+      me.value = await getMe()
+      if (!isVolunteer.value) {
+        assignments.value = []
+        claims.value = []
+        return
+      }
       const [a, c] = await Promise.all([listMyAssignments(), listMyClaims()])
       assignments.value = a
       claims.value = c
@@ -696,6 +704,7 @@ export function useMyTasks() {
   onMounted(load)
   return {
     now,
+    isVolunteer,
     loading,
     loadError,
     staleAt,

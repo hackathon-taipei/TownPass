@@ -3,6 +3,7 @@
  * 中文名稱沿用 kit 的 ./mealLabels.ts 與 ./foodQty.ts，不重寫；之後整理時 mealLabels.ts 的內容可搬進這裡。
  */
 import { imageSrc } from '../data'
+import { featureRoute } from '@/framework'
 import type { Elder, Food, Role } from '../data/types'
 import { FOOD_QTY_FIELDS, foodQtyCounts } from './foodQty'
 import { timeLeftText } from './mealLabels'
@@ -31,6 +32,9 @@ export function countdownText(iso: string, now: number): string {
 /* ---------------------------------------------------------------- 首頁依角色進入（§9） */
 
 export type HomeRoute = 'volunteer' | 'supplier' | 'station'
+
+/** 角色不符時回到作品首頁（MR-P01），不進框架的對話首頁。 */
+export const mealHomeRoute = featureRoute('meal-relay', 'home')
 
 /** 首頁「進入」按鈕要去的路由名稱（index.ts）；citizen 與 admin 留在首頁，回傳 null */
 export function homeRouteOf(role: Role): HomeRoute | null {

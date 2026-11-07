@@ -13,6 +13,7 @@
 import { CircleAlert, ClipboardCheck } from 'lucide-vue-next'
 import { BaseButton, EmptyState, PageContainer, SkeletonBlock, SourceNote } from '@/ui'
 import { TASK_SOURCE_TEXT, useMyTasks, volunteerRoute } from '../logic/volunteer'
+import { mealHomeRoute } from '../logic/shared'
 import './motion.css'
 import BrandHeader from './BrandHeader.vue'
 import ConfirmDialog from './ConfirmDialog.vue'
@@ -24,6 +25,7 @@ import VisitReportSheet from './VisitReportSheet.vue'
 
 const {
   now,
+  isVolunteer,
   loading,
   loadError,
   staleAt,
@@ -72,6 +74,10 @@ const {
 
         <EmptyState v-else-if="loadError" title="讀取失敗" :description="loadError" :icon="CircleAlert">
           <BaseButton variant="outline" @click="reload">再試一次</BaseButton>
+        </EmptyState>
+
+        <EmptyState v-else-if="!isVolunteer" title="這一頁給志工使用" description="請從首頁進入適合你身分的服務。" :icon="ClipboardCheck">
+          <BaseButton variant="outline" :to="mealHomeRoute">回首頁</BaseButton>
         </EmptyState>
 
         <EmptyState

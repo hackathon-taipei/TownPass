@@ -19,13 +19,14 @@ import { onMounted } from 'vue'
 import { CircleAlert } from 'lucide-vue-next'
 import { BaseButton, EmptyState, PageContainer, SourceNote } from '@/ui'
 import { useStation } from '../logic/station'
+import { mealHomeRoute } from '../logic/shared'
 import BrandHeader from './BrandHeader.vue'
 import CheckinList from './CheckinList.vue'
 import PageTransition from './PageTransition.vue'
 import StaleBanner from './StaleBanner.vue'
 import StationQrCard from './StationQrCard.vue'
 
-const { now, loading, station, qrText, secondsLeft, fraction, checkins, staleAt, errorMessage, start, retry } = useStation()
+const { now, loading, isStation, station, qrText, secondsLeft, fraction, checkins, staleAt, errorMessage, start, retry } = useStation()
 onMounted(start)
 </script>
 
@@ -38,6 +39,9 @@ onMounted(start)
       <PageTransition :loading="loading" :page-key="errorMessage ? 'error' : 'station'">
         <EmptyState v-if="errorMessage" title="無法顯示報到 QR code" :description="errorMessage" :icon="CircleAlert">
           <BaseButton @click="retry">重試</BaseButton>
+        </EmptyState>
+        <EmptyState v-else-if="isStation === false" title="這一頁給據點使用" description="請從首頁進入適合你身分的服務。" :icon="CircleAlert">
+          <BaseButton variant="outline" :to="mealHomeRoute">回首頁</BaseButton>
         </EmptyState>
         <div v-else class="space-y-5">
           <StaleBanner :stale-at="staleAt" :now="now" />
