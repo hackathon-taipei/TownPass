@@ -10,7 +10,7 @@
  */
 import { computed, getCurrentScope, onScopeDispose, ref, shallowRef } from 'vue'
 import QRCode from 'qrcode'
-import { getMyStation, MealApiError } from '../data'
+import { getMe, getMyStation, MealApiError } from '../data'
 import type { Cached, Checkin, MyStation } from '../data'
 
 /** 畫面層（ui/）不能直接匯入 data/（check-arch W1），型別從這裡轉出去 */
@@ -135,6 +135,7 @@ export function useStation() {
   /** 最近一次拿到的資料（可能是裝置上的舊資料，帶 stale_at） */
   const data = shallowRef<Cached<MyStation> | null>(null)
   const loading = ref(true)
+  const isStation = ref<boolean | null>(null)
   /** 最近一次取得失敗，或只拿到裝置上的舊資料 */
   const failed = ref(false)
   /** 重試也沒用的錯誤（例如這個帳號不是據點）：後端回傳的中文訊息（§7） */
@@ -156,7 +157,7 @@ export function useStation() {
   /** 現在可以顯示的 QR 文字；斷網、舊資料、過期都回 null（不顯示會過期的舊 QR） */
   const qrText = computed<string | null>(() => {
     const d = data.value
-    if (!d || failed.value || d.stale_at || errorMessage.value) return null
+    if (!isStation.value || !d || failed.value || d.stale_at || errorMessage.value) return null
     if (Number.isNaN(expiresAt.value) || now.value >= expiresAt.value + QR_SWAP_GRACE_MS) return null
     return d.qr_text
   })
@@ -197,6 +198,15 @@ export function useStation() {
     const mine = ++seq
     let delay = QR_RETRY_MS
     try {
+      if (isStation.value === null) {
+        const me = await getMe()
+        if (mine !== seq) return
+        isStation.value = me.role === 'station'
+      }
+      if (!isStation.value) {
+        delay = -1
+        return
+      }
       const res = await getMyStation()
       if (mine !== seq) return
       const t = Date.now()
@@ -258,6 +268,7 @@ export function useStation() {
     if (!running) return
     seq++
     inflight = false
+    isStation.value = null
     clearTimeout(fetchTimer)
     void refresh()
   }
@@ -267,6 +278,7 @@ export function useStation() {
   return {
     now,
     loading,
+    isStation,
     station,
     qrText,
     secondsLeft,

@@ -20,6 +20,7 @@ import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { CircleAlert, Store } from 'lucide-vue-next'
 import { BaseButton, EmptyState, PageContainer } from '@/ui'
 import { SUPPLIER_TABS, SUPPLIER_TAB_LABEL, useSupplierPage, useSupplierTab, type Food } from '../logic/supplier'
+import { mealHomeRoute } from '../logic/shared'
 import BrandHeader from './BrandHeader.vue'
 import ConfirmDialog from './ConfirmDialog.vue'
 import FoodEditSheet from './FoodEditSheet.vue'
@@ -66,7 +67,9 @@ onBeforeUnmount(s.stop)
           title="這裡是提供者用的頁面"
           description="志工、據點與管理員請從鄰食轉運站首頁進入自己的頁面。"
           :icon="Store"
-        />
+        >
+          <BaseButton variant="outline" :to="mealHomeRoute">回首頁</BaseButton>
+        </EmptyState>
 
         <Transition v-else name="swap" mode="out-in">
           <SupplierApplyForm

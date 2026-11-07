@@ -7,9 +7,10 @@ import type { Checkin, MyStation } from '@/features/meal-relay/data'
 // 資料層用 mock，時間用 fake timers；模擬的後端照 M15 每 QR_ROTATE_SEC（Demo 30 秒）換一次 token。
 
 const getMyStation = vi.fn()
+const getMe = vi.fn()
 vi.mock('@/features/meal-relay/data', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/features/meal-relay/data')>()
-  return { ...actual, getMyStation: (...args: unknown[]) => getMyStation(...args) }
+  return { ...actual, getMe: (...args: unknown[]) => getMe(...args), getMyStation: (...args: unknown[]) => getMyStation(...args) }
 })
 
 const {
@@ -80,6 +81,7 @@ beforeEach(() => {
   online = true
   checkins = []
   getMyStation.mockReset()
+  getMe.mockReset().mockResolvedValue({ id: 'u-st-1', role: 'station' })
   fakeServer()
 })
 afterEach(() => {

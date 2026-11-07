@@ -13,6 +13,7 @@
 import { CircleAlert, UserRound } from 'lucide-vue-next'
 import { BaseButton, EmptyState, PageContainer, SkeletonBlock, SourceNote } from '@/ui'
 import { clockText, tasksRoute, useVolunteerPage } from '../logic/volunteer'
+import { mealHomeRoute } from '../logic/shared'
 import CheckinPanel from './CheckinPanel.vue'
 import StaleBanner from './StaleBanner.vue'
 import TodayStatus from './TodayStatus.vue'
@@ -61,7 +62,9 @@ const {
         title="這一頁給志工使用"
         description="志工帳號由據點匯入；需要送餐的長者請洽里長或最近的社區關懷據點"
         :icon="UserRound"
-      />
+      >
+        <BaseButton variant="outline" :to="mealHomeRoute">回首頁</BaseButton>
+      </EmptyState>
 
       <template v-else>
         <VolunteerGreeting :name="name" :checked-in="checkedIn" />
