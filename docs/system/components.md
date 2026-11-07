@@ -26,6 +26,22 @@
 | M10 | ChatImage | 對話框內的圖片（圖說 + 來源，載入失敗時顯示替代文字） | `ui/molecules/ChatImage.vue` |
 | M11 | ChatQuote | 對話框內的原文（逐字顯示、可朗讀） | `ui/molecules/ChatQuote.vue` |
 | ML-C01 | DeviceModelCard | 手機硬體、選用模型與理由、模型揭露 | `addons/model/ui/DeviceModelCard.vue` |
+| MR-C07 | MapView | 鄰食地圖：定位針依狀態上色、落下／換色脈衝／淡出動畫、可選點 | `features/meal-relay/ui/MapView.vue` |
+| MR-C08 | TabBar | 分頁列：底線滑動、內容交叉淡入 | `features/meal-relay/ui/TabBar.vue` |
+| MR-C09 | BottomSheet | 底部面板：遮罩淡入、面板由下滑入 | `features/meal-relay/ui/BottomSheet.vue` |
+| MR-C10 | SubmitButton | 送出按鈕：送出中停用，超過 300ms 才轉圈 | `features/meal-relay/ui/SubmitButton.vue` |
+| MR-C11 | QtyInput | 份數輸入框：只能輸入 1 到 remaining 的整數 | `features/meal-relay/ui/QtyInput.vue` |
+| MR-C12 | ToastHost | 提示訊息：底部上移淡入、4 秒後淡出 | `features/meal-relay/ui/ToastHost.vue` |
+| MR-C13 | StatCard | 統計卡：數字平滑變化並底色提示一次 | `features/meal-relay/ui/StatCard.vue` |
+| MR-C14 | FoodRow | 食物列：剩餘份數平滑變化、狀態晶片換色、到期倒數條、過期變淡 | `features/meal-relay/ui/FoodRow.vue` |
+| MR-C15 | ClaimRow | 申請列：狀態晶片換色、送餐進度條（已派送 → 配送中 → 完成） | `features/meal-relay/ui/ClaimRow.vue` |
+| MR-C16 | AllergenWarning | 過敏原衝突警告：有交集時展開（C3） | `features/meal-relay/ui/AllergenWarning.vue` |
+| MR-C17 | VisitResultPicker | 拜訪結果三選一：選「放門口」時拍照鈕展開（C4） | `features/meal-relay/ui/VisitResultPicker.vue` |
+| MR-C18 | SupplierGate | 提供者申請狀態：申請表 → 審核中卡片 → 通過後進入提供者頁（D1、D2） | `features/meal-relay/ui/SupplierGate.vue` |
+| MR-C19 | ReviewList | 審核清單：按通過／不通過 → 晶片變色 → 整列收合（D3） | `features/meal-relay/ui/ReviewList.vue` |
+| MR-C20 | AllergenChips | 過敏原晶片勾選：11 類，點一下換色（D8） | `features/meal-relay/ui/AllergenChips.vue` |
+| MR-C21 | PageTransition | 頁面切換：載入骨架 → 內容淡入上移；身分或資料重置時舊畫面淡出再換新（E1、E2、E3） | `features/meal-relay/ui/PageTransition.vue` |
+| MR-C22 | ResetDemoButton | 重置示範資料：送出中轉圈，成功後提示並通知頁面淡出淡入（E3） | `features/meal-relay/ui/ResetDemoButton.vue` |
 | MR-P01 | HomePage | 鄰食轉運站首頁（佔位） | `features/meal-relay/ui/HomePage.vue` |
 | MR-P04 | VolunteerPage | 志工頁（佔位） | `features/meal-relay/ui/VolunteerPage.vue` |
 | MR-P05 | TaskPage | 我的任務與拜訪回報（佔位） | `features/meal-relay/ui/TaskPage.vue` |
