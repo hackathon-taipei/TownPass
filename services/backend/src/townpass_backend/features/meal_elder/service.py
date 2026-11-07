@@ -93,6 +93,12 @@ def report_visit(
             food = repo.get_food(session, claim.food_id)
             if food is not None and food.category == "produce":
                 raise MealError("FRESH_CANNOT_LEAVE", "生鮮蔬果不能放門口")
+        if repo.get_image(session, payload.photo_image_id) is None:
+            raise MealError("NOT_FOUND", "找不到放門口回報的照片")
+
+    # M8：送餐必須先確認取餐，才能回報；驗證完成前不異動拜訪、長者或庫存。
+    if payload.kind == "meal" and claim is not None and claim.status != "delivering":
+        raise MealError("INVALID_STATE", "請先確認已取餐，再回報送餐結果")
 
     visited_at = now()
     visit = models.MealVisit(
