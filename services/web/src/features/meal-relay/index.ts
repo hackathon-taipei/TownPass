@@ -25,6 +25,31 @@ export default defineFeature({
     { path: 'admin', name: 'admin', component: () => import('./ui/AdminPage.vue') },
   ],
 
-  // TODO(T-115)：匯入開放資料（社區照顧關懷據點等）後，在這裡登記資料來源，並同步 data/SOURCES.md 與頁面 SourceNote
-  sources: [],
+  // 據點與食物點的種子（T-115，docs/meal-relay/T-115.md）；與 data/SOURCES.md 同步
+  sources: [
+    {
+      name: '臺北市銀髮族服務_社區照顧關懷據點',
+      provider: '臺北市政府社會局',
+      url: 'https://data.gov.tw/dataset/121285',
+      licence: '政府資料開放授權條款 1.0',
+    },
+    {
+      name: '臺北市各級學校分布圖(含國小.國中.高中職.特教學校.市立大專院校)',
+      provider: '臺北市政府教育局',
+      url: 'https://data.gov.tw/dataset/121225',
+      licence: '政府資料開放授權條款 1.0',
+    },
+    {
+      name: '臺北市固定里民活動場所資料',
+      provider: '臺北市政府民政局',
+      url: 'https://data.gov.tw/dataset/121174',
+      licence: '政府資料開放授權條款 1.0',
+    },
+    {
+      name: '臺北市門牌位置數值資料',
+      provider: '臺北市政府民政局',
+      url: 'https://data.gov.tw/dataset/155472',
+      licence: '政府資料開放授權條款 1.0',
+    },
+  ],
 })
