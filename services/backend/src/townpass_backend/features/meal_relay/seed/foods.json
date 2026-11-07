@@ -1,0 +1,74 @@
+[
+  {
+    "id": "f-1",
+    "point_id": "p-1",
+    "supplier_id": "s-1",
+    "name": "排骨便當（模擬）",
+    "category": "meal_box",
+    "allergens": ["soy", "gluten"],
+    "qty": 5,
+    "expires_at": "now+3h",
+    "source_note": "今日午餐多做的份量",
+    "created_at": "now-1h"
+  },
+  {
+    "id": "f-2",
+    "point_id": "p-1",
+    "supplier_id": "s-1",
+    "name": "素食便當（模擬）",
+    "category": "meal_box",
+    "allergens": ["soy"],
+    "qty": 3,
+    "expires_at": "now+2h",
+    "source_note": "",
+    "created_at": "now"
+  },
+  {
+    "id": "f-3",
+    "point_id": "p-4",
+    "supplier_id": "s-2",
+    "name": "當季青菜一袋（模擬）",
+    "category": "produce",
+    "allergens": [],
+    "qty": 4,
+    "expires_at": "now+1d",
+    "source_note": "營養午餐剩餘食材",
+    "created_at": "now-2h"
+  },
+  {
+    "id": "f-4",
+    "point_id": "p-3",
+    "supplier_id": "s-1",
+    "name": "花生奶油麵包（模擬）",
+    "category": "bakery",
+    "allergens": ["peanut", "gluten", "milk", "egg"],
+    "qty": 6,
+    "expires_at": "now+5h",
+    "source_note": "含花生，過敏者請勿申請",
+    "created_at": "now-30m"
+  },
+  {
+    "id": "f-5",
+    "point_id": "p-4",
+    "supplier_id": "s-2",
+    "name": "保久乳（模擬）",
+    "category": "drink",
+    "allergens": ["milk"],
+    "qty": 2,
+    "expires_at": "now+45m",
+    "source_note": "快到期，請盡快領取",
+    "created_at": "now-3h"
+  },
+  {
+    "id": "f-6",
+    "point_id": "p-5",
+    "supplier_id": "s-2",
+    "name": "鮪魚罐頭（模擬）",
+    "category": "dry_goods",
+    "allergens": ["fish"],
+    "qty": 10,
+    "expires_at": "now+30d",
+    "source_note": "",
+    "created_at": "now-1d"
+  }
+]
