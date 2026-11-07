@@ -3,6 +3,7 @@ import {
   base64Bytes,
   countdownText,
   ELDER_TAG_LABEL,
+  FOOD_CATEGORY_ICON,
   elderTagsOf,
   fitSize,
   foodPhotoOf,
@@ -12,6 +13,8 @@ import {
   IMAGE_MAX_EDGE,
   IMAGE_QUALITY_STEPS,
   isImageMime,
+  ORG_TYPE_ICON,
+  POINT_KIND_ICON,
   staleText,
 } from '@/features/meal-relay/logic/shared'
 
@@ -183,4 +186,26 @@ describe('foodPhotoOf（M19，T-127）', () => {
     expect(foodPhotoOf({ image_url: '/meal-relay/images/img-1', name: ' 刈包（含花生粉） ' })?.alt).toBe('刈包（含花生粉）')
     expect(foodPhotoOf({ image_url: '/meal-relay/images/img-1', name: '  ' })?.alt).toBe('食物照片')
   })
+})
+
+describe('分類 icon 對照（合約 §4，T-130）', () => {
+  // 照合約 docs/system/11-meal-relay.md §4 逐一列出；合約加了值而對照表沒跟上，這裡會失敗
+  const CONTRACT = {
+    FoodCategory: ['meal_box', 'bakery', 'produce', 'dry_goods', 'drink', 'other'],
+    OrgType: ['person', 'school', 'agency', 'shop', 'other'],
+    PointKind: ['station', 'village_office', 'school', 'custom'],
+  }
+  const TABLES = { FoodCategory: FOOD_CATEGORY_ICON, OrgType: ORG_TYPE_ICON, PointKind: POINT_KIND_ICON }
+
+  for (const [name, values] of Object.entries(CONTRACT) as [keyof typeof CONTRACT, string[]][]) {
+    it(`${name} 每個值都有 icon，沒有多也沒有少`, () => {
+      const table = TABLES[name] as Record<string, unknown>
+      expect(Object.keys(table).sort()).toEqual([...values].sort())
+      for (const v of values) expect(table[v], `${name}.${v}`).toBeTruthy()
+    })
+    it(`${name} 同一組裡的 icon 不重複`, () => {
+      const icons = Object.values(TABLES[name])
+      expect(new Set(icons).size).toBe(icons.length)
+    })
+  }
 })

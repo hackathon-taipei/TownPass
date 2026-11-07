@@ -2,12 +2,31 @@
  * 列舉值的中文（照合約 docs/system/11-meal-relay.md v2.2 §4），給 MR-C14～C22 用。
  * T-114 的 logic/shared.ts 合併後，改從 shared.ts 匯入並刪掉這個檔案，避免兩份。
  */
+import type { Component } from 'vue'
+import {
+  Building2,
+  Carrot,
+  Croissant,
+  Ellipsis,
+  HeartHandshake,
+  House,
+  Landmark,
+  MapPin,
+  Milk,
+  Package,
+  School,
+  Store,
+  User,
+  Utensils,
+} from 'lucide-vue-next'
 import type {
   Allergen,
   ClaimMethod,
   ClaimStatus,
   FoodCategory,
   FoodStatus,
+  OrgType,
+  PointKind,
   SupplierStatus,
   VisitResult,
 } from '../data/types'
@@ -35,6 +54,37 @@ export const FOOD_CATEGORY_LABEL: Record<FoodCategory, string> = {
   dry_goods: '乾貨罐頭',
   drink: '飲品',
   other: '其他',
+}
+
+/* ---------------------------------------------------------------- 分類 icon（T-130） */
+/*
+ * 合約 §4 的食物類別、提供者類型、食物點種類對應的 icon，統一用 lucide-vue-next（開源、MIT），不自繪、不用 emoji 或圖片檔。
+ * 單色：icon 跟著文字顏色（currentColor），一律搭配中文文字出現（MR-C56 CategoryIcon）。
+ * 畫面只讀這三張表，不在元件裡寫死；地圖定位針（#80）也共用。
+ */
+
+export const FOOD_CATEGORY_ICON: Record<FoodCategory, Component> = {
+  meal_box: Utensils,
+  bakery: Croissant,
+  produce: Carrot,
+  dry_goods: Package,
+  drink: Milk,
+  other: Ellipsis,
+}
+
+export const ORG_TYPE_ICON: Record<OrgType, Component> = {
+  person: User,
+  school: School,
+  agency: Landmark,
+  shop: Store,
+  other: Building2,
+}
+
+export const POINT_KIND_ICON: Record<PointKind, Component> = {
+  station: HeartHandshake,
+  village_office: House,
+  school: School,
+  custom: MapPin,
 }
 
 export const FOOD_STATUS_LABEL: Record<FoodStatus, string> = {
@@ -98,6 +148,8 @@ export type {
   Food,
   FoodCategory,
   FoodStatus,
+  OrgType,
+  PointKind,
   Supplier,
   SupplierStatus,
   VisitKind,

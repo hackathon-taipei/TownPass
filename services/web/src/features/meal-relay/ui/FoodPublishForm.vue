@@ -5,6 +5,7 @@
  * 表單狀態在 useSupplierPage() 的 foodForm；圖片由父層的 setImage 寫回。
  * T-127 漸進式揭示：第一步只有「拍照」；拍完或按「略過」才展開其他欄位。照片仍是選填（合約 M19 沒有規定必填）。
  * 略過時提示「有照片，志工比較好找」，整個頁面只提示一次（__skipHintShown）。
+ * T-130：類別選項用 MR-C56 CategoryIcon（lucide icon＋中文）。
  */
 import './motion.css'
 import { computed, ref } from 'vue'
@@ -12,6 +13,7 @@ import { BaseButton, BaseChip, BaseInput } from '@/ui'
 import { FOOD_CATEGORY_LABEL } from '../logic/shared'
 import { buildFoodCreate, expiresError, type FoodCategory, type FoodForm } from '../logic/supplier'
 import AllergenChecklist from './AllergenChecklist.vue'
+import CategoryIcon from './CategoryIcon.vue'
 import ImageInput from './ImageInput.vue'
 import QtyInput from './QtyInput.vue'
 import SubmitButton from './SubmitButton.vue'
@@ -79,7 +81,7 @@ let __skipHintShown = false
           <legend class="mb-2 text-sm font-medium text-grey-700">類別</legend>
           <div class="flex flex-wrap gap-2">
             <BaseChip v-for="c in CATEGORIES" :key="c" :active="form.category === c" @click="form.category = c">
-              {{ FOOD_CATEGORY_LABEL[c] }}
+              <CategoryIcon kind="food" :value="c" />
             </BaseChip>
           </div>
         </fieldset>
