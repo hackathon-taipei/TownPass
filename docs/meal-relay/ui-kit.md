@@ -62,7 +62,7 @@
 | D7 | 錯誤輸入框變紅（不搖晃） | 食物 | `Food.qty`、M14、`VALIDATION_ERROR`、`QTY_BELOW_USED` | 份數不合法、改得比已派出＋已送達少，或後端回錯誤 | QtyInput |
 | D8 | 過敏原晶片勾選 | 過敏原 | `Allergen`（衛福部 11 類） | 管理員登記或修改長者、上架 | AllergenChips |
 | E1 | 骨架 → 依角色進入頁面 | 一般市民、志工、提供者、據點、管理員 | `Role`、`getMe` | 開啟 App | PageTransition `loading` |
-| E2 | 舊頁淡出 → 新頁淡入上移 | 志工 | `Role` | 首頁「切換為志工」、Demo 換身分 | PageTransition `page-key` |
+| E2 | 舊頁淡出 → 新頁淡入上移 | 志工 | `Role` | 首頁「進入志工頁」、Demo 換身分（`?as=`） | PageTransition `page-key` |
 | E3 | 內容淡出再淡入＋提示 | 種子資料 | `resetDemo` | 管理系統重置示範資料 | PageTransition `variant="refresh"`＋ResetDemoButton |
 
 ### 地圖顏色（合約沒寫，暫定）
