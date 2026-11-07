@@ -1,0 +1,8 @@
+[
+  { "id": "p-1", "name": "艋舺社區關懷據點（模擬）", "kind": "station", "lat": 25.0368, "lng": 121.5013, "source": "模擬" },
+  { "id": "p-2", "name": "青年公園社區關懷據點（模擬）", "kind": "station", "lat": 25.0245, "lng": 121.5068, "source": "模擬" },
+  { "id": "p-3", "name": "龍山里辦公處（模擬）", "kind": "village_office", "lat": 25.0359, "lng": 121.4989, "source": "模擬" },
+  { "id": "p-4", "name": "老松國小側門（模擬）", "kind": "school", "lat": 25.0383, "lng": 121.503, "source": "模擬" },
+  { "id": "p-5", "name": "萬華車站前廣場（模擬）", "kind": "custom", "lat": 25.0336, "lng": 121.4995, "source": "模擬", "created_by": "u-sup-1" },
+  { "id": "p-6", "name": "西門紅樓廣場（模擬）", "kind": "custom", "lat": 25.0421, "lng": 121.5068, "source": "模擬", "created_by": "u-sup-2" }
+]

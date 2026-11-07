@@ -7,9 +7,12 @@ let __token: string | null = null
 
 export class HttpError extends Error {
   status: number
-  constructor(status: number, message: string) {
+  /** JSON 錯誤回應的 `detail`（FastAPI 格式）；回應不是 JSON 或沒有 detail 時為 undefined */
+  detail?: unknown
+  constructor(status: number, message: string, detail?: unknown) {
     super(message)
     this.status = status
+    this.detail = detail
   }
 }
 
@@ -27,6 +30,15 @@ export async function api<T>(path: string, init?: RequestInit): Promise<T> {
       ...init?.headers,
     },
   })
-  if (!res.ok) throw new HttpError(res.status, `${init?.method ?? 'GET'} ${path} -> ${res.status}`)
+  if (!res.ok) throw new HttpError(res.status, `${init?.method ?? 'GET'} ${path} -> ${res.status}`, await __errorDetail(res))
   return (res.status === 204 ? undefined : await res.json()) as T
+}
+
+async function __errorDetail(res: Response): Promise<unknown> {
+  try {
+    const body: unknown = await res.json()
+    return body && typeof body === 'object' && 'detail' in body ? (body as { detail: unknown }).detail : undefined
+  } catch {
+    return undefined
+  }
 }

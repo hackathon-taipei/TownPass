@@ -126,6 +126,9 @@ TownPass/
 ### App ↔ 網頁訊息
 見 [bridge.md](../bridge.md)。
 
+### 鄰食轉運站（本作品）
+前端 `features/meal-relay/`（代碼 `MR`）；後端 `features/meal_relay`（共用資料與規則，沒有路由）加 `meal_account`、`meal_food`、`meal_claim`、`meal_elder`、`meal_dispatch`、`meal_board`。端點前綴 `/meal-relay`，完整合約見 [11-meal-relay.md](11-meal-relay.md)。掃描報到用 App 既有的 bridge `qr_code_scan`；據點 QR code 用 `qrcode`（MIT）在網頁產生。
+
 ## 5. 新增東西放哪裡
 
 | 要加 | 放哪裡 | 說明 |

@@ -26,6 +26,14 @@
 | M10 | ChatImage | 對話框內的圖片（圖說 + 來源，載入失敗時顯示替代文字） | `ui/molecules/ChatImage.vue` |
 | M11 | ChatQuote | 對話框內的原文（逐字顯示、可朗讀） | `ui/molecules/ChatQuote.vue` |
 | ML-C01 | DeviceModelCard | 手機硬體、選用模型與理由、模型揭露 | `addons/model/ui/DeviceModelCard.vue` |
+| MR-P01 | HomePage | 鄰食轉運站首頁（佔位） | `features/meal-relay/ui/HomePage.vue` |
+| MR-P02 | ElderPage | 長者頁（佔位） | `features/meal-relay/ui/ElderPage.vue` |
+| MR-P03 | FoodDetailPage | 食物資訊與申請（佔位） | `features/meal-relay/ui/FoodDetailPage.vue` |
+| MR-P04 | VolunteerPage | 志工頁（佔位） | `features/meal-relay/ui/VolunteerPage.vue` |
+| MR-P05 | TaskPage | 我的任務與拜訪回報（佔位） | `features/meal-relay/ui/TaskPage.vue` |
+| MR-P06 | SupplierPage | 提供者頁（佔位） | `features/meal-relay/ui/SupplierPage.vue` |
+| MR-P07 | StationPage | 據點頁（佔位） | `features/meal-relay/ui/StationPage.vue` |
+| MR-P08 | AdminPage | 管理系統（佔位） | `features/meal-relay/ui/AdminPage.vue` |
 | O01 | BaseSheet | 底部面板 | `ui/organisms/BaseSheet.vue` |
 | O02 | OsmMap | OpenStreetMap 地圖（斷網時改用隨附的臺北底圖） | `ui/organisms/OsmMap.vue` |
 | O03 | NoticeList | 注意事項清單（第一項預設展開） | `ui/organisms/NoticeList.vue` |
