@@ -692,8 +692,7 @@ describe('設計 v2 畫面（T-135）', () => {
     expect(close?.textContent?.trim()).toBe('關閉')
     expect(sheet.querySelector('h2')?.textContent?.trim()).toBe('回報：長者e-as-1')
     close!.click()
-    await flush()
-    expect(document.querySelector('[role="dialog"]')).toBeNull()
+    await vi.waitFor(() => expect(document.querySelector('[role="dialog"]')).toBeNull())
     expect(d.reportVisit).not.toHaveBeenCalled()
   })
 

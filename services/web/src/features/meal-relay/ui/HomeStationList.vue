@@ -26,7 +26,7 @@ const photos = computed(
 
 <template>
   <section>
-    <SectionTitle class="[&_h2]:font-['Meal_Relay_Display',var(--font-sans)] [&_h2]:text-xl [&_h2]:font-extrabold [&_h2]:text-primary-800" title="附近關懷據點" />
+    <SectionTitle class="mr-display [&_h2]:text-xl [&_h2]:font-extrabold [&_h2]:text-primary-800" title="附近關懷據點" />
     <BaseCard v-if="stations === undefined"><SkeletonBlock :lines="3" /></BaseCard>
     <BaseCard v-else-if="stations === null">
       <EmptyState title="讀不到據點清單" :description="error" :icon="MapPin">
