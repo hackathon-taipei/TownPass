@@ -321,12 +321,12 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div class="relative">
+  <!-- Vue 的動態 class 留在外框，避免改寫 Leaflet 注入 host 的 class。 -->
+  <div class="relative" :class="{ 'tp-map--picking': !!onPick }">
     <!-- isolate：Leaflet 的圖層 z-index 400 起跳，讓它留在頁首、底部按鈕下面 -->
     <div
       ref="el"
       class="tp-map isolate h-64 w-full overflow-hidden rounded-xl shadow-card ring-1 ring-grey-100"
-      :class="{ 'tp-map--picking': !!onPick }"
     />
     <Transition name="fade-up">
       <p
@@ -345,7 +345,7 @@ onBeforeUnmount(() => {
   font-family: var(--font-sans);
   background: var(--color-grey-50);
 }
-.tp-map.tp-map--picking.leaflet-container {
+.tp-map--picking .tp-map.leaflet-container {
   cursor: crosshair;
 }
 .tp-map .leaflet-bar,
