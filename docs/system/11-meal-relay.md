@@ -1,5 +1,7 @@
 # 鄰食轉運站（meal-relay）系統規格與合約
 
+> v2.6 補充（T-140／#115）：管理員可於 `POST /stations`、`PATCH /stations/{id}`、`DELETE /stations/{id}` 管理據點。寫入欄位為名稱、地址、位置；刪除有任何長者、帳號、報到或任務關聯時回409 `STATION_IN_USE`。詳細請求、權限與資料保留規則見 [T-140](../meal-relay/T-140.md)，取代本文件僅允許種子建立據點的限制；既有回應與 QR 合約不改。管理台新增第四分頁 `tab=stations`，選據點可看其長者；長者讀取仍只有管理員。
+
 > 版本 v2.5｜2026-11-08｜v2.5：地址：`meal_station.address`、`meal_point.address`、`meal_supplier.address`（文字，空字串代表沒填）；`Food` 多計算欄位 `point_address`（取餐地點的地址）；`applySupplier`、`createPoint` 可帶選填的 `address`（最長 120 字）。據點與食物點用 T-115 的開放資料機構地址；提供者是模擬地址（標「（模擬）」）；個人提供者（`org_type = person`）後端存空字串，不存住家地址（ADR-030，T-133）。v2.4：提供者店面照片：`meal_supplier.image_id`（選填），`applySupplier` 可帶 `image_id`，`Supplier` 回應多 `image_url`；個人提供者（`org_type = person`）不顯示照片欄位、後端忽略並存 `null`；一般市民可以 `uploadImage`（申請前上傳店面照片）；照片只拍招牌或店門口，不能有人臉、車牌、個人資料（ADR-029，T-129）。v2.3：食物點與據點的入口照片：`meal_point.image_id`、`meal_station.image_id`（選填），`PointCreate` 可帶 `image_id`，`Point`、`Station` 回應多 `image_url`，`Food` 多 `point_image_url`（取餐地點的入口照片）；照片只拍入口或建築外觀，不能有人臉、車牌、門牌號碼（ADR-028，T-128）。v2.2 之後的補充：長者地址 `meal_elder.address`（模擬資料，ADR-027，T-125）。v2.2：長者不使用 App、志工只看得到派給自己的長者、據點 QR 定時更新、提供者看得到庫存去向（ADR-026，T-123）。v2.1：長者不訂餐，餐點一律由系統在志工報到時派發（ADR-025）。整合者 `n753951f` 定案。取代隊長版 `GLOSSARY.md`／`ARCHITECTURE.md` v1.1 的認領模式，沿用其中的拜訪結果、`refresh`、相對時間種子、錯誤代碼與驗收清單。
 > **這份是合約：** 欄位、列舉值、端點、錯誤代碼、規則編號（M1～M20）以本文件為準。要改合約先停下來在工單留言（`townpass-ticket` D 節）。實作規則時在程式註解標規則編號，例如 `# M7`。
 
