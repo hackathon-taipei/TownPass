@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { pinColorOf } from '@/features/meal-relay/logic/mapMarker'
+import { idlePhaseOf, PENGUIN_COUNT, penguinOf, pinColorOf } from '@/features/meal-relay/logic/mapMarker'
 import { allergenConflicts, claimProgress, timeLeftText } from '@/features/meal-relay/logic/mealLabels'
 import { diffById } from '@/features/meal-relay/logic/motion'
 
@@ -58,5 +58,28 @@ describe('diffById（輪詢只對變化的項目做動畫）', () => {
     expect(d.added.map((x) => x.id)).toEqual(['d'])
     expect(d.changed.map((x) => x.id)).toEqual(['b'])
     expect(d.removed.map((x) => x.id)).toEqual(['c'])
+  })
+})
+
+describe('penguinOf（志工企鵝圖示）', () => {
+  it('同一個志工永遠是同一隻，範圍 1～6', () => {
+    for (const id of ['u-vol-1', 'u-vol-2', 'abc', '']) {
+      const n = penguinOf(id)
+      expect(n).toBe(penguinOf(id))
+      expect(n).toBeGreaterThanOrEqual(1)
+      expect(n).toBeLessThanOrEqual(PENGUIN_COUNT)
+    }
+  })
+  it('不同志工會分到不同的企鵝', () => {
+    const ids = Array.from({ length: 60 }, (_, i) => `u-vol-${i}`)
+    expect(new Set(ids.map(penguinOf)).size).toBe(PENGUIN_COUNT)
+  })
+  it('待機動作起始點在 0～1 且彼此錯開', () => {
+    const phases = ['u-vol-1', 'u-vol-2', 'u-vol-3'].map(idlePhaseOf)
+    for (const p of phases) {
+      expect(p).toBeGreaterThanOrEqual(0)
+      expect(p).toBeLessThan(1)
+    }
+    expect(new Set(phases).size).toBe(3)
   })
 })

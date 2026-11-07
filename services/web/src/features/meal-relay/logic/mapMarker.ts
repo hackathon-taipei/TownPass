@@ -15,8 +15,31 @@ import type { ClaimStatus, FoodStatus, Location } from '../data/types'
 
 export type { Location }
 
-/** point＝食物點（meal_point） */
-export type MarkerKind = 'supplier' | 'station' | 'elder' | 'point'
+/** point＝食物點（meal_point）；volunteer＝志工目前位置（企鵝圖示） */
+export type MarkerKind = 'supplier' | 'station' | 'elder' | 'point' | 'volunteer'
+
+/** 志工企鵝圖示的張數（public/meal-relay/penguins/penguin-1～6.png） */
+export const PENGUIN_COUNT = 6
+
+/**
+ * 每位志工「隨機」分到一隻企鵝，但同一個 id 永遠是同一隻（輪詢更新、重新整理都不會換）。
+ * 用 id 的字串雜湊取餘數，不用 Math.random。回傳 1～PENGUIN_COUNT。
+ */
+export function penguinOf(id: string): number {
+  return (__hash(id) % PENGUIN_COUNT) + 1
+}
+
+/** 同一個 id 的待機動作起始時間（0～1，乘上動畫長度當負的 delay），讓企鵝不會整齊同步搖擺 */
+export function idlePhaseOf(id: string): number {
+  return (Math.floor(__hash(id) / PENGUIN_COUNT) % 1000) / 1000
+}
+
+/** FNV-1a 字串雜湊（32 位元，非負整數） */
+function __hash(s: string): number {
+  let h = 2166136261
+  for (let i = 0; i < s.length; i++) h = Math.imul(h ^ s.charCodeAt(i), 16777619)
+  return h >>> 0
+}
 
 /** unclaimed：Food.unclaimed = true；alert／ok：Elder.alert（M10） */
 export type MarkerStatus = FoodStatus | ClaimStatus | 'unclaimed' | 'alert' | 'ok'
@@ -74,4 +97,5 @@ export const MARKER_KIND_LABEL: Record<MarkerKind, string> = {
   station: '據點',
   elder: '長者',
   point: '食物點',
+  volunteer: '志工',
 }

@@ -7,7 +7,7 @@
 
 | 編號 | 元件 | 用途 | 傳入 | 對應的端點 |
 |---|---|---|---|---|
-| MR-C07 | `MapView` | 地圖：食物點、長者、據點的定位針；選點；拖曳、滾輪、雙指縮放 | `markers`、`center?`、`on-pick?`、`picked?` | `listPoints`、`listElders`、`getBoard`；選點後 `upsertMyElder`、`createElder`、`createPoint`、`applySupplier` |
+| MR-C07 | `MapView` | 地圖：食物點、長者、據點的定位針，志工畫成企鵝；選點；拖曳、滾輪、雙指縮放 | `markers`、`center?`、`on-pick?`、`picked?` | `listPoints`、`listElders`、`getBoard`；選點後 `upsertMyElder`、`createElder`、`createPoint`、`applySupplier` |
 | MR-C08 | `TabBar` | 分頁列 | `v-model`、`tabs` | — |
 | MR-C09 | `BottomSheet` | 底部面板 | `v-model`、`title` | 拜訪回報 `reportVisit` |
 | MR-C10 | `SubmitButton` | 送出按鈕：送出中停用，超過 300ms 才轉圈 | `loading`、`disabled` | 所有寫入 |
@@ -35,6 +35,9 @@
 | A1 | 定位針落下 | 食物點、長者、據點 | `Point`、`Elder`、`Station` | 地圖上出現新的點（第一次載入全部一起落下；輪詢只有新的落下） | MapView／`tp-map__pin--enter` |
 | A2 | 換色＋脈衝環一次 | 食物、警示 | `FoodStatus` `open → claimed`（M1）、`Elder.alert`（M10） | 食物點的食物全被派出；長者被見到後警示解除 | MapView／`tp-map__pin--changed` |
 | A3 | 淡出縮小 | 食物點、長者 | `Food.closed`、`Elder.merged_into`（M13） | 點從地圖上移除 | MapView／`tp-map__pin--leave` |
+| A4 | 企鵝待機搖擺 | 志工 | `Marker.kind = 'volunteer'` | 一直播；每位志工起始時間錯開 | MapView／`tp-map__penguin-img` |
+| A5 | 企鵝跳一下＋陰影脈衝 | 志工、派送任務 | `ClaimStatus` `delivering` | 志工開始或結束配送 | MapView／`tp-map__pin--changed` |
+| A6 | 企鵝滑行到新位置 | 志工 | `Location` | 志工位置更新（0.9 秒） | MapView／`tp-map__pin--moving` |
 | B1 | 選點定位針 | 長者、食物點、提供者 | `Location` | 第一次填長者位置、新增長者、新增食物點、提供者申請 | MapView `on-pick`／`tp-map__pin--picked` |
 | B2 | 數字平滑變化 | 食物 | `Food.remaining`（M1）、`BoardStats` | 剩餘份數、看板統計改變 | `useMotionNumber`、StatCard、FoodRow |
 | B3 | 底色提示一次 | — | `diffById` 找出的變化 | 統計卡數字改變、輪詢到新的食物 | `.flash`、`replayClass` |
@@ -73,6 +76,10 @@
 | 長者 | 警示（`alert = true`，M10） | 紅 |
 | 長者 | 近期已見到本人（`alert = false`） | 綠 |
 | 據點、提供者 | — | 深灰 |
+| 志工（企鵝腳下陰影） | 配送中（`delivering`） | 藍 |
+| 志工（企鵝腳下陰影） | 其他 | 灰 |
+
+志工圖示：`services/web/public/meal-relay/penguins/penguin-1～6.png`（160×160 去背），`logic/mapMarker.ts` 的 `penguinOf(id)` 依志工 id 固定分到其中一隻（同一人永遠同一隻，不用 `Math.random`）。
 
 ## 3. 動態 token（`ui/motion.css`）
 | token | 值 | 用在 |
@@ -85,7 +92,7 @@
 | `--ease-out`／`--ease-in`／`--ease-in-out` | `cubic-bezier(0,0,.2,1)`／`(.4,0,1,1)`／`(.4,0,.2,1)` | 進場／離場／移動 |
 
 原則：安靜、短、不彈跳不搖晃（錯誤用顏色與文字）、只動 `transform` 與 `opacity`、狀態用顏色說、輪詢只對有變化的項目做動畫。
-系統開了「減少動態」時：沒有位移、縮放、脈衝，顏色與數字直接變成新狀態。
+系統開了「減少動態」時：沒有位移、縮放、脈衝，顏色與數字直接變成新狀態（企鵝也停止搖擺、直接跳到新位置）。
 
 ## 4. 決策
 | # | 決定 | 原因 |
@@ -100,3 +107,5 @@
 | 8 | `useMotionNumber` 不用 `@vueuse/core` | repo 沒有這個套件；效果相同 |
 | 9 | 列舉中文暫放 `logic/mealLabels.ts` | 共用的 `logic/shared.ts` 建立後改從那裡匯入、刪掉這個檔案 |
 | 10 | AllergenChips（MR-C20）與 AllergenChecklist（MR-C01）用途相同 | 二選一，或讓 MR-C01 直接包 MR-C20 |
+| 11 | 志工在地圖上畫成 6 隻企鵝之一，依 id 固定分配 | 一眼分得出志工和其他定位針；固定分配讓輪詢與重新整理時不會換圖 |
+| 12 | 企鵝待機搖擺是「不搖晃」原則的例外 | 角色圖示需要有生命感；幅度小（±5°、2px）、每隻錯開，且減少動態時停止 |
