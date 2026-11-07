@@ -15,7 +15,7 @@ const time = computed(() => checkinTimeText(props.checkin.checked_in_at))
 </script>
 
 <template>
-  <div class="flex min-h-14 items-center gap-3 rounded-xl bg-grey-50 px-3 py-2">
+  <div class="flex min-h-11 items-center gap-3 rounded-xl bg-grey-50 px-3 py-1">
     <VolunteerAvatar :id="checkin.volunteer_id" :size="40" />
     <span class="min-w-0 flex-1 truncate text-lg font-bold text-grey-900">{{ checkin.volunteer_name }}</span>
     <time class="shrink-0 text-lg tabular-nums text-grey-700" :datetime="checkin.checked_in_at">{{ time }}</time>

@@ -28,39 +28,41 @@ const legend = computed(() => boardLegend(props.markers))
   <div class="flex flex-col gap-4">
     <p v-if="error" role="alert" class="text-sm text-warn-200">{{ error }}</p>
 
-    <div class="grid gap-4 lg:grid-cols-3">
-      <BaseCard class="lg:col-span-2">
-        <h2 class="flex flex-wrap items-baseline gap-x-3 text-xl font-extrabold text-grey-900">
+    <div class="grid gap-4 lg:grid-cols-3 lg:items-start">
+      <BaseCard flat class="min-w-0 lg:col-span-2">
+        <h2 class="mr-display flex flex-wrap items-baseline gap-x-3 text-2xl font-extrabold text-primary-900 xl:text-3xl">
           今天的服務概況
-          <span class="text-base font-medium text-grey-600 tabular-nums">｜ {{ boardDateText(now) }}</span>
+          <span class="text-base font-medium text-primary-900 tabular-nums xl:text-lg">｜ {{ boardDateText(now) }}</span>
         </h2>
 
         <div v-if="board" class="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
           <StatCard v-for="f in STAT_FIELDS" :key="f.key" :label="f.label" :value="board.stats[f.key]" :tone="f.tone" :icon="f.icon" />
         </div>
 
-        <div class="relative mt-4">
-          <MapView :markers="markers" />
-          <span class="pointer-events-none absolute top-2 left-2 z-10 rounded-full bg-white px-3 py-1 text-xs font-medium text-grey-700 shadow-card">
+        <div class="relative mt-5">
+          <MapView :markers="markers" zoom-position="bottomleft" class="lg:[&_.tp-map]:h-56" />
+          <span class="pointer-events-none absolute top-3 left-3 z-10 rounded-xl border border-grey-200 bg-white/95 px-3 py-1 text-sm font-semibold text-primary-900">
             {{ MAP_NOTE_TEXT }}
           </span>
           <!-- 圖例：< 1024px 放在地圖下方橫排（不蓋住地圖）；≥ 1024px 疊在地圖右上角、直排 -->
           <div
-            class="mt-2 px-1 lg:absolute lg:top-2 lg:right-2 lg:z-10 lg:mt-0 lg:w-max lg:rounded-lg lg:bg-white lg:p-2 lg:shadow-card lg:[&_li]:whitespace-nowrap lg:[&>ul]:flex-col lg:[&>ul]:items-start"
+            class="mt-2 px-1 lg:absolute lg:top-3 lg:right-3 lg:z-10 lg:mt-0 lg:w-max lg:rounded-xl lg:border lg:border-grey-200 lg:bg-white/95 lg:p-3 lg:[&_li]:whitespace-nowrap lg:[&>ul]:flex-col lg:[&>ul]:items-start"
           >
             <MapLegend :items="legend" />
           </div>
         </div>
       </BaseCard>
 
-      <BaseCard>
-        <h2 class="text-xl font-extrabold text-grey-900">食物去向</h2>
-        <ul v-if="groups.active.length" class="mt-3 flex flex-col gap-3">
-          <li v-for="f in groups.active" :key="f.id" class="flex items-center gap-3 rounded-xl bg-white p-2 ring-1 ring-grey-100">
-            <FoodThumb :food="f" size="lg" />
+      <BaseCard flat class="min-w-0">
+        <h2 class="mr-display text-2xl font-extrabold text-primary-900 xl:text-3xl">食物去向</h2>
+        <ul v-if="groups.active.length" class="mt-3 flex max-h-82 flex-col gap-3 overflow-y-auto rounded-xl" tabindex="0" aria-label="進行中的食物">
+          <li v-for="f in groups.active" :key="f.id" class="flex min-h-20 shrink-0 items-center gap-3 rounded-xl border border-grey-200 bg-white p-2">
+            <FoodThumb :food="f" size="lg" class="xl:h-18 xl:w-24" />
             <div class="min-w-0 flex-1">
-              <p class="truncate text-base font-bold text-grey-900">{{ f.name }}</p>
-              <p class="mt-1 text-sm text-grey-600 tabular-nums">{{ foodFlowText(f) }}</p>
+              <p class="truncate text-lg font-extrabold text-primary-900 xl:text-xl">{{ f.name }}</p>
+              <p class="mt-1 flex flex-wrap items-baseline text-sm text-grey-800 tabular-nums [&_strong]:text-lg [&_strong]:text-primary-700">
+                <span>剩餘 <strong>{{ f.remaining }}</strong></span><span class="text-grey-400">｜</span><span>已派送 <strong>{{ f.dispatched_qty }}</strong></span><span class="text-grey-400">｜</span><span>已送達 <strong>{{ f.delivered_qty }}</strong></span>
+              </p>
             </div>
           </li>
         </ul>

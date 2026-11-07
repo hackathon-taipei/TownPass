@@ -1,5 +1,5 @@
 <script setup lang="ts">
-/** @component MR-C50 AdminShell — 管理系統外框：鄰食蜂頁首（MR-C60）＋右側動作；寬度 ≥ 1024px 多欄，以下一欄（最寬 7xl） */
+/** @component MR-C50 AdminShell — 管理系統白底外框：鄰食蜂頁首（MR-C60）＋右側動作；寬度 ≥ 1024px 多欄，以下一欄 */
 /**
  * 管理系統是獨立網頁、不在 App 裡（§2），T01 PageContainer 固定 max-w-md（手機寬），
  * 看板與名冊需要並排，所以本頁用這個外框。只有版面，不呼叫 API。
@@ -17,11 +17,11 @@ withDefaults(defineProps<{ title?: string }>(), { title: '管理系統' })
 </script>
 
 <template>
-  <div class="min-h-dvh bg-grey-50">
-    <div class="mx-auto flex w-full max-w-7xl flex-col gap-4 px-4 py-4 sm:px-6 sm:py-6">
-      <div class="overflow-hidden rounded-2xl bg-primary-50 shadow-card lg:flex lg:items-center">
-        <BrandHeader :title="title" class="min-w-0 lg:flex-1" />
-        <div v-if="$slots.actions" class="flex flex-wrap items-center justify-end gap-3 px-4 pb-3 lg:py-3">
+  <div class="min-h-dvh bg-grey-50 px-3 py-4 sm:px-5">
+    <div class="mx-auto flex w-full max-w-[96rem] flex-col rounded-2xl border border-grey-300 bg-white p-3 lg:p-4">
+      <div class="lg:flex lg:items-center lg:px-3">
+        <BrandHeader :title="title" class="admin-masthead min-w-0 lg:flex-1" />
+        <div v-if="$slots.actions" class="flex flex-wrap items-center justify-end gap-4 px-3 pb-3 lg:py-3">
           <slot name="actions" />
         </div>
       </div>
@@ -29,3 +29,18 @@ withDefaults(defineProps<{ title?: string }>(), { title: '管理系統' })
     </div>
   </div>
 </template>
+
+<style scoped>
+.admin-masthead {
+  background: var(--color-white);
+}
+@media (min-width: 1024px) {
+  .admin-masthead :deep(h1) {
+    color: var(--color-primary-900);
+    font-size: 2rem;
+  }
+  .admin-masthead :deep(img[alt='鄰食蜂']) {
+    height: 2.5rem;
+  }
+}
+</style>

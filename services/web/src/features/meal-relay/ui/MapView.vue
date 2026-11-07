@@ -11,6 +11,7 @@
  *   center?: Location                       // 指定時移到這裡；沒指定時第一次載入縮放到所有定位針
  *   onPick?: (location: Location) => void   // 有傳才允許點選位置（@pick 與 :on-pick 等同）
  *   picked?: Location | null                // 目前選取的位置（由父層控制）
+ *   zoomPosition?: 'bottomright' | 'bottomleft' // 預設右下；看板留右側給圖例
  *
  * 動畫（ANIMATION.md §5.6）：依 Marker.id 比對差異，新增→落下、狀態改變→換色＋脈衝環一次、移除→淡出縮小。
  * 輪詢更新時不會自動移動或縮放地圖。MapView 不呼叫任何 API（ARCHITECTURE §3）。
@@ -38,6 +39,7 @@ const props = defineProps<{
   center?: Location
   onPick?: (location: Location) => void
   picked?: Location | null
+  zoomPosition?: 'bottomright' | 'bottomleft'
 }>()
 
 const __ATTRIBUTION = '&copy; OpenStreetMap contributors'
@@ -285,7 +287,7 @@ onMounted(() => {
     scrollWheelZoom: true,
     zoomControl: false,
   }).setView(props.center ? [props.center.lat, props.center.lng] : __TAIPEI, 14)
-  L.control.zoom({ position: 'bottomright', zoomInTitle: '放大', zoomOutTitle: '縮小' }).addTo(map)
+  L.control.zoom({ position: props.zoomPosition ?? 'bottomright', zoomInTitle: '放大', zoomOutTitle: '縮小' }).addTo(map)
   map.on('popupopen', (e) => {
     const close = e.popup.getElement()?.querySelector('.leaflet-popup-close-button')
     close?.setAttribute('aria-label', '關閉')
@@ -380,6 +382,9 @@ onBeforeUnmount(() => {
 }
 .tp-map .leaflet-bottom.leaflet-right .leaflet-control-zoom {
   margin: 0 10px 24px 0;
+}
+.tp-map .leaflet-bottom.leaflet-left .leaflet-control-zoom {
+  margin: 0 0 24px 10px;
 }
 .tp-map .tp-map__popup .leaflet-popup-content-wrapper {
   border-radius: 0.75rem;

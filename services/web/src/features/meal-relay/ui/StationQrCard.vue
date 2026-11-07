@@ -16,10 +16,10 @@ defineProps<{ stationName: string; qrText: string | null; seconds: number; fract
 </script>
 
 <template>
-  <section class="space-y-4">
+  <section class="space-y-3">
     <StationNamePill :name="stationName" />
-    <p class="text-center text-lg font-medium text-grey-700">請志工掃描下方 QR code 報到</p>
-    <div class="mx-auto w-full max-w-64 md:max-w-90">
+    <p class="text-center text-lg font-semibold text-grey-800">請志工掃描下方 QR code 報到</p>
+    <div class="mx-auto w-[60%] min-w-44 max-w-64 md:w-full md:max-w-90">
       <StationQrCode :text="qrText" />
     </div>
     <QrCountdown v-if="qrText" :seconds="seconds" :fraction="fraction" />

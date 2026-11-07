@@ -29,12 +29,12 @@ const rows = computed(() =>
     <BaseButton variant="outline" block :icon="Plus" @click="emit('add')">新增長者</BaseButton>
     <p v-if="error" role="alert" class="text-sm text-warn-200">{{ error }}</p>
 
-    <ul class="flex flex-col gap-1">
-      <li v-for="{ elder, status, stationName } in rows" :key="elder.id">
+    <ul v-if="rows.length" class="flex flex-col gap-1 lg:max-h-96 lg:overflow-y-auto" tabindex="0" aria-label="名冊">
+      <li v-for="{ elder, status, stationName } in rows" :key="elder.id" class="border-b border-grey-200 last:border-none">
         <button
           type="button"
-          class="press flex min-h-14 w-full items-center gap-3 rounded-xl px-3 py-2 text-left transition-colors duration-200"
-          :class="activeId === elder.id ? 'bg-primary-50 ring-1 ring-primary-200' : 'bg-white hover:bg-grey-50'"
+          class="press flex min-h-12 w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left transition-colors duration-200"
+          :class="activeId === elder.id ? 'bg-primary-100' : 'bg-white hover:bg-grey-50'"
           :aria-current="activeId === elder.id ? 'true' : undefined"
           @click="emit('edit', elder)"
         >
@@ -43,7 +43,7 @@ const rows = computed(() =>
             <span class="block truncate text-base font-bold text-grey-900">{{ elder.alias }}</span>
             <span class="block truncate text-xs text-grey-500">代號 {{ elder.id }}・{{ stationName }}</span>
           </span>
-          <span class="shrink-0 text-sm font-medium" :class="status === 'seen' ? 'text-primary-700' : 'text-warn-200'">
+          <span class="shrink-0 border-l border-grey-300 pl-2.5 text-sm font-medium" :class="status === 'seen' ? 'text-primary-700' : 'text-warn-200'">
             {{ ELDER_STATUS_LABEL[status] }}
           </span>
           <ChevronRight class="h-5 w-5 shrink-0 text-grey-400" aria-hidden="true" />

@@ -7,13 +7,15 @@
  * - 稱呼：Elder.alias（例：陳阿公），必填；ADR-024 只用代稱，不要填真實姓名、電話
  * - 模擬地址：ADR-027 只能是模擬地址（真實路名＋不存在的門牌，標「（模擬）」），選填，最多 ADDRESS_MAX 字
  * - 更多設定：下次送餐時間（Demo 劇本第 9 步）與位置（合約 ElderCreate.location 必填）。新增時、或這兩欄有錯誤時自動展開
- * plain = true 時不包卡片、不顯示標題（手機上放在 MR-C09 BottomSheet 裡，標題由面板顯示）。
+ * plain = true 時不顯示標題（手機上放在 MR-C09 BottomSheet 裡，標題由面板顯示）。
  */
 import { ref, useId, watch } from 'vue'
-import { BaseButton, BaseCard, BaseInput } from '@/ui'
+import { ChevronDown } from 'lucide-vue-next'
+import { BaseButton, BaseInput } from '@/ui'
 import type { ElderDraft, ElderDraftErrors, Station } from '../logic/admin'
 import { ADDRESS_MAX, NEW_ELDER_ID_TEXT, PRIVACY_NOTE } from '../logic/admin'
 import type { Marker } from '../logic/mapMarker'
+import { ALLERGEN_LABEL } from '../logic/shared'
 import Accordion from './Accordion.vue'
 import AllergenChecklist from './AllergenChecklist.vue'
 import LocationPicker from './LocationPicker.vue'
@@ -50,18 +52,18 @@ const fieldBox = 'block h-11 w-full rounded-lg border bg-white px-3 text-base ou
 </script>
 
 <template>
-  <component :is="plain ? 'div' : BaseCard">
-    <h2 v-if="!plain" class="mb-3 text-lg font-bold text-grey-900">{{ elderId ? `修改長者：${draft.alias || elderId}` : '新增長者' }}</h2>
+  <div class="min-w-0">
+    <h2 v-if="!plain" class="mb-3 text-lg font-bold text-primary-900">{{ elderId ? `修改長者：${draft.alias || elderId}` : '新增長者' }}</h2>
 
-    <form class="flex flex-col gap-4" novalidate @submit.prevent="emit('submit')">
-      <div class="space-y-1.5">
+    <form class="flex flex-col gap-3" novalidate @submit.prevent="emit('submit')">
+      <div class="elder-field space-y-1.5">
         <label :for="`${uid}-id`" :class="fieldLabel">代號</label>
         <input :id="`${uid}-id`" :value="elderId || NEW_ELDER_ID_TEXT" readonly :class="fieldBox" class="border-grey-200 bg-grey-50 text-grey-600" />
       </div>
 
-      <BaseInput v-model="draft.alias" label="稱呼（必填）" placeholder="例：陳阿公" :error="errors.alias" hint="只用代稱，不要填真實姓名、電話" />
+      <BaseInput v-model="draft.alias" class="elder-field" label="稱呼（必填）" placeholder="例：陳阿公" :error="errors.alias" hint="只用代稱，不要填真實姓名、電話" />
 
-      <div class="space-y-1.5">
+      <div class="elder-field space-y-1.5">
         <label :for="`${uid}-station`" :class="fieldLabel">所屬據點（必填）</label>
         <select :id="`${uid}-station`" v-model="draft.station_id" :class="[fieldBox, errors.station_id ? 'border-warn-200' : 'border-grey-200']">
           <option value="" disabled>請選據點</option>
@@ -73,15 +75,29 @@ const fieldBox = 'block h-11 w-full rounded-lg border bg-white px-3 text-base ou
 
       <BaseInput
         v-model="draft.address"
+        class="elder-field"
         label="模擬地址（選填）"
         placeholder="例：臺北市萬華區西園路一段 999 號（模擬）"
         :error="errors.address"
         :hint="`只能填模擬地址（門牌不存在、標「（模擬）」），最多 ${ADDRESS_MAX} 個字`"
       />
 
-      <AllergenChecklist v-model="draft.allergens" label="過敏原" hint="派送時會排除有這些過敏原的食物（M4）；沒有就不用選" />
+      <div class="elder-field space-y-1.5">
+        <p :class="fieldLabel">過敏原</p>
+        <details class="min-w-0 rounded-lg border border-grey-200">
+          <summary class="flex min-h-11 cursor-pointer list-none items-center justify-between gap-2 px-3 py-2 text-grey-800">
+            <span>
+              <span class="sr-only">選擇過敏原，目前為</span>{{ draft.allergens.map((a) => ALLERGEN_LABEL[a]).join('、') || '沒有過敏原' }}
+            </span>
+            <ChevronDown class="size-4 shrink-0 text-grey-600" aria-hidden="true" />
+          </summary>
+          <div class="border-t border-grey-100 p-3">
+            <AllergenChecklist v-model="draft.allergens" hint="派送時會排除含這些過敏原的食物；沒有就不用選" />
+          </div>
+        </details>
+      </div>
 
-      <BaseInput v-model="draft.next_care_at" type="datetime-local" label="下次關懷時間" :error="errors.next_care_at" hint="沒設定時依最近見到的日期判斷" />
+      <BaseInput v-model="draft.next_care_at" class="elder-field" type="datetime-local" label="下次關懷時間" :error="errors.next_care_at" hint="沒設定時依最近見到的日期判斷" />
 
       <Accordion v-model="moreOpen" title="更多設定">
         <div class="flex flex-col gap-4">
@@ -96,8 +112,28 @@ const fieldBox = 'block h-11 w-full rounded-lg border bg-white px-3 text-base ou
 
       <p class="rounded-lg bg-secondary-50 px-3 py-2 text-xs text-secondary-800" role="note">{{ PRIVACY_NOTE }}</p>
 
-      <SubmitButton :loading="saving" :disabled="disabled">儲存變更</SubmitButton>
+      <SubmitButton :loading="saving" :disabled="disabled" class="bg-primary-700">儲存變更</SubmitButton>
       <BaseButton v-if="elderId" variant="ghost" block @click="emit('cancel')">取消修改</BaseButton>
     </form>
-  </component>
+  </div>
 </template>
+
+<style scoped>
+@media (min-width: 1024px) {
+  .elder-field {
+    display: grid;
+    grid-template-columns: 8rem minmax(0, 1fr);
+    gap: 0.25rem 0.75rem;
+    align-items: center;
+  }
+  .elder-field :deep(> *) {
+    margin-block: 0;
+  }
+  .elder-field :deep(> label) {
+    font-weight: 600;
+  }
+  .elder-field :deep(> p:not(:first-child)) {
+    grid-column: 2;
+  }
+}
+</style>
