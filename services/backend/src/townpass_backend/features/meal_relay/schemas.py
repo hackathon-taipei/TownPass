@@ -63,6 +63,7 @@ class Supplier(BaseModel):
     status: SupplierStatus
     created_at: datetime
     reviewed_at: datetime | None
+    image_url: str | None = None  # 店面照片 /meal-relay/images/{image_id}；沒有或個人提供者 → null（ADR-029）
 
 
 class Station(BaseModel):
@@ -273,6 +274,7 @@ class SupplierApply(MealRequest):
     name: str = Field(min_length=1, max_length=60)
     org_type: OrgType
     location: Location
+    image_id: str | None = None  # 店面照片（先 POST /images）；org_type = person 時後端忽略、存 null（ADR-029）
 
 
 class PointCreate(MealRequest):

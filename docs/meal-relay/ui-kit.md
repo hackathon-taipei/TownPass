@@ -19,14 +19,14 @@
 | MR-C16 | `AllergenWarning` | 過敏原衝突警告 | 食物與長者的 `allergens`、名稱、`v-model:conflict` | `pickupClaim` 前檢查 |
 | MR-C17 | `VisitResultPicker` | 拜訪結果三選一＋放門口拍照 | `v-model`、`kind`、`category`、`photo-url`、`@photo` | `uploadImage` → `reportVisit` |
 | MR-C18 | `SupplierGate` | 提供者申請 → 審核中 → 提供者頁；申請人是一般市民（`citizen`） | `supplier`、`#apply` 插槽、預設插槽 | `applySupplier`、`getMySupplier` |
-| MR-C19 | `ReviewList` | 審核清單 | `items`、`on-decide` | `reviewSupplier` |
+| MR-C19 | `ReviewList` | 審核清單；項目有 `photo` 時左側放店面照片縮圖（MR-C57，ADR-029） | `items`（`{id, name, detail?, photo?}`）、`on-decide` | `reviewSupplier`、`listSuppliers` |
 | MR-C20 | `AllergenChips` | 過敏原晶片勾選（11 類） | `v-model` | `createElder`、`updateElder`（管理員）、`createFood` |
 | MR-C21 | `PageTransition` | 載入骨架、換頁、重置後淡出淡入 | `loading`、`page-key`、`variant` | `getMe`、`resetDemo` |
 | MR-C22 | `ResetDemoButton` | 重置示範資料 | `on-reset`、`@done` | `resetDemo` |
+| MR-C23 | `VolunteerAvatar` | 志工的企鵝頭像：依志工 id 固定分到 6 隻之一，可輕輕搖擺 | `id`、`name?`、`size?`（預設 40）、`idle?`（預設 true） | 據點頁今天報到（`getMyStation` 的 `checkins`）、志工頁 |
 | MR-C55 | `FoodThumb` | 食物照片縮圖（T-127）：有照片才畫，替代文字用食物名稱；沒照片什麼都不畫 | `food`（`image_url`、`name`）、`size?`（`md` 48px，預設；`lg` 64px） | 照片網址來自 `listFoods`、`listMyAssignments` 的 `image_url`，用 `imageSrc()` 轉換 |
 | MR-C56 | `CategoryIcon` | 分類 icon＋中文（T-130）：食物類別、提供者類型、食物點種類；單色 `currentColor`、18px、線寬 2，icon `aria-hidden` | `kind`（`food`／`org`／`point`）、`value`、`label?`（預設 true，顯示中文） | 上架表單類別選擇（`createFood`）、提供者申請類型選擇（`applySupplier`） |
-| MR-C23 | `VolunteerAvatar` | 志工的企鵝頭像：依志工 id 固定分到 6 隻之一，可輕輕搖擺 | `id`、`name?`、`size?`（預設 40）、`idle?`（預設 true） | 據點頁今天報到（`getMyStation` 的 `checkins`）、志工頁 |
-| MR-C57 | `PlacePhoto` | 地點照片縮圖（入口、店面）：點一下用 MR-C09 底部面板放大；圖片讀不到就整個隱藏（T-128，ADR-028） | `photo`（`logic/placePhoto.ts` 的 `PlacePhoto`：`src`、`alt`、`title`）、`size?`（`sm` 48px 方形，預設；`md` 滿版寬、高 128px） | 志工任務卡的取餐地點（`Food.point_image_url`）、首頁據點清單（`Station.image_url`） |
+| MR-C57 | `PlacePhoto` | 地點照片縮圖（入口、店面）：點一下用 MR-C09 底部面板放大；圖片讀不到就整個隱藏（T-128，ADR-028；T-129，ADR-029） | `photo`（`logic/placePhoto.ts` 的 `PlacePhoto`：`src`、`alt`、`title`）、`size?`（`sm` 48px 方形，預設；`md` 滿版寬、高 128px） | 志工任務卡的取餐地點（`Food.point_image_url`）、首頁據點清單（`Station.image_url`）、審核清單與提供者頁頁首（`Supplier.image_url`） |
 
 邏輯層：`logic/motion.ts`（`MOTION`、`useMotionNumber`、`diffById`、`replayClass`、`reducedMotion`）、`logic/toast.ts`、`logic/mapMarker.ts`（定位針型別、顏色、中文）、`logic/foodQty.ts`（`qtyHint`、`qtyRangeText`、`FOOD_QTY_FIELDS`、`foodQtyCounts`）、`logic/volunteerAvatar.ts`（`penguinOf`、`idlePhaseOf`、`penguinSrc`）、`logic/mealLabels.ts`（合約 §4 的中文、`allergenConflicts`、`claimProgress`、`timeLeftText`）。動畫的 class 在 `ui/motion.css`，每個元件都已匯入。
 
@@ -132,6 +132,7 @@
 | 21 | 分類 icon 只放在選擇分類的地方（T-130 範圍縮小） | 和 #80 的美術方向一致：清單、晶片不加 icon，避免畫面太花 |
 | 16 | 入口照片（T-128）：有照片才放縮圖，沒有就不顯示、不放佔位圖；點縮圖用 MR-C09 放大 | 合約 v2.3（ADR-028）照片選填；空框會讓志工以為照片沒載入。顯示判斷集中在 `logic/placePhoto.ts`（`placePhotoOf`、`pickupPhotoOf`、`stationPhotoOf`、`pointPhotoOf`），網址一律用 `imageSrc()` |
 | 17 | 新增食物點（MR-C37）的入口照片欄位下方固定顯示拍攝規定 | 「只拍入口或建築外觀，不要拍到人臉、車牌、門牌號碼」（`ENTRANCE_PHOTO_RULE`）；系統無法自動檢查照片內容，只能靠提示 |
+| 18 | 店面照片（T-129）：申請表（MR-C35）選了類型、而且不是「個人」才顯示照片欄位；改選「個人」時已拍的照片不上傳 | ADR-029：避免個人提供者拍到自家住址；後端也會忽略。判斷在 `showsStorefrontPhoto()`、`supplierPhotoOf()`，拍攝規定 `STOREFRONT_PHOTO_RULE` |
 
 ## 5. 素材來源與授權
 

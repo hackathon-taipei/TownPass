@@ -34,7 +34,7 @@ export function updateFood(id: string, body: FoodUpdate): Promise<Food> {
   return mealSend<Food>('PATCH', `/foods/${encodeURIComponent(id)}`, body)
 }
 
-/** POST /images（supplier、volunteer）。dataUrl = 壓縮後的 base64 data URL（M19） */
+/** POST /images（citizen：申請提供者的店面照片、supplier、volunteer）。dataUrl = 壓縮後的 base64 data URL（M19） */
 export function uploadImage(dataUrl: string): Promise<ImageUploaded> {
   return mealSend<ImageUploaded>('POST', '/images', { data_url: dataUrl })
 }

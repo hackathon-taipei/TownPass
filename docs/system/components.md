@@ -44,7 +44,7 @@
 | MR-C16 | AllergenWarning | 過敏原衝突警告：有交集時展開（C3） | `features/meal-relay/ui/AllergenWarning.vue` |
 | MR-C17 | VisitResultPicker | 拜訪結果三選一：選「放門口」時拍照鈕展開（C4） | `features/meal-relay/ui/VisitResultPicker.vue` |
 | MR-C18 | SupplierGate | 提供者申請狀態：申請表 → 審核中卡片 → 通過後進入提供者頁（D1、D2） | `features/meal-relay/ui/SupplierGate.vue` |
-| MR-C19 | ReviewList | 審核清單：按通過／不通過 → 晶片變色 → 整列收合（D3） | `features/meal-relay/ui/ReviewList.vue` |
+| MR-C19 | ReviewList | 審核清單：店面照片縮圖（選填）、按通過／不通過 → 晶片變色 → 整列收合（D3） | `features/meal-relay/ui/ReviewList.vue` |
 | MR-C20 | AllergenChips | 過敏原晶片勾選：11 類，點一下換色（D8） | `features/meal-relay/ui/AllergenChips.vue` |
 | MR-C21 | PageTransition | 頁面切換：載入骨架 → 內容淡入上移；身分或資料重置時舊畫面淡出再換新（E1、E2、E3） | `features/meal-relay/ui/PageTransition.vue` |
 | MR-C22 | ResetDemoButton | 重置示範資料：送出中轉圈，成功後提示並通知頁面淡出淡入（E3） | `features/meal-relay/ui/ResetDemoButton.vue` |
@@ -53,7 +53,7 @@
 | MR-C31 | HomeStationList | 首頁的社區關懷據點清單（實體管道，listStations）＋資料來源 | `features/meal-relay/ui/HomeStationList.vue` |
 | MR-C32 | HomeVolunteerInfo | 想當志工：正式版由據點經臺北市志工管理整合平臺招募、在臺北 E 大受訓（§1），本作品不做志工申請 | `features/meal-relay/ui/HomeVolunteerInfo.vue` |
 | MR-C33 | HomeEntryCard | 首頁依角色的主要按鈕：進入志工／提供者／據點頁，或一般市民的「我要提供食物」（§9） | `features/meal-relay/ui/HomeEntryCard.vue` |
-| MR-C35 | SupplierApplyForm | 申請成為提供者：單位名稱、類型、位置（MR-C02）→ applySupplier | `features/meal-relay/ui/SupplierApplyForm.vue` |
+| MR-C35 | SupplierApplyForm | 申請成為提供者：單位名稱、類型、位置（MR-C02）、店面照片（MR-C06，選填，個人不顯示）→ applySupplier | `features/meal-relay/ui/SupplierApplyForm.vue` |
 | MR-C36 | PointPicker | 食物點地圖（MR-C07）與清單：選一個食物點上架，或新增食物點（MR-C37） | `features/meal-relay/ui/PointPicker.vue` |
 | MR-C37 | PointCreateForm | 新增食物點：名稱、位置（MR-C02）、入口照片（MR-C06，選填）→ createPoint（kind = custom） | `features/meal-relay/ui/PointCreateForm.vue` |
 | MR-C38 | FoodPublishForm | 上架食物：先拍照（MR-C06，可略過），再填名稱、類別、過敏原（MR-C01）、份數（MR-C11）、最晚食用時間 | `features/meal-relay/ui/FoodPublishForm.vue` |
@@ -69,7 +69,7 @@
 | MR-C48 | CheckinRow | 今天報到的一位志工：企鵝頭像、名字、報到時間 | `features/meal-relay/ui/CheckinRow.vue` |
 | MR-C49 | StationQrCard | 據點名稱、報到 QR code 與更新倒數 | `features/meal-relay/ui/StationQrCard.vue` |
 | MR-C50 | AdminShell | 管理系統外框：電腦瀏覽器寬度為主（最寬 6xl），手機也能用；標題列右側放重置等動作 | `features/meal-relay/ui/AdminShell.vue` |
-| MR-C51 | ReviewPanel | 提供者審核：待審核清單（MR-C19 ReviewList）＋剛審核的結果；離線時只顯示、不能審核 | `features/meal-relay/ui/ReviewPanel.vue` |
+| MR-C51 | ReviewPanel | 提供者審核：待審核清單（MR-C19 ReviewList，含店面照片縮圖）＋剛審核的結果；離線時只顯示、不能審核 | `features/meal-relay/ui/ReviewPanel.vue` |
 | MR-C52 | BoardPanel | 看板：5 張統計卡（MR-C13）、據點／食物點／長者地圖（MR-C07）、食物去向（MR-C03） | `features/meal-relay/ui/BoardPanel.vue` |
 | MR-C53 | ElderForm | 登記或修改長者：代號、地址（選填，模擬）、位置（MR-C02）、據點（必填）、過敏原（MR-C01）、下次關懷／送餐時間，附隱私提示 | `features/meal-relay/ui/ElderForm.vue` |
 | MR-C54 | ElderRoster | 長者名冊：每位長者的代號、據點、地址、警示標籤（MR-C04）、過敏原、最近見到與下次時間，加「修改」 | `features/meal-relay/ui/ElderRoster.vue` |

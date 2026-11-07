@@ -52,6 +52,8 @@ class MealSupplier(SQLModel, table=True):
     status: str = Field(default="pending", index=True)
     created_at: datetime = Field(default_factory=_utcnow)
     reviewed_at: datetime | None = None
+    # 店面照片（ADR-029）：只拍招牌或店門口，不能有人臉、車牌、個資；個人提供者（person）一律 None
+    image_id: str | None = None
 
 
 class MealPoint(SQLModel, table=True):

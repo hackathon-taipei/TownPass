@@ -1,6 +1,6 @@
 # 鄰食轉運站（meal-relay）系統規格與合約
 
-> 版本 v2.3｜2026-11-08｜v2.3：食物點與據點的入口照片：`meal_point.image_id`、`meal_station.image_id`（選填），`PointCreate` 可帶 `image_id`，`Point`、`Station` 回應多 `image_url`，`Food` 多 `point_image_url`（取餐地點的入口照片）；照片只拍入口或建築外觀，不能有人臉、車牌、門牌號碼（ADR-028，T-128）。v2.2 之後的補充：長者地址 `meal_elder.address`（模擬資料，ADR-027，T-125）。v2.2：長者不使用 App、志工只看得到派給自己的長者、據點 QR 定時更新、提供者看得到庫存去向（ADR-026，T-123）。v2.1：長者不訂餐，餐點一律由系統在志工報到時派發（ADR-025）。整合者 `n753951f` 定案。取代隊長版 `GLOSSARY.md`／`ARCHITECTURE.md` v1.1 的認領模式，沿用其中的拜訪結果、`refresh`、相對時間種子、錯誤代碼與驗收清單。
+> 版本 v2.4｜2026-11-08｜v2.4：提供者店面照片：`meal_supplier.image_id`（選填），`applySupplier` 可帶 `image_id`，`Supplier` 回應多 `image_url`；個人提供者（`org_type = person`）不顯示照片欄位、後端忽略並存 `null`；一般市民可以 `uploadImage`（申請前上傳店面照片）；照片只拍招牌或店門口，不能有人臉、車牌、個人資料（ADR-029，T-129）。v2.3：食物點與據點的入口照片：`meal_point.image_id`、`meal_station.image_id`（選填），`PointCreate` 可帶 `image_id`，`Point`、`Station` 回應多 `image_url`，`Food` 多 `point_image_url`（取餐地點的入口照片）；照片只拍入口或建築外觀，不能有人臉、車牌、門牌號碼（ADR-028，T-128）。v2.2 之後的補充：長者地址 `meal_elder.address`（模擬資料，ADR-027，T-125）。v2.2：長者不使用 App、志工只看得到派給自己的長者、據點 QR 定時更新、提供者看得到庫存去向（ADR-026，T-123）。v2.1：長者不訂餐，餐點一律由系統在志工報到時派發（ADR-025）。整合者 `n753951f` 定案。取代隊長版 `GLOSSARY.md`／`ARCHITECTURE.md` v1.1 的認領模式，沿用其中的拜訪結果、`refresh`、相對時間種子、錯誤代碼與驗收清單。
 > **這份是合約：** 欄位、列舉值、端點、錯誤代碼、規則編號（M1～M20）以本文件為準。要改合約先停下來在工單留言（`townpass-ticket` D 節）。實作規則時在程式註解標規則編號，例如 `# M7`。
 
 ## 1. 目標
@@ -37,10 +37,10 @@
 |---|---|---|
 | `meal_account` 帳號 | `id` PK（前綴 `u`；或台北通 id）、`role`（預設 `citizen`）、`name`、`station_id`?、`supplier_id`?、`elder_id`?、`created_at` | `station_id`：志工與據點帳號必填。`elder_id` 保留不用（ADR-026） |
 | `meal_station` 據點 | `id` PK（`st`）、`name`、`lat`、`lng`、`checkin_code`（QR 內容用，見 M15）、`source`（開放資料名稱或「模擬」）、`image_id`?（入口照片，v2.3） | 社區照顧關懷據點。入口照片由管理員或種子資料提供（目前種子沒有照片），規定見 M19 |
-| `meal_supplier` 提供者 | `id` PK（`s`）、`account_id`、`name`、`org_type`、`lat`、`lng`、`status`、`created_at`、`reviewed_at`? | 申請時填單位名稱、類型、位置 |
+| `meal_supplier` 提供者 | `id` PK（`s`）、`account_id`、`name`、`org_type`、`lat`、`lng`、`status`、`created_at`、`reviewed_at`?、`image_id`?（店面照片，v2.4） | 申請時填單位名稱、類型、位置，可附店面照片（M19）；個人提供者一律不存照片 |
 | `meal_point` 食物點 | `id` PK（`p`）、`name`、`kind`、`lat`、`lng`、`source`、`created_by`?、`image_id`?（入口照片，v2.3） | 多位提供者共用；開放資料預先載入。提供者新增食物點時可附入口照片（M19） |
 | `meal_food` 食物 | `id` PK（`f`）、`point_id`、`supplier_id`、`name`、`category`、`allergens`（JSON）、`qty`、`expires_at`、`image_id`?、`source_note`、`closed`（下架，預設 false）、`created_at` | `remaining`、`dispatched_qty`、`delivered_qty`、`status`、`unclaimed` 不存，回應時計算（M1、M5） |
-| `meal_image` 圖片 | `id` PK（`img`）、`mime`、`data`（bytes）、`size`、`uploaded_by`、`created_at` | 食物圖片、放門口照片、食物點與據點的入口照片（M19） |
+| `meal_image` 圖片 | `id` PK（`img`）、`mime`、`data`（bytes）、`size`、`uploaded_by`、`created_at` | 食物圖片、放門口照片、食物點與據點的入口照片、提供者店面照片（M19） |
 | `meal_elder` 長者 | `id` PK（`e`）、`alias`、`account_id`?、`station_id`、`lat`、`lng`、`address`（文字，可空，ADR-027）、`allergens`（JSON）、`created_by`（管理員帳號 id）、`created_at`、`last_seen_at`?、`last_meal_at`?、`next_care_at`?、`next_meal_at`?、`primary_volunteer_id`?、`merged_into`? | 全部是模擬資料；不存姓名、身分證、電話。`address` 只能是模擬地址（門牌不存在、標「（模擬）」），只有管理員與被派到這位長者的志工看得到（M13、ADR-027）。`account_id`、`merged_into` 保留不用（ADR-026） |
 | `meal_claim` 申請（送餐） | `id` PK（`c`）、`food_id`、`elder_id`、`qty`、`method`、`status`、`requested_by`、`volunteer_id`?、`assignment_id`?、`created_at`、`claimed_at`?、`picked_up_at`?、`done_at`?、`cancel_reason`? | 只由自動派送建立（M17），每筆綁一位長者；`method` 一律 `delivery`、`requested_by` 一律是志工帳號 id（欄位保留，資料表只增不減） |
 | `meal_visit` 拜訪 | `id` PK（`vi`）、`elder_id`、`volunteer_id`、`kind`、`claim_id`?、`assignment_id`?、`result`、`photo_image_id`?、`visited_at` | |
@@ -103,7 +103,7 @@
 | M16 | 自動派送（志工報到時）：候選 = 該據點 `alert = true`、未合併、且沒有被別的志工以 `assigned` 任務持有的長者。排序：①`primary_volunteer_id` 是自己 ②沒有主要志工 ③主要志工今天沒報到；同組內依 `last_seen_at` 為空 > 逾期天數多 > 離據點近。取前 `DISPATCH_LIMIT` 位。主要志工今天已報到的長者留給他。 |
 | M17 | 派送任務內容：`meal_due` → 自動挑食物（`open`、`remaining ≥ 1`、無過敏衝突，依離據點近、到期早排序）建立 `claimed` 的送餐申請；找不到合適食物 → `claim_id` 為空，任務仍保留關懷。自動建立的申請 `requested_by` 是志工帳號 id、`assignment_id` 是任務 id。同一位志工重複報到時回傳既有的進行中任務，不重複派送。 |
 | M18 | 任務完成：該長者有一筆拜訪回報就 `done`。任務超過 `expires_at` 未完成 → `released`：還沒取餐（`claimed`）的申請取消、份數退回；已在 `delivering` 的不動。 |
-| M19 | 圖片：前端壓縮後以 base64 上傳，後端檢查 mime 為 `image/jpeg`、`image/png`、`image/webp` 且大小 ≤ `IMAGE_MAX_BYTES`。**入口照片**（`meal_point`、`meal_station` 的 `image_id`，v2.3）：只拍入口或建築外觀，不能拍到人臉、車牌、門牌號碼；示範資料只用團隊自己拍的或開放授權的照片，並登記來源（ADR-028）。回應的 `image_url` 是 `/meal-relay/images/{image_id}`，沒有照片 → `null`，畫面有照片才顯示、不留空框。 |
+| M19 | 圖片：前端壓縮後以 base64 上傳，後端檢查 mime 為 `image/jpeg`、`image/png`、`image/webp` 且大小 ≤ `IMAGE_MAX_BYTES`。**入口照片**（`meal_point`、`meal_station` 的 `image_id`，v2.3）：只拍入口或建築外觀，不能拍到人臉、車牌、門牌號碼；示範資料只用團隊自己拍的或開放授權的照片，並登記來源（ADR-028）。**店面照片**（`meal_supplier.image_id`，v2.4）：只拍招牌或店門口，不能拍到人臉、車牌，也不能出現個人資料；`org_type = person` 時前端不顯示照片欄位，後端忽略送來的 `image_id`、存 `null`，回應的 `image_url` 一律 `null`（避免拍到自家住址，ADR-029）。回應的 `image_url` 是 `/meal-relay/images/{image_id}`，沒有照片 → `null`，畫面有照片才顯示、不留空框。 |
 | M20 | `refresh(now)`：每個請求在業務邏輯前執行，處理 M6、M18（寫回資料庫）；M1、M5、M10 在組裝回應時計算。不用背景排程。 |
 
 ## 7. 錯誤格式
@@ -139,7 +139,7 @@
 |---|---|---|---|
 | `getMe` | `GET /me` | 全部 | `meal_account` |
 | `resetDemo` | `POST /demo/reset` | admin | `meal_account` |
-| `applySupplier` | `POST /suppliers` | citizen | `meal_account` |
+| `applySupplier` | `POST /suppliers`（可帶店面照片 `image_id`，先 `uploadImage`；個人提供者忽略） | citizen | `meal_account` |
 | `getMySupplier` | `GET /suppliers/mine` | citizen、supplier | `meal_account` |
 | `listSuppliers` | `GET /suppliers?status=` | admin | `meal_account` |
 | `reviewSupplier` | `POST /suppliers/{id}/approve`、`/reject` | admin | `meal_account` |
@@ -149,7 +149,7 @@
 | `getFood` | `GET /foods/{id}` | supplier、volunteer、admin | `meal_food` |
 | `createFood` | `POST /foods` | supplier | `meal_food` |
 | `updateFood` | `PATCH /foods/{id}`（`qty`、`expires_at`、`closed`，M14） | supplier（自己的） | `meal_food` |
-| `uploadImage` | `POST /images` | supplier、volunteer | `meal_food` |
+| `uploadImage` | `POST /images` | citizen（申請提供者的店面照片，v2.4）、supplier、volunteer | `meal_food` |
 | `getImage` | `GET /images/{id}`（回傳圖片本身，不需 header） | 全部 | `meal_food` |
 | `listMyClaims` | `GET /claims/mine`（只回傳 `claimed`、`delivering`，M13） | volunteer | `meal_claim` |
 | `pickupClaim` | `POST /claims/{id}/pickup` | volunteer（自己的） | `meal_claim` |
@@ -170,6 +170,8 @@
 
 - `Me`：`{id, role, name, station_id, supplier: Supplier|null}`（`elder` 已移除，ADR-026）
 - `Food`：資料表欄位 ＋ `location`（食物點位置）、`point_name`、`supplier_name`、`remaining`、`dispatched_qty`、`delivered_qty`、`status`、`unclaimed`、`image_url`、`point_image_url`（食物點的入口照片，v2.3；志工任務卡的取餐地點用）
+- `Supplier`：資料表欄位（不含 `image_id`）＋ `image_url`（店面照片，沒有或個人提供者 → `null`，v2.4）
+- `SupplierApply`：`{name, org_type, location, image_id?}`（`image_id` 選填；`org_type = person` 時後端忽略，v2.4）
 - `Station`：`{id, name, location, source, image_url}`（不含 `checkin_code`；`image_url` 是入口照片，沒有 → `null`，v2.3）
 - `Point`：`{id, name, kind, location, source, created_by, open_food_count, image_url}`（`image_url` 同上，v2.3）
 - `PointCreate`：`{name, kind?, location, image_id?}`（`image_id` 選填，v2.3）
