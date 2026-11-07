@@ -20,11 +20,11 @@ class MealAccount(SQLModel, table=True):
     __tablename__ = "meal_account"
 
     id: str = Field(primary_key=True)  # 前綴 u，或台北通 id
-    role: str = Field(default="elder", index=True)
+    role: str = Field(default="citizen", index=True)  # 沒匯入的帳號是一般市民（ADR-026）
     name: str = ""
     station_id: str | None = Field(default=None, index=True)  # 志工與據點帳號必填
     supplier_id: str | None = None
-    elder_id: str | None = None
+    elder_id: str | None = None  # v2.2 起不使用（ADR-026），欄位保留不刪
     created_at: datetime = Field(default_factory=_utcnow)
 
 
@@ -98,19 +98,19 @@ class MealElder(SQLModel, table=True):
 
     id: str = Field(primary_key=True)  # 前綴 e
     alias: str = ""  # 只存稱呼（例：王阿嬤），不存姓名、身分證、電話、地址
-    account_id: str | None = Field(default=None, index=True)  # 自己用 App 的長者
+    account_id: str | None = Field(default=None, index=True)  # v2.2 起不使用（ADR-026），欄位保留不刪
     station_id: str = Field(default="", index=True)
     lat: float = 0.0
     lng: float = 0.0
     allergens: list[str] = Field(default_factory=list, sa_column=Column(JSON))
-    created_by: str = ""
+    created_by: str = ""  # 登記的管理員帳號 id（長者名冊只有管理員維護，ADR-026）
     created_at: datetime = Field(default_factory=_utcnow)
     last_seen_at: datetime | None = None
     last_meal_at: datetime | None = None
     next_care_at: datetime | None = None
     next_meal_at: datetime | None = None
     primary_volunteer_id: str | None = Field(default=None, index=True)
-    merged_into: str | None = None
+    merged_into: str | None = None  # v2.2 起不使用（ADR-026），欄位保留不刪
 
 
 class MealClaim(SQLModel, table=True):

@@ -1,14 +1,17 @@
-"""LOGIC LAYER - 鄰食轉運站的共用規則（合約 docs/system/11-meal-relay.md）。
+"""LOGIC LAYER - 鄰食轉運站的共用規則（合約 docs/system/11-meal-relay.md v2.2）。
 
 其他 meal_* 套件只從套件根 `townpass_backend.features.meal_relay` 使用這裡的東西（B5）。
 - 設定值（§5）：`settings()`，依環境變數 MEAL_RELAY_MODE（預設 demo）
 - 時間：資料庫存 UTC（有時區）；`now()` 回傳 UTC，`to_local()` 轉成 +08:00 輸出
 - `refresh(session, now)`：M6、M18 寫回資料庫（M20：每個請求先跑）
-- 計算欄位：M1（remaining／status）、M5（unclaimed）、M10（長者警示）
+- 計算欄位：M1（remaining／dispatched_qty／delivered_qty／status）、M5（unclaimed）、M10（長者警示）
+- 檢查：M13 `ensure_assigned_elder()`、M14 `ensure_food_update()`、M15 `verify_qr_text()`
 - `to_xxx()`：資料列 → 回應型別（schemas.py）
 - 種子匯入、`seed()`、`reset_demo()`
 """
 
+import hashlib
+import hmac
 import json
 import math
 import os
@@ -41,6 +44,7 @@ from .schemas import (
     ClaimElder,
     Elder,
     Food,
+    FoodUpdate,
     Location,
     Me,
     Point,
@@ -61,12 +65,32 @@ class Settings:
     DISPATCH_LIMIT: int
     ASSIGNMENT_TTL_MIN: int
     MAX_QTY_PER_CLAIM: int
-    DUPLICATE_RADIUS_M: int
+    QR_ROTATE_SEC: int  # M15：據點 QR 多久換一次（DUPLICATE_RADIUS_M 已取消，ADR-026）
     IMAGE_MAX_BYTES: int
 
 
-DEMO_SETTINGS = Settings("demo", 20, 1, 1, 3, 30, 2, 30, 200_000)
-PROD_SETTINGS = Settings("prod", 600, 3, 3, 5, 240, 2, 30, 200_000)
+DEMO_SETTINGS = Settings(
+    mode="demo",
+    CLAIM_WINDOW_SEC=20,
+    CARE_ALERT_DAYS=1,
+    MEAL_ALERT_DAYS=1,
+    DISPATCH_LIMIT=3,
+    ASSIGNMENT_TTL_MIN=30,
+    MAX_QTY_PER_CLAIM=2,
+    QR_ROTATE_SEC=30,
+    IMAGE_MAX_BYTES=200_000,
+)
+PROD_SETTINGS = Settings(
+    mode="prod",
+    CLAIM_WINDOW_SEC=600,
+    CARE_ALERT_DAYS=3,
+    MEAL_ALERT_DAYS=3,
+    DISPATCH_LIMIT=5,
+    ASSIGNMENT_TTL_MIN=240,
+    MAX_QTY_PER_CLAIM=2,
+    QR_ROTATE_SEC=1800,
+    IMAGE_MAX_BYTES=200_000,
+)
 
 
 def settings() -> Settings:
@@ -85,10 +109,12 @@ ERROR_STATUS: dict[str, int] = {
     "NOT_FOUND": 404,
     "VALIDATION_ERROR": 422,
     "QTY_EXCEEDED": 409,
+    "QTY_BELOW_USED": 409,  # M14
     "FOOD_NOT_OPEN": 409,
     "ALLERGEN_CONFLICT": 409,
     "INVALID_STATE": 409,
     "ALREADY_APPLIED": 409,
+    "QR_EXPIRED": 409,  # M15
     "FRESH_CANNOT_LEAVE": 409,
     "PHOTO_REQUIRED": 422,
     "IMAGE_TOO_LARGE": 413,
@@ -185,16 +211,58 @@ def allergen_conflict(food: MealFood | Food, elder: MealElder | Elder) -> list[s
     return sorted(set(food.allergens or []) & set(elder.allergens or []))
 
 
-# ---------------------------------------------------------------- M1 / M5 食物計算
+# ---------------------------------------------------------------- M1 / M5 / M14 食物計算
+
+
+@dataclass(frozen=True)
+class FoodUsage:
+    """M1：一批食物已用掉的份數。取消的申請不算（份數已退回）。"""
+
+    dispatched: int  # 派出中：claimed＋delivering 的申請 qty 合計
+    delivered: int  # 已送達：done 的申請 qty 合計
+
+    @property
+    def used(self) -> int:
+        """已派出加已送達（M14：份數不能改得比這個少）。"""
+        return self.dispatched + self.delivered
+
+
+def food_usage(session: Session, food: MealFood) -> FoodUsage:
+    """M1：依申請狀態加總份數（一次查詢）。"""
+    qty = repo.claim_qty_by_status(session, food.id)
+    return FoodUsage(
+        dispatched=qty.get("claimed", 0) + qty.get("delivering", 0),
+        delivered=qty.get("done", 0),
+    )
+
+
+def __remaining(food: MealFood, usage: FoodUsage) -> int:
+    return max(0, food.qty - usage.used)
 
 
 def food_remaining(session: Session, food: MealFood) -> int:
-    """M1：qty − Σ 未取消申請的 qty（不會小於 0）。"""
-    return max(0, food.qty - repo.claimed_qty(session, food.id))
+    """M1：qty − 派出中 − 已送達（即 qty − Σ 未取消申請的 qty），不會小於 0。"""
+    return __remaining(food, food_usage(session, food))
+
+
+def ensure_food_update(
+    session: Session, food: MealFood, body: FoodUpdate, at: datetime | None = None
+) -> None:
+    """M14：提供者修改食物（PATCH /foods/{id}）前的檢查；提供者身分與 approved 由端點檢查。
+
+    - `qty` 不能小於已派出加已送達的份數 → QTY_BELOW_USED
+    - `expires_at`（最晚食用時間）不能早於現在 → VALIDATION_ERROR
+    """
+    if body.qty is not None:
+        used = food_usage(session, food).used
+        if body.qty < used:
+            raise MealError("QTY_BELOW_USED", f"份數不能少於已派出加已送達的 {used} 份")
+    if body.expires_at is not None and to_utc(body.expires_at) < (at or now()):
+        raise MealError("VALIDATION_ERROR", "最晚食用時間不能早於現在")
 
 
 def food_status(food: MealFood, remaining: int, at: datetime | None = None) -> str:
-    """M1：優先序 closed > expired > claimed > open。"""
+    """M1：優先序 closed 已下架 > expired 已過期 > claimed 已全數派出 > open 可派送。"""
     t = at or now()
     if food.closed:
         return "closed"
@@ -206,7 +274,7 @@ def food_status(food: MealFood, remaining: int, at: datetime | None = None) -> s
 
 
 def food_unclaimed(food: MealFood, status: str, at: datetime | None = None) -> bool:
-    """M5：status = open 且 now > created_at + CLAIM_WINDOW_SEC。只是提醒，仍可申請。"""
+    """M5：status = open 且 now > created_at + CLAIM_WINDOW_SEC。只是提醒（還沒被派出去），仍可被派送。"""
     t = at or now()
     return status == "open" and t > food.created_at + timedelta(seconds=settings().CLAIM_WINDOW_SEC)
 
@@ -330,33 +398,105 @@ def refresh(session: Session, at: datetime | None = None) -> RefreshResult:
 
 
 def get_account_or_default(session: Session, account_id: str) -> MealAccount:
-    """匯入過的帳號；沒匯入的 id 一律視為長者（V2）。回傳的預設帳號不寫進資料庫。"""
+    """匯入過的帳號；沒匯入的 id 一律視為一般市民（V2）。回傳的預設帳號不寫進資料庫。"""
     account = repo.get_account(session, account_id)
     if account is not None:
         return account
-    return MealAccount(id=account_id, role="elder", name="", created_at=now())
+    return MealAccount(id=account_id, role="citizen", name="", created_at=now())
 
 
-def ensure_station_access(account: MealAccount, station_id: str) -> None:
-    """M13：志工只能看、改自己據點；管理員全部。其他角色不在這裡判斷。"""
-    if account.role == "volunteer" and account.station_id != station_id:
-        raise MealError("WRONG_STATION", "這位長者不屬於你的據點")
+# ---------------------------------------------------------------- M13 志工可見範圍
 
+
+def ensure_assigned_elder(session: Session, account: MealAccount, elder_id: str) -> MealAssignment:
+    """M13：志工只能處理自己 `assigned` 任務上的長者（例：回報拜訪前），回傳那個任務；否則 NOT_OWNER。
+
+    任務 done 或 released 後就不算。角色檢查（只有志工）由端點負責。
+    """
+    tasks = [
+        a
+        for a in repo.list_assignments(session, status="assigned", volunteer_id=account.id, elder_id=elder_id)
+        # repo 遇到空字串會略過該條件，這裡再比一次，避免空的 id 被當成「不限」
+        if a.volunteer_id == account.id and a.elder_id == elder_id
+    ]
+    if not tasks:
+        raise MealError("NOT_OWNER", "這位長者不在你的任務裡")
+    return tasks[0]
+
+
+# ---------------------------------------------------------------- M15 據點 QR（定時更新）
 
 QR_PREFIX = "meal-relay:checkin:"
+# Demo 用的固定金鑰：只在沒設定環境變數 MEAL_RELAY_QR_SECRET 時使用。
+# 正式版必須在 Render 設定 MEAL_RELAY_QR_SECRET（不要把正式金鑰寫進程式或提交到 repo）。
+__DEMO_QR_SECRET = "meal-relay-demo-qr-secret-not-for-production"
 
 
-def station_qr_text(station: MealStation) -> str:
-    """M15：據點 QR 內容。"""
-    return f"{QR_PREFIX}{station.checkin_code}"
+def __qr_secret() -> str:
+    """每次呼叫都讀環境變數（測試可直接改）；沒設定或是空字串就用 Demo 金鑰。"""
+    return os.getenv("MEAL_RELAY_QR_SECRET") or __DEMO_QR_SECRET
 
 
-def parse_qr_text(text: str) -> str | None:
-    """M15：QR 文字 → checkin_code；格式不對回傳 None。"""
+def __qr_window(at: datetime) -> int:
+    """時間窗編號：floor(Unix 秒數 / QR_ROTATE_SEC)。"""
+    return math.floor(to_utc(at).timestamp() / settings().QR_ROTATE_SEC)
+
+
+def __qr_token(checkin_code: str, window: int) -> str:
+    """HMAC-SHA256(金鑰, "<checkin_code>:<window>") 的前 10 個十六進位字元。"""
+    message = f"{checkin_code}:{window}".encode()
+    return hmac.new(__qr_secret().encode(), message, hashlib.sha256).hexdigest()[:10]
+
+
+def station_qr_text(station: MealStation, at: datetime | None = None) -> str:
+    """M15：據點 QR 內容 `meal-relay:checkin:<checkin_code>:<token>`，token 每 QR_ROTATE_SEC 換一次。"""
+    token = __qr_token(station.checkin_code, __qr_window(at or now()))
+    return f"{QR_PREFIX}{station.checkin_code}:{token}"
+
+
+def qr_expires_at(at: datetime | None = None) -> datetime:
+    """M15：目前時間窗結束的時間（+08:00，給 MyStation.qr_expires_at）；據點頁在這之前重新取得 QR。"""
+    end = datetime.fromtimestamp((__qr_window(at or now()) + 1) * settings().QR_ROTATE_SEC, UTC)
+    local = to_local(end)
+    assert local is not None
+    return local
+
+
+def parse_qr_text(text: str) -> tuple[str, str] | None:
+    """M15：QR 文字 → `(checkin_code, token)`；格式不對（例：沒有 token）回傳 None。"""
     text = text.strip()
     if not text.startswith(QR_PREFIX):
         return None
-    return text[len(QR_PREFIX) :] or None
+    parts = text[len(QR_PREFIX) :].split(":")
+    if len(parts) != 2 or not parts[0] or not parts[1]:
+        return None
+    return parts[0], parts[1]
+
+
+def verify_qr_text(
+    session: Session, text: str, account: MealAccount, at: datetime | None = None
+) -> MealStation:
+    """M15：檢查志工掃到的據點 QR（POST /checkins），成功回傳據點。依序檢查：
+
+    1. 格式不對，或 checkin_code 找不到據點 → NOT_FOUND
+    2. token 不是目前或前一個時間窗的 → QR_EXPIRED（V18）
+    3. 不是志工自己的據點 → WRONG_STATION（V12）
+    """
+    parsed = parse_qr_text(text)
+    if parsed is None:
+        raise MealError("NOT_FOUND", "這不是據點的報到 QR code")
+    code, token = parsed
+    station = repo.get_station_by_code(session, code)
+    if station is None:
+        raise MealError("NOT_FOUND", "找不到這個 QR code 的據點")
+    window = __qr_window(at or now())
+    # 用 bytes 比較：compare_digest 遇到非 ASCII 的字串會丟 TypeError
+    valid = [__qr_token(station.checkin_code, w).encode() for w in (window, window - 1)]
+    if not any(hmac.compare_digest(token.encode(), v) for v in valid):
+        raise MealError("QR_EXPIRED", "QR code 已過期，請掃據點畫面上最新的 QR code")
+    if account.station_id != station.id:
+        raise MealError("WRONG_STATION", "這不是你所屬據點的 QR code")
+    return station
 
 
 # ---------------------------------------------------------------- 轉成回應型別
@@ -410,7 +550,8 @@ def to_food(session: Session, row: MealFood, at: datetime | None = None) -> Food
     t = at or now()
     point = repo.get_point(session, row.point_id)
     supplier = repo.get_supplier(session, row.supplier_id)
-    remaining = food_remaining(session, row)
+    usage = food_usage(session, row)  # M1：只查一次
+    remaining = __remaining(row, usage)
     status = food_status(row, remaining, t)
     return Food(
         id=row.id,
@@ -429,6 +570,8 @@ def to_food(session: Session, row: MealFood, at: datetime | None = None) -> Food
         point_name=point.name if point else "",
         supplier_name=supplier.name if supplier else "",
         remaining=remaining,
+        dispatched_qty=usage.dispatched,
+        delivered_qty=usage.delivered,
         status=status,  # type: ignore[arg-type]
         unclaimed=food_unclaimed(row, status, t),
         image_url=image_url(row.image_id),
@@ -440,7 +583,7 @@ def to_elder(session: Session, row: MealElder, at: datetime | None = None) -> El
     return Elder(
         id=row.id,
         alias=row.alias,
-        account_id=row.account_id,
+        account_id=None,  # ADR-026：長者不是帳號，一律 null（資料表欄位保留）
         station_id=row.station_id,
         allergens=list(row.allergens or []),  # type: ignore[arg-type]
         created_by=row.created_by,
@@ -450,7 +593,7 @@ def to_elder(session: Session, row: MealElder, at: datetime | None = None) -> El
         next_care_at=to_local(row.next_care_at),
         next_meal_at=to_local(row.next_meal_at),
         primary_volunteer_id=row.primary_volunteer_id,
-        merged_into=row.merged_into,
+        merged_into=None,  # ADR-026：合併長者已取消，一律 null（資料表欄位保留）
         location=to_location(row),
         care_due=flags.care_due,
         meal_due=flags.meal_due,
@@ -540,21 +683,18 @@ def to_assignment(session: Session, row: MealAssignment, at: datetime | None = N
 
 
 def to_me(session: Session, account: MealAccount, at: datetime | None = None) -> Me:
+    """GET /me。ADR-026：不再查長者、沒有 elder 欄位（`at` 保留給呼叫方，不再使用）。"""
     supplier = (
         repo.get_supplier(session, account.supplier_id)
         if account.supplier_id
         else repo.get_supplier_by_account(session, account.id)
     )
-    elder = repo.get_elder(session, account.elder_id) if account.elder_id else None
-    if elder is None:
-        elder = repo.get_elder_by_account(session, account.id)
     return Me(
         id=account.id,
         role=account.role,  # type: ignore[arg-type]
         name=account.name,
         station_id=account.station_id,
         supplier=to_supplier(supplier) if supplier else None,
-        elder=to_elder(session, elder, at) if elder else None,
     )
 
 
@@ -599,8 +739,13 @@ def import_seed(session: Session, at: datetime | None = None, seed_dir: Path | N
 
 
 def seed(session: Session) -> None:
-    """啟動時執行；冪等：已經有任何 meal_account 就跳過。"""
+    """啟動時執行；冪等：已經有任何 meal_account 就不匯入種子。
+
+    已有帳號時（已部署的資料庫）：把舊版（v2.1 以前）`elder` 角色的帳號改成一般市民 `citizen`
+    （ADR-026），其他資料不動。
+    """
     if repo.has_any_account(session):
+        repo.convert_elder_accounts_to_citizen(session)
         return
     import_seed(session)
 

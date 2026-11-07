@@ -6,7 +6,8 @@
 
 // ---------------------------------------------------------------- 列舉值（§4）
 
-export type Role = 'elder' | 'volunteer' | 'supplier' | 'station' | 'admin'
+/** ADR-026：長者不是帳號（elder 已取消）；沒匯入的帳號是一般市民 citizen */
+export type Role = 'citizen' | 'volunteer' | 'supplier' | 'station' | 'admin'
 export type Allergen =
   | 'crustacean'
   | 'mango'
@@ -88,6 +89,10 @@ export interface Food {
   supplier_name: string
   /** M1 */
   remaining: number
+  /** M1 派出中：claimed＋delivering 的份數 */
+  dispatched_qty: number
+  /** M1 已送達：done 的份數 */
+  delivered_qty: number
   /** M1 */
   status: FoodStatus
   /** M5 */
@@ -194,8 +199,10 @@ export interface CheckInResult {
 /** GET /stations/mine */
 export interface MyStation {
   station: Station
-  /** M15：meal-relay:checkin:<checkin_code> */
+  /** M15：meal-relay:checkin:<checkin_code>:<token>，token 每 QR_ROTATE_SEC 換一次 */
   qr_text: string
+  /** M15：目前時間窗結束的時間，據點頁在這之前重新取得 */
+  qr_expires_at: IsoDateTime
   checkins: Checkin[]
 }
 
@@ -205,13 +212,6 @@ export interface Me {
   name: string
   station_id: string | null
   supplier: Supplier | null
-  elder: Elder | null
-}
-
-/** POST /elders 的回應：M12 附近已有的長者只提示，不阻擋 */
-export interface ElderCreated {
-  elder: Elder
-  nearby: Elder[]
 }
 
 export interface ImageUploaded {
@@ -273,8 +273,10 @@ export interface FoodCreate {
   source_note?: string
 }
 
+/** PATCH /foods/{id}（M14）：qty 不能小於已派出＋已送達（QTY_BELOW_USED）；expires_at 不能早於現在 */
 export interface FoodUpdate {
   qty?: number | null
+  expires_at?: IsoDateTime | null
   closed?: boolean | null
 }
 
@@ -287,18 +289,12 @@ export interface ClaimCancel {
   reason?: string | null
 }
 
-export interface ElderMeUpsert {
-  location: Location
-  allergens?: Allergen[]
-  alias?: string | null
-}
-
 export interface ElderCreate {
   alias: string
   location: Location
   allergens?: Allergen[]
-  /** 志工省略＝自己的據點；管理員必填 */
-  station_id?: string | null
+  /** 管理員登記，必填（ADR-026） */
+  station_id: string
   next_care_at?: IsoDateTime | null
   next_meal_at?: IsoDateTime | null
 }
@@ -311,10 +307,6 @@ export interface ElderUpdate {
   next_care_at?: IsoDateTime | null
   next_meal_at?: IsoDateTime | null
   primary_volunteer_id?: string | null
-}
-
-export interface ElderMerge {
-  into: string
 }
 
 export interface VisitCreate {

@@ -119,7 +119,7 @@ TownPass/
 | `townpass_backend.features.opendata` | `taipei_dataset()`、`UpstreamError` | 臺北資料大平台（有快取） |
 | `townpass_backend.addons.auth` | `CurrentUser`、`AppUser`、`router` | 登入（要先載入） |
 | `townpass_backend.db` | `SessionDep`、`sync_schema()` | 資料庫、動態欄位 |
-| `townpass_backend.features.meal_relay` | `meal_router(tag)`、`CurrentAccount`、`require_roles()`、`MealError`、`settings()`、`refresh()`、`food_remaining()`、`food_status()`、`allergen_conflict()`、`elder_flags()`、`distance_m()`、`is_auto_claim()`、`to_food()`／`to_elder()`／`to_claim()`…、`repo`、`models`、`schemas`、`reset_demo()` | 鄰食轉運站共用資料層與規則（[11-meal-relay.md](11-meal-relay.md) §9） |
+| `townpass_backend.features.meal_relay` | `meal_router(tag)`、`CurrentAccount`、`require_roles()`、`MealError`、`settings()`、`refresh()`、`food_remaining()`、`food_usage()`、`food_status()`、`ensure_food_update()`、`allergen_conflict()`、`elder_flags()`、`ensure_assigned_elder()`、`station_qr_text()`、`verify_qr_text()`、`qr_expires_at()`、`distance_m()`、`is_auto_claim()`、`to_food()`／`to_elder()`／`to_claim()`…、`repo`、`models`、`schemas`、`reset_demo()` | 鄰食轉運站共用資料層與規則（[11-meal-relay.md](11-meal-relay.md) §9） |
 
 ### 端點
 `GET /health`、`GET /examples/places`、`GET /examples/places/{id}`、`GET /opendata/taipei/{resource_id}`；完整合約看後端 `/docs`。
@@ -128,7 +128,7 @@ TownPass/
 見 [bridge.md](../bridge.md)。
 
 ### 鄰食轉運站（本作品）
-前端 `features/meal-relay/`（代碼 `MR`）；後端 `features/meal_relay`（共用資料與規則，沒有路由）加 `meal_account`、`meal_food`、`meal_claim`、`meal_elder`、`meal_dispatch`、`meal_board`。端點前綴 `/meal-relay`，完整合約見 [11-meal-relay.md](11-meal-relay.md)。掃描報到用 App 既有的 bridge `qr_code_scan`；據點 QR code 用 `qrcode`（MIT）在網頁產生。
+前端 `features/meal-relay/`（代碼 `MR`）；後端 `features/meal_relay`（共用資料與規則，沒有路由）加 `meal_account`、`meal_food`、`meal_claim`、`meal_elder`、`meal_dispatch`、`meal_board`。端點前綴 `/meal-relay`，完整合約見 [11-meal-relay.md](11-meal-relay.md)。掃描報到用 App 既有的 bridge `qr_code_scan`；據點 QR code 用 `qrcode`（MIT）在網頁產生，內容每 `QR_ROTATE_SEC` 換一次（M15）。長者不使用 App（ADR-026）。
 
 ## 5. 新增東西放哪裡
 

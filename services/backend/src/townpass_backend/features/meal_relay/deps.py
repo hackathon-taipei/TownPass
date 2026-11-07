@@ -45,7 +45,7 @@ def error_response(code: str, message: str, status: int | None = None) -> JSONRe
 def current_account(
     session: SessionDep, x_demo_user: Annotated[str | None, Header(alias="X-Demo-User")] = None
 ) -> MealAccount:
-    """讀 `X-Demo-User`。沒帶 → 401 UNAUTHENTICATED；沒匯入的 id 視為長者（V2）。先跑 refresh（M20）。"""
+    """讀 `X-Demo-User`。沒帶 → 401 UNAUTHENTICATED；沒匯入的 id 視為一般市民（V2）。先跑 refresh（M20）。"""
     account_id = (x_demo_user or "").strip()
     if not account_id:
         raise http_error(MealError("UNAUTHENTICATED", "缺少 X-Demo-User"))

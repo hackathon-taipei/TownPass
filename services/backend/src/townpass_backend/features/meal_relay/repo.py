@@ -101,6 +101,19 @@ def update_account(session: Session, row: MealAccount, *, commit: bool = True, *
     return __update(session, row, changes, commit)
 
 
+def convert_elder_accounts_to_citizen(session: Session) -> int:
+    """ADR-026：把舊版（v2.1 以前）role = "elder" 的帳號改成一般市民 "citizen"，並 commit。
+
+    給已部署的資料庫升級用：只改 role，其他欄位不動。回傳改了幾筆（沒有就是 0，不寫資料庫）。
+    """
+    rows = list_accounts(session, role="elder")
+    for row in rows:
+        update_account(session, row, commit=False, role="citizen")
+    if rows:
+        session.commit()
+    return len(rows)
+
+
 # ---------------------------------------------------------------- meal_station
 
 
@@ -218,12 +231,18 @@ def list_foods_expired_before(session: Session, when: datetime) -> list[MealFood
     return list(session.exec(select(MealFood).where(MealFood.expires_at < when)))
 
 
-def claimed_qty(session: Session, food_id: str) -> int:
-    """未取消申請的份數合計（M1 的 Σ）。"""
-    stmt = select(func.coalesce(func.sum(MealClaim.qty), 0)).where(
-        MealClaim.food_id == food_id, MealClaim.status != "cancelled"
+def claim_qty_by_status(session: Session, food_id: str) -> dict[str, int]:
+    """一批食物的申請份數依狀態加總（M1 的 Σ），一次 GROUP BY 查完。
+
+    例：`{"claimed": 2, "delivering": 1, "done": 3, "cancelled": 1}`；沒有申請的狀態不會出現。
+    派出中／已送達怎麼算由 service.food_usage 決定。
+    """
+    stmt = (
+        select(MealClaim.status, func.sum(MealClaim.qty))
+        .where(MealClaim.food_id == food_id)
+        .group_by(MealClaim.status)
     )
-    return int(session.exec(stmt).one())
+    return {status: int(total or 0) for status, total in session.exec(stmt)}
 
 
 def create_food(session: Session, row: MealFood, *, commit: bool = True) -> MealFood:
@@ -252,12 +271,6 @@ def get_elder(session: Session, elder_id: str) -> MealElder | None:
     return session.get(MealElder, elder_id)
 
 
-def get_elder_by_account(session: Session, account_id: str) -> MealElder | None:
-    """自己用 App 的長者以 account_id 唯一（M12）。"""
-    stmt = select(MealElder).where(MealElder.account_id == account_id, col(MealElder.merged_into).is_(None))
-    return session.exec(stmt).first()
-
-
 def list_elders(
     session: Session,
     *,
@@ -266,7 +279,7 @@ def list_elders(
     ids: Sequence[str] | None = None,
     include_merged: bool = False,
 ) -> list[MealElder]:
-    """預設不含已合併的長者（M13）。"""
+    """預設不含已合併的長者（M13；v2.2 起不再合併，保留給舊資料）。"""
     stmt = select(MealElder).order_by(col(MealElder.id))
     if station_id:
         stmt = stmt.where(MealElder.station_id == station_id)
