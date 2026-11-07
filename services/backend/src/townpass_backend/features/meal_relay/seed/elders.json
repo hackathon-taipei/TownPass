@@ -11,9 +11,10 @@
     "lat": 25.0355, "lng": 121.5021, "allergens": [], "created_by": "u-admin-1", "created_at": "now-1d"
   },
   {
-    "_note": "從未見到",
+    "_note": "從未見到；管理員指定 u-vol-2（ADR-032：還沒有人照顧過，先指定）",
     "id": "e-3", "alias": "張阿嬤", "address": "臺北市萬華區廣州街 999 號（模擬）", "station_id": "st-1",
-    "lat": 25.0379, "lng": 121.5009, "allergens": [], "created_by": "u-admin-1", "created_at": "now-1d"
+    "lat": 25.0379, "lng": 121.5009, "allergens": [], "created_by": "u-admin-1", "created_at": "now-1d",
+    "preferred_volunteer_id": "u-vol-2"
   },
   {
     "_note": "逾期，u-vol-1 是主要志工",
@@ -40,10 +41,11 @@
     "last_seen_at": "now-2h", "last_meal_at": "now-2h", "primary_volunteer_id": "u-vol-1"
   },
   {
-    "_note": "最近才見過",
+    "_note": "最近才見過；最常照顧的是 u-vol-2，但管理員指定 u-vol-1（ADR-032：指定志工優先）",
     "id": "e-8", "alias": "蔡阿公", "address": "臺北市萬華區桂林路 0 號（模擬）", "station_id": "st-1",
     "lat": 25.0352, "lng": 121.4991, "allergens": [], "created_by": "u-admin-1", "created_at": "now-15d",
-    "last_seen_at": "now-5h", "last_meal_at": "now-5h", "primary_volunteer_id": "u-vol-2"
+    "last_seen_at": "now-5h", "last_meal_at": "now-5h", "primary_volunteer_id": "u-vol-2",
+    "preferred_volunteer_id": "u-vol-1"
   },
   {
     "_note": "有下次時間（還沒到）：雖然很久沒見，但約好明天",
@@ -60,10 +62,11 @@
     "primary_volunteer_id": "u-vol-1"
   },
   {
-    "_note": "有過敏，逾期",
+    "_note": "有過敏，逾期；管理員指定 u-vol-3（ADR-032）",
     "id": "e-11", "alias": "鄭阿嬤", "address": "臺北市萬華區國興路 0 號（模擬）", "station_id": "st-2",
     "lat": 25.0238, "lng": 121.5077, "allergens": ["milk", "crustacean"], "created_by": "u-admin-1", "created_at": "now-15d",
-    "last_seen_at": "now-2d", "last_meal_at": "now-2d"
+    "last_seen_at": "now-2d", "last_meal_at": "now-2d",
+    "preferred_volunteer_id": "u-vol-3"
   },
   {
     "_note": "最近才見過",

@@ -6,12 +6,13 @@
  * - 看板：`getBoard()` → 統計與地圖（據點、食物點、長者）
  * - 長者名冊：`listElders()`、`createElder()`、`updateElder()`；只有代號、座標、地址、過敏原，全部是模擬資料（ADR-024、ADR-026、ADR-027）
  * - 重置：`resetDemo()`
+ * - 指定志工（v2.7，ADR-032）：`listVolunteers()`；表單只列所選據點的志工，改據點時清掉別據點的志工；預設不指定（派送依最常照顧的志工，M16）
  * - 斷網（ADR-024）：讀取用裝置上的資料並顯示 StaleBanner，寫入一律停用
  *
  * 設計 v2（T-138，docs/meal-relay/design-v2/README.md §3.6）：分頁「待審核｜服務看板｜長者名冊」與網址 `?tab=` 同步（預設看板）、
  * 重置前先確認（askReset → confirmReset）、看板統計卡圖示與地圖圖例、名冊狀態、手機上表單用底部面板（useWideLayout）。
  */
-import { computed, onBeforeUnmount, reactive, ref, type Component, type Ref } from 'vue'
+import { computed, onBeforeUnmount, reactive, ref, watch, type Component, type Ref } from 'vue'
 import { CalendarCheck, CircleCheck, ConciergeBell, Heart, Users } from 'lucide-vue-next'
 import {
   MealApiError,
@@ -22,6 +23,7 @@ import {
   listElders,
   listStations,
   listSuppliers,
+  listVolunteers,
   resetDemo,
   reviewSupplier,
   updateElder,
@@ -42,6 +44,7 @@ import type {
   Point,
   Station,
   Supplier,
+  Volunteer,
 } from '../data'
 import { useTabQuery } from './brand'
 import type { LegendItem, Marker, MarkerKind, MarkerStatus } from './mapMarker'
@@ -51,7 +54,7 @@ import { MOTION } from './motion'
 import { toast } from './toast'
 
 /** 畫面層（ui/）不能直接匯入 data/（check-arch W1），本頁用到的型別從這裡轉出去 */
-export type { Allergen, Board, BoardStats, Elder, Food, Location, Me, OrgType, Station, Supplier }
+export type { Allergen, Board, BoardStats, Elder, Food, Location, Me, OrgType, Station, Supplier, Volunteer }
 
 /* ---------------------------------------------------------------- 常數與中文 */
 
@@ -182,12 +185,38 @@ export interface ElderDraft {
   station_id: string
   next_care_at: string
   next_meal_at: string
+  /** v2.7（ADR-032）：指定志工的帳號 id；'' = 不指定（派送依最常照顧的志工，M16） */
+  preferred_volunteer_id: string
 }
 
 export type ElderDraftErrors = Partial<Record<keyof ElderDraft, string>>
 
+/** 指定志工下拉選單的預設選項（ADR-032） */
+export const PREFERRED_NONE_TEXT = '不指定（由系統依最常照顧的志工派送）'
+
 export function emptyElderDraft(): ElderDraft {
-  return { alias: '', address: '', location: null, allergens: [], station_id: '', next_care_at: '', next_meal_at: '' }
+  return { alias: '', address: '', location: null, allergens: [], station_id: '', next_care_at: '', next_meal_at: '', preferred_volunteer_id: '' }
+}
+
+/** 指定志工的選項：只列這個據點的志工（ADR-032：必須是同據點的志工）；沒選據點 → 空清單 */
+export function volunteersOfStation(volunteers: readonly Volunteer[], stationId: string): Volunteer[] {
+  if (!stationId) return []
+  return volunteers.filter((v) => v.station_id === stationId)
+}
+
+/** 志工名稱；清單裡沒有（例如讀取失敗）就顯示帳號 id */
+export function volunteerName(volunteers: readonly Volunteer[], id: string | null | undefined): string {
+  if (!id) return ''
+  return volunteers.find((v) => v.id === id)?.name || id
+}
+
+/**
+ * 名冊與表單顯示的負責志工（M16 v2.7）：有指定志工 →「指定志工：X」；沒有但有最常照顧的志工 →「最常照顧：X」；都沒有 → ''。
+ */
+export function caretakerText(e: Pick<Elder, 'preferred_volunteer_id' | 'primary_volunteer_id'>, volunteers: readonly Volunteer[]): string {
+  if (e.preferred_volunteer_id) return `指定志工：${volunteerName(volunteers, e.preferred_volunteer_id)}`
+  if (e.primary_volunteer_id) return `最常照顧：${volunteerName(volunteers, e.primary_volunteer_id)}`
+  return ''
 }
 
 /** 修改時把長者的資料放進表單 */
@@ -200,11 +229,15 @@ export function draftOfElder(e: Elder): ElderDraft {
     station_id: e.station_id,
     next_care_at: toLocalInput(e.next_care_at),
     next_meal_at: toLocalInput(e.next_meal_at),
+    preferred_volunteer_id: e.preferred_volunteer_id ?? '',
   }
 }
 
-/** 必填：稱呼（alias）、位置、據點（ADR-026：管理員登記，據點必填）。稱呼看起來像電話就擋下（ADR-024） */
-export function validateElderDraft(d: ElderDraft): ElderDraftErrors {
+/**
+ * 必填：稱呼（alias）、位置、據點（ADR-026：管理員登記，據點必填）。稱呼看起來像電話就擋下（ADR-024）。
+ * 有給 volunteers（志工清單讀取成功）時，指定志工必須是所選據點的志工（ADR-032）。
+ */
+export function validateElderDraft(d: ElderDraft, volunteers?: readonly Volunteer[]): ElderDraftErrors {
   const errors: ElderDraftErrors = {}
   const alias = d.alias.trim()
   if (!alias) errors.alias = '請填稱呼'
@@ -215,6 +248,10 @@ export function validateElderDraft(d: ElderDraft): ElderDraftErrors {
   if (!d.station_id) errors.station_id = '請選據點'
   for (const key of ['next_care_at', 'next_meal_at'] as const) {
     if (d[key].trim() && !fromLocalInput(d[key])) errors[key] = '時間格式不正確'
+  }
+  const preferred = d.preferred_volunteer_id ?? ''
+  if (preferred && volunteers && !volunteersOfStation(volunteers, d.station_id).some((v) => v.id === preferred)) {
+    errors.preferred_volunteer_id = '指定志工必須是所屬據點的志工'
   }
   return errors
 }
@@ -230,6 +267,7 @@ export function toElderCreate(d: ElderDraft): ElderCreate {
     station_id: d.station_id,
     next_care_at: fromLocalInput(d.next_care_at),
     next_meal_at: fromLocalInput(d.next_meal_at),
+    preferred_volunteer_id: d.preferred_volunteer_id || null,
   }
 }
 
@@ -248,6 +286,9 @@ export function toElderUpdate(d: ElderDraft, original: Elder): ElderUpdate {
   for (const key of ['next_care_at', 'next_meal_at'] as const) {
     if (d[key].trim() !== toLocalInput(original[key])) body[key] = fromLocalInput(d[key])
   }
+  // ADR-032：改了指定志工才送；'' → null（取消指定）。改據點時表單已清掉別據點的志工，這裡就會送 null
+  const preferred = d.preferred_volunteer_id || null
+  if (preferred !== (original.preferred_volunteer_id ?? null)) body.preferred_volunteer_id = preferred
   return body
 }
 
@@ -422,6 +463,10 @@ export function useAdmin(options: { tab?: Ref<AdminTab> } = {}) {
   const board = ref<Board | null>(null)
   const elders = ref<Elder[]>([])
   const stations = ref<Station[]>([])
+  /** v2.7（ADR-032）：全部志工（GET /volunteers），表單只列所選據點的 */
+  const volunteers = ref<Volunteer[]>([])
+  /** 志工清單讀取失敗的訊息；有值時指定志工選單停用（其他欄位照常可存） */
+  const volunteersError = ref('')
   const errors = reactive<Record<AdminTab, string>>({ review: '', board: '', elders: '', stations: '' })
   /** 各讀取的 stale_at（ADR-024）；有任何一個就是離線 */
   const stale = reactive<Record<string, string | undefined>>({})
@@ -444,6 +489,22 @@ export function useAdmin(options: { tab?: Ref<AdminTab> } = {}) {
   const roster = computed(() => sortElders(elders.value))
   const foods = computed(() => sortFoods(board.value?.foods ?? []))
   const sourceText = computed(() => sourcesOf([...stations.value, ...(board.value?.points ?? [])]))
+  /** 表單的指定志工選項：所選據點的志工 */
+  const formVolunteers = computed(() => volunteersOfStation(volunteers.value, draft.value.station_id))
+  /** 修改中的長者目前最常照顧的志工（M9），顯示在指定志工選單下方；新增時 '' */
+  const formCaretaker = computed(() =>
+    editing.value?.primary_volunteer_id ? volunteerName(volunteers.value, editing.value.primary_volunteer_id) : '',
+  )
+
+  // ADR-032：同一張表單改了據點 → 指定志工不是新據點的志工就清掉（換長者、開新表單不算）
+  watch(
+    () => [draft.value, draft.value.station_id] as const,
+    ([d, station], [prev, prevStation]) => {
+      if (d !== prev || station === prevStation || !d.preferred_volunteer_id) return
+      if (!volunteersOfStation(volunteers.value, station).some((v) => v.id === d.preferred_volunteer_id)) d.preferred_volunteer_id = ''
+    },
+    { flush: 'sync' },
+  )
 
   function __track<T>(key: string, data: Cached<T>): Cached<T> {
     stale[key] = data.stale_at
@@ -472,7 +533,18 @@ export function useAdmin(options: { tab?: Ref<AdminTab> } = {}) {
   }
 
   async function loadAll(): Promise<void> {
-    await Promise.all([loadSuppliers(), loadBoard(), loadElders(), loadStations()])
+    await Promise.all([loadSuppliers(), loadBoard(), loadElders(), loadStations(), loadVolunteers()])
+  }
+
+  /** v2.7（ADR-032）：志工清單（admin）；失敗時只停用指定志工選單 */
+  async function loadVolunteers(): Promise<void> {
+    try {
+      volunteers.value = [...__track('volunteers', await listVolunteers())]
+      volunteersError.value = ''
+    } catch (e) {
+      if (__isForbidden(e)) access.value = 'denied'
+      volunteersError.value = errorMessage(e, '讀取志工清單失敗，暫時不能指定志工')
+    }
   }
 
   async function loadSuppliers(): Promise<void> {
@@ -549,7 +621,7 @@ export function useAdmin(options: { tab?: Ref<AdminTab> } = {}) {
   /** 新增或修改長者；成功回 true */
   async function saveElder(): Promise<boolean> {
     if (offline.value || saving.value) return false
-    formErrors.value = validateElderDraft(draft.value)
+    formErrors.value = validateElderDraft(draft.value, volunteersError.value ? undefined : volunteers.value)
     if (Object.keys(formErrors.value).length) return false
     const original = editing.value
     const patch = original ? toElderUpdate(draft.value, original) : null
@@ -645,6 +717,10 @@ export function useAdmin(options: { tab?: Ref<AdminTab> } = {}) {
     elders,
     roster,
     stations,
+    volunteers,
+    volunteersError,
+    formVolunteers,
+    formCaretaker,
     foods,
     markers,
     formMarkers,
@@ -664,6 +740,7 @@ export function useAdmin(options: { tab?: Ref<AdminTab> } = {}) {
     loadSuppliers,
     loadBoard,
     loadElders,
+    loadVolunteers,
     review,
     startEdit,
     startNew,

@@ -101,6 +101,7 @@ def test_v10_seen_visit_updates_last_seen_alert_and_primary_volunteer(
     updated = repo.get_elder(session, elder.id)
     task = repo.get_assignment(session, assignment.id)
     updated_claim = repo.get_claim(session, claim.id)
+    # M9（v2.7）：主要志工＝最常照顧的志工；e-2 沒有其他拜訪紀錄，所以就是這次回報的 u-vol-1
     assert updated and updated.last_seen_at and updated.primary_volunteer_id == "u-vol-1"
     assert updated.next_care_at is None and updated.next_meal_at is None and updated.last_meal_at
     assert task and task.status == "done"

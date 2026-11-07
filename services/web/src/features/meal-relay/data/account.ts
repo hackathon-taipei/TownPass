@@ -1,6 +1,6 @@
 /** DATA LAYER - 帳號、提供者申請與審核、重置（後端 meal_account，T-108）。 */
 import { mealGet, mealSend } from './client'
-import type { Cached, DemoResetResult, Me, Supplier, SupplierApply, SupplierStatus } from './types'
+import type { Cached, DemoResetResult, Me, Supplier, SupplierApply, SupplierStatus, Volunteer } from './types'
 
 /** GET /me（全部；沒匯入的帳號是一般市民 citizen，V2） */
 export function getMe(): Promise<Cached<Me>> {
@@ -25,6 +25,11 @@ export function getMySupplier(): Promise<Cached<Supplier | null>> {
 /** GET /suppliers?status=（admin） */
 export function listSuppliers(status?: SupplierStatus): Promise<Cached<Supplier[]>> {
   return mealGet<Supplier[]>('/suppliers', { status })
+}
+
+/** GET /volunteers?station_id=（admin，v2.7：長者名冊選指定志工，ADR-032）；不給 station_id → 全部志工 */
+export function listVolunteers(stationId?: string): Promise<Cached<Volunteer[]>> {
+  return mealGet<Volunteer[]>('/volunteers', { station_id: stationId })
 }
 
 /** POST /suppliers/{id}/approve 或 /reject（admin） */

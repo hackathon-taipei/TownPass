@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import type { Board, Elder, Food, Me, Point, Role, Station, Supplier } from '@/features/meal-relay/data'
+import type { Board, Elder, Food, Me, Point, Role, Station, Supplier, Volunteer } from '@/features/meal-relay/data'
 
 // 管理系統 MR-P08 的邏輯層（T-120，logic/admin.ts）。資料層全部 mock，只用假資料（ADR-024）。
 vi.mock('@/features/meal-relay/data', async (importOriginal) => {
@@ -13,6 +13,7 @@ vi.mock('@/features/meal-relay/data', async (importOriginal) => {
     getBoard: vi.fn(),
     listElders: vi.fn(),
     listStations: vi.fn(),
+    listVolunteers: vi.fn(),
     createElder: vi.fn(),
     updateElder: vi.fn(),
     resetDemo: vi.fn(),
@@ -61,6 +62,8 @@ import {
   toLocalInput,
   useAdmin,
   validateElderDraft,
+  caretakerText,
+  volunteersOfStation,
 } from '@/features/meal-relay/logic/admin'
 import AdminPage from '@/features/meal-relay/ui/AdminPage.vue'
 
@@ -104,6 +107,7 @@ function elder(id: string, extra: Partial<Elder> = {}): Elder {
     next_meal_at: null,
     primary_volunteer_id: null,
     merged_into: null,
+    preferred_volunteer_id: null,
     location: { lat: 25.035, lng: 121.505 },
     care_due: true,
     meal_due: true,
@@ -173,7 +177,15 @@ function mockAdminData() {
   api.getBoard.mockResolvedValue(board())
   api.listElders.mockResolvedValue([elder('e-1')])
   api.listStations.mockResolvedValue([station('st-1'), station('st-2')])
+  api.listVolunteers.mockResolvedValue(VOLUNTEERS)
 }
+
+/** v2.7（ADR-032）：志工都是模擬帳號，每位只屬於一個據點 */
+const VOLUNTEERS: Volunteer[] = [
+  { id: 'u-vol-1', name: '測試志工一', station_id: 'st-1' },
+  { id: 'u-vol-2', name: '測試志工二', station_id: 'st-1' },
+  { id: 'u-vol-3', name: '測試志工三', station_id: 'st-2' },
+]
 
 beforeEach(() => {
   vi.clearAllMocks()
@@ -271,6 +283,7 @@ describe('建立長者（station_id 必填，ADR-024、ADR-026）', () => {
       station_id: 'st-2',
       next_care_at: '2026-11-08T14:30',
       next_meal_at: '',
+      preferred_volunteer_id: '',
     }
     expect(await admin.saveElder()).toBe(true)
     expect(api.createElder).toHaveBeenCalledTimes(1)
@@ -282,6 +295,7 @@ describe('建立長者（station_id 必填，ADR-024、ADR-026）', () => {
       station_id: 'st-2',
       next_care_at: '2026-11-08T14:30:00+08:00',
       next_meal_at: null,
+      preferred_volunteer_id: null,
     })
     expect(admin.elders.value.map((e) => e.id)).toEqual(['e-1', 'e-new'])
     expect(admin.draft.value.alias).toBe('')
@@ -299,8 +313,9 @@ describe('建立長者（station_id 必填，ADR-024、ADR-026）', () => {
   })
 
   it('toElderCreate 只送合約欄位', () => {
-    const body = toElderCreate({ alias: 'A', location: { lat: 1, lng: 2 }, allergens: [], station_id: 'st-1', next_care_at: '', next_meal_at: '', address: '' })
-    expect(Object.keys(body).sort()).toEqual(['address', 'alias', 'allergens', 'location', 'next_care_at', 'next_meal_at', 'station_id'])
+    const body = toElderCreate({ alias: 'A', location: { lat: 1, lng: 2 }, allergens: [], station_id: 'st-1', next_care_at: '', next_meal_at: '', address: '', preferred_volunteer_id: '' })
+    // v2.7（ADR-032）合約多了 preferred_volunteer_id（沒選 → null）
+    expect(Object.keys(body).sort()).toEqual(['address', 'alias', 'allergens', 'location', 'next_care_at', 'next_meal_at', 'preferred_volunteer_id', 'station_id'])
   })
 })
 
@@ -881,5 +896,155 @@ describe('AdminPage 畫面（T-138）', () => {
     api.getBoard.mockRejectedValue(new data.MealApiError('INTERNAL', '伺服器忙碌中，請稍後再試', 500))
     await mountAdmin()
     expect(document.querySelector('[role="alert"]')?.textContent).toContain('伺服器忙碌中，請稍後再試')
+  })
+})
+
+/* ---------------------------------------------------------------- v2.7 指定志工（ADR-032、M16） */
+
+describe('指定志工：邏輯（ADR-032）', () => {
+  it('volunteersOfStation 只列所選據點的志工；沒選據點 → 空', () => {
+    expect(volunteersOfStation(VOLUNTEERS, 'st-1').map((v) => v.id)).toEqual(['u-vol-1', 'u-vol-2'])
+    expect(volunteersOfStation(VOLUNTEERS, 'st-2').map((v) => v.id)).toEqual(['u-vol-3'])
+    expect(volunteersOfStation(VOLUNTEERS, '')).toEqual([])
+  })
+
+  it('caretakerText：指定志工 > 最常照顧 > 空字串；清單沒有就顯示 id', () => {
+    expect(caretakerText({ preferred_volunteer_id: 'u-vol-2', primary_volunteer_id: 'u-vol-1' }, VOLUNTEERS)).toBe('指定志工：測試志工二')
+    expect(caretakerText({ preferred_volunteer_id: null, primary_volunteer_id: 'u-vol-1' }, VOLUNTEERS)).toBe('最常照顧：測試志工一')
+    expect(caretakerText({ preferred_volunteer_id: null, primary_volunteer_id: null }, VOLUNTEERS)).toBe('')
+    expect(caretakerText({ preferred_volunteer_id: 'u-vol-9', primary_volunteer_id: null }, [])).toBe('指定志工：u-vol-9')
+  })
+
+  it('預設不指定：草稿是空字串、建立送 null；選了就送志工 id', () => {
+    const base = { ...emptyElderDraft(), alias: '測試阿公', location: { lat: 25, lng: 121 }, station_id: 'st-1' }
+    expect(emptyElderDraft().preferred_volunteer_id).toBe('')
+    expect(toElderCreate(base).preferred_volunteer_id).toBeNull()
+    expect(toElderCreate({ ...base, preferred_volunteer_id: 'u-vol-2' }).preferred_volunteer_id).toBe('u-vol-2')
+  })
+
+  it('toElderUpdate：只有改了指定志工才送；改回不指定送 null', () => {
+    const original = elder('e-1', { preferred_volunteer_id: 'u-vol-1' })
+    const d = draftOfElder(original)
+    expect(d.preferred_volunteer_id).toBe('u-vol-1')
+    expect(toElderUpdate(d, original)).toEqual({})
+    expect(toElderUpdate({ ...d, preferred_volunteer_id: 'u-vol-2' }, original)).toEqual({ preferred_volunteer_id: 'u-vol-2' })
+    expect(toElderUpdate({ ...d, preferred_volunteer_id: '' }, original)).toEqual({ preferred_volunteer_id: null })
+  })
+
+  it('validateElderDraft：指定志工必須是所選據點的志工', () => {
+    const d = { ...emptyElderDraft(), alias: '測試阿公', location: { lat: 25, lng: 121 }, station_id: 'st-2', preferred_volunteer_id: 'u-vol-1' }
+    expect(validateElderDraft(d, VOLUNTEERS).preferred_volunteer_id).toBe('指定志工必須是所屬據點的志工')
+    expect(validateElderDraft({ ...d, preferred_volunteer_id: 'u-vol-3' }, VOLUNTEERS)).toEqual({})
+    expect(validateElderDraft(d)).toEqual({}) // 志工清單讀不到時交給後端檢查（409）
+  })
+
+  it('useAdmin：載入全部志工；表單選項跟著據點變；同一張表單改據點會清掉別據點的志工', async () => {
+    const admin = useAdmin()
+    await admin.init()
+    expect(api.listVolunteers).toHaveBeenCalledTimes(1)
+    expect(admin.formVolunteers.value).toEqual([])
+
+    admin.startEdit(elder('e-1', { preferred_volunteer_id: 'u-vol-2', primary_volunteer_id: 'u-vol-1' }))
+    expect(admin.draft.value.preferred_volunteer_id).toBe('u-vol-2') // 換長者不會被清掉
+    expect(admin.formVolunteers.value.map((v) => v.id)).toEqual(['u-vol-1', 'u-vol-2'])
+    expect(admin.formCaretaker.value).toBe('測試志工一')
+
+    admin.draft.value.station_id = 'st-2'
+    expect(admin.draft.value.preferred_volunteer_id).toBe('')
+    expect(admin.formVolunteers.value.map((v) => v.id)).toEqual(['u-vol-3'])
+  })
+
+  it('改據點＋指定新據點的志工 → updateElder 一起送', async () => {
+    const original = elder('e-1', { preferred_volunteer_id: 'u-vol-2' })
+    api.listElders.mockResolvedValue([original])
+    api.updateElder.mockImplementation(async (id, body) => ({ ...original, ...body, id }) as Elder)
+    const admin = useAdmin()
+    await admin.init()
+    admin.startEdit(original)
+    admin.draft.value.station_id = 'st-2'
+    admin.draft.value.preferred_volunteer_id = 'u-vol-3'
+    expect(await admin.saveElder()).toBe(true)
+    expect(api.updateElder).toHaveBeenCalledWith('e-1', { station_id: 'st-2', preferred_volunteer_id: 'u-vol-3' })
+  })
+
+  it('志工清單讀取失敗 → volunteersError，其他資料照常載入', async () => {
+    api.listVolunteers.mockRejectedValue(new data.MealApiError('INTERNAL', '伺服器忙碌中', 500))
+    const admin = useAdmin()
+    await admin.init()
+    expect(admin.volunteersError.value).toBe('伺服器忙碌中')
+    expect(admin.access.value).toBe('admin')
+    expect(admin.elders.value).toHaveLength(1)
+  })
+})
+
+describe('指定志工：畫面（MR-C113）', () => {
+  beforeEach(() => setWide(true))
+
+  const preferredSelect = () => fieldByLabel('指定志工（選填）') as HTMLSelectElement
+  const optionTexts = (el: HTMLSelectElement) => [...el.options].map((o) => o.text)
+
+  it('新增：沒選據點時停用；選了據點只列該據點志工，預設不指定；送出的資料帶指定志工', async () => {
+    api.createElder.mockImplementation(async (body) => elder('e-new', { ...body, allergens: body.allergens ?? [], next_care_at: null, next_meal_at: null, preferred_volunteer_id: body.preferred_volunteer_id ?? null }))
+    await mountAdmin('/admin?as=u-admin-1&tab=elders')
+
+    expect(preferredSelect().disabled).toBe(true)
+    expect(optionTexts(preferredSelect())).toEqual(['不指定（由系統依最常照顧的志工派送）'])
+    expect(text(document.body)).toContain('先選所屬據點')
+
+    type(fieldByLabel('所屬據點（必填）'), 'st-1')
+    await nextTick()
+    expect(preferredSelect().disabled).toBe(false)
+    expect(preferredSelect().value).toBe('')
+    expect(optionTexts(preferredSelect())).toEqual(['不指定（由系統依最常照顧的志工派送）', '測試志工一', '測試志工二'])
+
+    type(preferredSelect(), 'u-vol-2')
+    type(fieldByLabel('稱呼（必填）'), '測試阿伯')
+    const maps = [...document.querySelectorAll<HTMLButtonElement>('[data-test="map"]')]
+    maps[maps.length - 1].click()
+    await nextTick()
+    buttonByText('儲存變更')!.click()
+    await settle()
+    expect(api.createElder).toHaveBeenCalledTimes(1)
+    expect(api.createElder.mock.calls[0][0]).toMatchObject({ alias: '測試阿伯', station_id: 'st-1', preferred_volunteer_id: 'u-vol-2' })
+  })
+
+  it('修改：顯示目前的指定志工與最常照顧的志工；改據點清掉選擇、選項換成新據點的志工', async () => {
+    api.listElders.mockResolvedValue([elder('e-1', { alias: '測試阿公', preferred_volunteer_id: 'u-vol-2', primary_volunteer_id: 'u-vol-1' })])
+    api.updateElder.mockImplementation(async (id, body) => elder(id, { alias: '測試阿公', ...body }) as Elder)
+    await mountAdmin('/admin?as=u-admin-1&tab=elders')
+    expect(text(document.body)).toContain('指定志工：測試志工二') // 名冊那一列
+
+    buttons().find((b) => text(b).includes('測試阿公'))!.click()
+    await settle()
+    expect(preferredSelect().value).toBe('u-vol-2')
+    expect(text(document.body)).toContain('目前最常照顧：測試志工一')
+
+    type(fieldByLabel('所屬據點（必填）'), 'st-2')
+    await nextTick()
+    expect(preferredSelect().value).toBe('')
+    expect(optionTexts(preferredSelect())).toEqual(['不指定（由系統依最常照顧的志工派送）', '測試志工三'])
+
+    buttonByText('儲存變更')!.click()
+    await settle()
+    expect(api.updateElder).toHaveBeenCalledWith('e-1', { station_id: 'st-2', preferred_volunteer_id: null })
+  })
+
+  it('志工清單讀取失敗 → 選單停用並顯示原因；斷網 → 整張表單停用', async () => {
+    api.listVolunteers.mockRejectedValue(new data.MealApiError('INTERNAL', '讀不到志工', 500))
+    await mountAdmin('/admin?as=u-admin-1&tab=elders')
+    type(fieldByLabel('所屬據點（必填）'), 'st-1')
+    await nextTick()
+    expect(preferredSelect().disabled).toBe(true)
+    expect(text(document.body)).toContain('讀不到志工')
+
+    cleanups.pop()!()
+    document.body.innerHTML = ''
+    api.listVolunteers.mockResolvedValue(VOLUNTEERS)
+    api.listElders.mockResolvedValue(stale([elder('e-1')]))
+    await mountAdmin('/admin?as=u-admin-1&tab=elders')
+    type(fieldByLabel('所屬據點（必填）'), 'st-1')
+    await nextTick()
+    expect(preferredSelect().disabled).toBe(true)
+    expect(buttonByText('儲存變更')!.disabled).toBe(true)
   })
 })

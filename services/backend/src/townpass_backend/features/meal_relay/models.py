@@ -118,8 +118,11 @@ class MealElder(SQLModel, table=True):
     last_meal_at: datetime | None = None
     next_care_at: datetime | None = None
     next_meal_at: datetime | None = None
+    # M9（v2.7）：最常照顧的志工＝ seen／left_at_door 回報次數最多的志工（同次數取最近回報），回報時重算後存這裡
     primary_volunteer_id: str | None = Field(default=None, index=True)
     merged_into: str | None = None  # v2.2 起不使用（ADR-026），欄位保留不刪
+    # v2.7（ADR-032）：管理員指定的志工，必須是同據點的志工帳號；有值時 M16 派送優先於最常照顧的志工
+    preferred_volunteer_id: str | None = Field(default=None, index=True)
 
 
 class MealClaim(SQLModel, table=True):
