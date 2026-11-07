@@ -43,7 +43,7 @@
 | 別的模組也要這張表的資料 | 呼叫對方的公開介面，不直接查對方的表 |
 
 ### 命名
-- 資料表：`<功能名>_<名詞>`（`example_place`）；auth 加購件的使用者表 `app_user`
+- 資料表：`<功能名>_<名詞>`（`example_place`）；auth 加購件的使用者表 `app_user`；鄰食轉運站共用 `meal_` 前綴，全部在 `features/meal_relay/models.py`，其他 `meal_*` 套件不宣告資料表（[11-meal-relay.md](11-meal-relay.md) §3）
 - 外鍵：`<表>_id`，指向 `app_user.id` 時用 `user_id`
 - JSON 欄位：`Field(sa_column=Column(JSON))`（SQLite 與 Postgres 都可用）
 
@@ -59,5 +59,6 @@
 
 ## 4. 個資與安全
 - 不存：身分證字號、電話、地址、生日、email（`LoginRequest` 設 `extra="forbid"`，送了就 422）
+- 唯一例外：鄰食轉運站的長者可存代號、精確座標、過敏原，**只限模擬資料**（ADR-024）。資料表見 [11-meal-relay.md](11-meal-relay.md) §3
 - 不記錄 token；`SECRET_KEY` 只從環境變數讀
 - 每個查詢個人資料的 repo 函數都要有 `user_id` 參數

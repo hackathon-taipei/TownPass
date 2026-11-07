@@ -15,6 +15,7 @@
 | [07-testing.md](07-testing.md) | 測試準則：層級、登入驗證清單、手動驗收 | 交 PR 之前 |
 | [08-environment.md](08-environment.md) | 隔離開發環境：安裝、啟用、排錯 | 第一次開發、環境出問題時 |
 | [09-addons.md](09-addons.md) | **加購件（登入、模型、RAG、代理）的載入方式；對話框工具（地圖、圖片）** | 要用模型、登入，或要在對話框顯示地圖／圖片時 |
+| [11-meal-relay.md](11-meal-relay.md) | **鄰食轉運站：角色、資料表、規則、端點、程式位置（合約）** | 做本作品任何功能之前 |
 | [components.md](components.md) | 元件目錄（自動產生） | 找現成元件時 |
 
 其他：[團隊流程（完整開發流程）](../WORKFLOW.md)・[部署](../DEPLOY.md)・[App ↔ 網頁訊息](../bridge.md)・[工單](../tickets/README.md)・[資料來源](../../data/SOURCES.md)

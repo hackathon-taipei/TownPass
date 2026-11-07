@@ -1,0 +1,12 @@
+[
+  { "id": "u-admin-1", "role": "admin", "name": "管理員（模擬）", "created_at": "now-30d" },
+  { "id": "u-vol-1", "role": "volunteer", "name": "志工小林（模擬）", "station_id": "st-1", "created_at": "now-30d" },
+  { "id": "u-vol-2", "role": "volunteer", "name": "志工小陳（模擬）", "station_id": "st-1", "created_at": "now-30d" },
+  { "id": "u-vol-3", "role": "volunteer", "name": "志工小黃（模擬）", "station_id": "st-2", "created_at": "now-30d" },
+  { "id": "u-sup-1", "role": "supplier", "name": "艋舺便當店（模擬）", "supplier_id": "s-1", "created_at": "now-20d" },
+  { "id": "u-sup-2", "role": "supplier", "name": "老松國小午餐組（模擬）", "supplier_id": "s-2", "created_at": "now-20d" },
+  { "id": "u-sup-3", "role": "citizen", "name": "西園路麵包坊（模擬，審核中）", "supplier_id": "s-3", "created_at": "now-2d" },
+  { "id": "u-cit-1", "role": "citizen", "name": "市民小周（模擬）", "created_at": "now-1d" },
+  { "id": "u-st-1", "role": "station", "name": "艋舺社區關懷據點（模擬）", "station_id": "st-1", "created_at": "now-30d" },
+  { "id": "u-st-2", "role": "station", "name": "青年公園社區關懷據點（模擬）", "station_id": "st-2", "created_at": "now-30d" }
+]

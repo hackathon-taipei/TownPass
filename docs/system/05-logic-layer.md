@@ -60,5 +60,7 @@ def __distance_km(a, b) -> float: ...                        # 私有
 | `@/modules/recent` | `recent`、`addRecent()`、`clearRecent()` | 近期使用 |
 | `@/modules/env` | `inApp`、`appUserName`、`openMap()`、`shareLink()`、`speak()`、`stopSpeaking()`、`canSpeak`、`voiceStatus()`、`enableOfflineUse()` | 平台能力 |
 | `features.opendata` | `taipei_dataset()`、`UpstreamError` | 臺北資料大平台 |
+| `features.meal_relay`（後端） | 身分 `CurrentAccount`、`require_roles()`；路由 `meal_router()`；規則 `refresh()`（M6、M18）、`food_remaining()`／`food_usage()`／`food_status()`（M1）、`ensure_food_update()`（M14）、`food_unclaimed()`（M5）、`allergen_conflict()`（M4）、`elder_flags()`（M10）、`ensure_assigned_elder()`（M13）、`station_qr_text()`／`verify_qr_text()`／`qr_expires_at()`（M15）；轉換 `to_*()` | 鄰食轉運站各後端套件共用，**不要重寫**；規則見 [11-meal-relay.md](11-meal-relay.md) §6 |
+| `features/meal-relay/data`（前端） | 每個端點一個函數（`getMe`、`listFoods`、`checkIn`、`listMyAssignments`…）、`MealApiError`、`currentAccountId()`、`setAccountId()`、`imageSrc()` | 只有 `meal-relay` 功能自己的 `logic/` 使用；讀取有斷網快取（`stale_at`） |
 
 全部介面（含加購件與後端）見 [10-architecture.md](10-architecture.md) §4；加購件的載入方式見 [09-addons.md](09-addons.md)。
