@@ -81,7 +81,7 @@ flutter run --dart-define=TEAM_WEB_URL=http://localhost:5173/
 > **不要用 `http://10.0.2.2`**：它不是安全來源，瀏覽器會藏起 WebGPU、OPFS、Service Worker，模型與離線功能都測不到。
 
 
-- [ ] App「服務」→「城市任務」開出首頁；問候顯示 App 使用者名稱
+- [ ] App「服務」→「鄰食轉運站」開出鄰食轉運站首頁（MR-P01）；圖示是物資（`icon_essential_goods`）
 - [ ] 快捷 chip → 功能列表；分類篩選正確
 - [ ] 列表 → 詳細頁：資訊列、地圖、注意事項（第一項展開）、資料來源、底部按鈕
 - [ ] 底部按鈕沒有壓到手勢列；只看到一個返回鍵（App 的）
