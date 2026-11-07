@@ -53,6 +53,11 @@
 | MR-C31 | HomeStationList | 首頁的社區關懷據點清單（實體管道，listStations）＋資料來源 | `features/meal-relay/ui/HomeStationList.vue` |
 | MR-C32 | HomeVolunteerInfo | 想當志工：正式版由據點經臺北市志工管理整合平臺招募、在臺北 E 大受訓（§1），本作品不做志工申請 | `features/meal-relay/ui/HomeVolunteerInfo.vue` |
 | MR-C33 | HomeEntryCard | 首頁依角色的主要按鈕：進入志工／提供者／據點頁，或一般市民的「我要提供食物」（§9） | `features/meal-relay/ui/HomeEntryCard.vue` |
+| MR-C35 | SupplierApplyForm | 申請成為提供者：單位名稱、類型、位置（MR-C02）→ applySupplier | `features/meal-relay/ui/SupplierApplyForm.vue` |
+| MR-C36 | PointPicker | 食物點地圖（MR-C07）與清單：選一個食物點上架，或新增食物點（MR-C37） | `features/meal-relay/ui/PointPicker.vue` |
+| MR-C37 | PointCreateForm | 新增食物點：名稱、位置（MR-C02）→ createPoint（kind = custom） | `features/meal-relay/ui/PointCreateForm.vue` |
+| MR-C38 | FoodPublishForm | 上架食物：名稱、類別、過敏原（MR-C01）、份數（MR-C11）、最晚食用時間、圖片（MR-C06） | `features/meal-relay/ui/FoodPublishForm.vue` |
+| MR-C39 | FoodEditSheet | 修改一批食物（份數、最晚食用時間，M14、V21）或確認下架，用 MR-C09 BottomSheet | `features/meal-relay/ui/FoodEditSheet.vue` |
 | MR-C40 | TaskCard | 派送任務卡：長者代號、警示、要做的事、位置（只有這位長者）、過敏、要送的餐、回報 | `features/meal-relay/ui/TaskCard.vue` |
 | MR-C41 | TaskMeal | 任務卡的送餐區：要送的餐（申請列）、過敏原警告、取餐與取消這份餐 | `features/meal-relay/ui/TaskMeal.vue` |
 | MR-C42 | VisitReportSheet | 拜訪回報底部面板：結果三選一、放門口拍照、送出 | `features/meal-relay/ui/VisitReportSheet.vue` |
@@ -66,7 +71,7 @@
 | MR-P01 | HomePage | 鄰食轉運站首頁：說明、社區關懷據點、志工從哪裡來、依角色進入（一般市民「我要提供食物」） | `features/meal-relay/ui/HomePage.vue` |
 | MR-P04 | VolunteerPage | 志工頁：掃描據點 QR 報到、今天的狀態、前往我的任務（沒有長者清單或地圖） | `features/meal-relay/ui/VolunteerPage.vue` |
 | MR-P05 | TaskPage | 我的任務：只有進行中的任務，取餐、取消、拜訪回報，回報後任務消失 | `features/meal-relay/ui/TaskPage.vue` |
-| MR-P06 | SupplierPage | 提供者頁（佔位） | `features/meal-relay/ui/SupplierPage.vue` |
+| MR-P06 | SupplierPage | 提供者頁：申請與審核狀態、食物點地圖、上架、我的庫存（剩餘／派出中／已送達）、修改、下架 | `features/meal-relay/ui/SupplierPage.vue` |
 | MR-P07 | StationPage | 據點頁：定時更新的報到 QR code（顯示倒數）、今天報到 | `features/meal-relay/ui/StationPage.vue` |
 | MR-P08 | AdminPage | 管理系統（佔位） | `features/meal-relay/ui/AdminPage.vue` |
 | O01 | BaseSheet | 底部面板 | `ui/organisms/BaseSheet.vue` |
