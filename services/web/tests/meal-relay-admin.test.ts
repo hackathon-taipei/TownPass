@@ -21,8 +21,12 @@ vi.mock('@/features/meal-relay/data', async (importOriginal) => {
 
 import * as data from '@/features/meal-relay/data'
 import {
+  ADDRESS_MAX,
   REVIEW_SETTLE_MS,
   accessOf,
+  draftOfElder,
+  elderSummary,
+  emptyElderDraft,
   boardMarkers,
   fromLocalInput,
   pointStatusOf,
@@ -62,6 +66,7 @@ function elder(id: string, extra: Partial<Elder> = {}): Elder {
   return {
     id,
     alias: `測試-${id}`,
+    address: '',
     account_id: null,
     station_id: 'st-1',
     allergens: [],
@@ -222,9 +227,9 @@ describe('建立長者（station_id 必填，ADR-024、ADR-026）', () => {
   })
 
   it('代號、位置也必填；代號像電話號碼就擋下', () => {
-    const errors = validateElderDraft({ alias: '', location: null, allergens: [], station_id: '', next_care_at: '', next_meal_at: '' })
+    const errors = validateElderDraft({ alias: '', location: null, allergens: [], station_id: '', next_care_at: '', next_meal_at: '', address: '' })
     expect(Object.keys(errors).sort()).toEqual(['alias', 'location', 'station_id'])
-    const phone = validateElderDraft({ alias: '0912-345-678', location: { lat: 25, lng: 121 }, allergens: [], station_id: 'st-1', next_care_at: '', next_meal_at: '' })
+    const phone = validateElderDraft({ alias: '0912-345-678', location: { lat: 25, lng: 121 }, allergens: [], station_id: 'st-1', next_care_at: '', next_meal_at: '', address: '' })
     expect(phone.alias).toContain('電話')
   })
 
@@ -234,6 +239,7 @@ describe('建立長者（station_id 必填，ADR-024、ADR-026）', () => {
     await admin.init()
     admin.draft.value = {
       alias: ' 測試-A02 ',
+      address: ' 臺北市萬華區西園路一段 999 號（模擬） ',
       location: { lat: 25.0412, lng: 121.5078 },
       allergens: ['peanut', 'milk'],
       station_id: 'st-2',
@@ -244,6 +250,7 @@ describe('建立長者（station_id 必填，ADR-024、ADR-026）', () => {
     expect(api.createElder).toHaveBeenCalledTimes(1)
     expect(api.createElder).toHaveBeenCalledWith({
       alias: '測試-A02',
+      address: '臺北市萬華區西園路一段 999 號（模擬）',
       location: { lat: 25.0412, lng: 121.5078 },
       allergens: ['peanut', 'milk'],
       station_id: 'st-2',
@@ -259,15 +266,15 @@ describe('建立長者（station_id 必填，ADR-024、ADR-026）', () => {
     api.createElder.mockRejectedValue(new data.MealApiError('VALIDATION_ERROR', '欄位格式錯誤', 422))
     const admin = useAdmin()
     await admin.init()
-    admin.draft.value = { alias: '測試-A03', location: { lat: 25, lng: 121 }, allergens: [], station_id: 'st-1', next_care_at: '', next_meal_at: '' }
+    admin.draft.value = { alias: '測試-A03', location: { lat: 25, lng: 121 }, allergens: [], station_id: 'st-1', next_care_at: '', next_meal_at: '', address: '' }
     expect(await admin.saveElder()).toBe(false)
     expect(admin.elders.value).toHaveLength(1)
     expect(admin.saving.value).toBe(false)
   })
 
   it('toElderCreate 只送合約欄位', () => {
-    const body = toElderCreate({ alias: 'A', location: { lat: 1, lng: 2 }, allergens: [], station_id: 'st-1', next_care_at: '', next_meal_at: '' })
-    expect(Object.keys(body).sort()).toEqual(['alias', 'allergens', 'location', 'next_care_at', 'next_meal_at', 'station_id'])
+    const body = toElderCreate({ alias: 'A', location: { lat: 1, lng: 2 }, allergens: [], station_id: 'st-1', next_care_at: '', next_meal_at: '', address: '' })
+    expect(Object.keys(body).sort()).toEqual(['address', 'alias', 'allergens', 'location', 'next_care_at', 'next_meal_at', 'station_id'])
   })
 })
 
@@ -335,7 +342,7 @@ describe('修改長者、重置、離線', () => {
 
   it('toElderUpdate：沒改任何欄位回傳空物件；過敏原只換順序不算改', () => {
     const original = elder('e-1', { allergens: ['egg', 'milk'] })
-    const draft = { alias: original.alias, location: { ...original.location }, allergens: ['milk', 'egg'] as Elder['allergens'], station_id: 'st-1', next_care_at: '', next_meal_at: '' }
+    const draft = { alias: original.alias, location: { ...original.location }, allergens: ['milk', 'egg'] as Elder['allergens'], station_id: 'st-1', next_care_at: '', next_meal_at: '', address: '' }
     expect(toElderUpdate(draft, original)).toEqual({})
     expect(toElderUpdate({ ...draft, station_id: 'st-2', alias: '新代號' }, original)).toEqual({ alias: '新代號', station_id: 'st-2' })
   })
@@ -370,7 +377,7 @@ describe('修改長者、重置、離線', () => {
     expect(admin.offline.value).toBe(true)
     expect(admin.staleAt.value).toBe('2026-11-07T10:00:00+08:00')
 
-    admin.draft.value = { alias: '測試-C01', location: { lat: 25, lng: 121 }, allergens: [], station_id: 'st-1', next_care_at: '', next_meal_at: '' }
+    admin.draft.value = { alias: '測試-C01', location: { lat: 25, lng: 121 }, allergens: [], station_id: 'st-1', next_care_at: '', next_meal_at: '', address: '' }
     expect(await admin.saveElder()).toBe(false)
     expect(api.createElder).not.toHaveBeenCalled()
 
@@ -427,5 +434,60 @@ describe('看板地圖、SourceNote、時間', () => {
     expect(fromLocalInput('2026-11-08T14:30')).toBe('2026-11-08T14:30:00+08:00')
     expect(fromLocalInput('  ')).toBeNull()
     expect(fromLocalInput('2026/11/08')).toBeNull()
+  })
+})
+
+/* ---------------------------------------------------------------- T-125 長者地址（只能是模擬資料，ADR-027） */
+
+describe('長者地址（ElderDraft.address）', () => {
+  const addr = '臺北市萬華區西園路一段 999 號（模擬）'
+
+  it('空白表單的地址是空字串；修改時帶入長者的地址（舊資料沒有欄位也不會壞）', () => {
+    expect(emptyElderDraft().address).toBe('')
+    expect(draftOfElder(elder('e-1', { address: addr })).address).toBe(addr)
+    const legacy = elder('e-2')
+    delete (legacy as Partial<Elder>).address
+    expect(draftOfElder(legacy).address).toBe('')
+  })
+
+  it('地址選填；超過 120 字擋下，剛好 120 字可以', () => {
+    const base = { ...emptyElderDraft(), alias: '測試-D01', location: { lat: 25, lng: 121 }, station_id: 'st-1' }
+    expect(ADDRESS_MAX).toBe(120)
+    expect(validateElderDraft(base)).toEqual({})
+    expect(validateElderDraft({ ...base, address: '臺'.repeat(120) })).toEqual({})
+    expect(validateElderDraft({ ...base, address: '臺'.repeat(121) }).address).toBe('地址最多 120 個字')
+    expect(validateElderDraft({ ...base, address: `  ${'臺'.repeat(120)}  ` })).toEqual({})
+  })
+
+  it('toElderCreate 送出去前會去掉前後空白；沒填送空字串', () => {
+    const base = { ...emptyElderDraft(), alias: 'A', location: { lat: 1, lng: 2 }, station_id: 'st-1' }
+    expect(toElderCreate({ ...base, address: `  ${addr} ` }).address).toBe(addr)
+    expect(toElderCreate(base).address).toBe('')
+  })
+
+  it('toElderUpdate：只有地址改了才送；清空送空字串；只差空白不算改', () => {
+    const original = elder('e-1', { address: addr })
+    const draft = draftOfElder(original)
+    expect(toElderUpdate(draft, original)).toEqual({})
+    expect(toElderUpdate({ ...draft, address: ` ${addr}  ` }, original)).toEqual({})
+    expect(toElderUpdate({ ...draft, address: '臺北市萬華區康定路 0 號（模擬）' }, original)).toEqual({ address: '臺北市萬華區康定路 0 號（模擬）' })
+    expect(toElderUpdate({ ...draft, address: '' }, original)).toEqual({ address: '' })
+  })
+
+  it('修改地址 → updateElder 只收到 address', async () => {
+    api.updateElder.mockImplementation(async (id, body) => elder(id, { address: body.address ?? '' }))
+    const admin = useAdmin()
+    await admin.init()
+    admin.startEdit(admin.elders.value[0])
+    admin.draft.value = { ...admin.draft.value, address: addr }
+    expect(await admin.saveElder()).toBe(true)
+    expect(api.updateElder).toHaveBeenCalledWith('e-1', { address: addr })
+    expect(admin.elders.value[0].address).toBe(addr)
+  })
+
+  it('名冊的一列：有地址顯示地址，沒有顯示「未填地址」', () => {
+    const stations = [station('st-1')]
+    expect(elderSummary(elder('e-1', { address: addr }), stations).addressText).toBe(addr)
+    expect(elderSummary(elder('e-2'), stations).addressText).toBe('未填地址')
   })
 })

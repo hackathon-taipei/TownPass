@@ -583,6 +583,7 @@ def to_elder(session: Session, row: MealElder, at: datetime | None = None) -> El
     return Elder(
         id=row.id,
         alias=row.alias,
+        address=row.address or "",
         account_id=None,  # ADR-026：長者不是帳號，一律 null（資料表欄位保留）
         station_id=row.station_id,
         allergens=list(row.allergens or []),  # type: ignore[arg-type]

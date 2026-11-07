@@ -112,6 +112,7 @@ class Food(BaseModel):
 class Elder(BaseModel):
     id: str
     alias: str
+    address: str  # 只能是模擬資料（ADR-027）；空字串代表沒填
     account_id: str | None  # 一律 null（ADR-026：長者不是帳號）
     station_id: str
     allergens: list[Allergen]
@@ -316,6 +317,7 @@ class ElderCreate(MealRequest):
     """POST /elders（admin）：管理員登記長者名冊，回傳建立的 Elder（ADR-026）。"""
 
     alias: str = Field(min_length=1, max_length=20)
+    address: str | None = Field(default=None, max_length=120)  # 只能填模擬地址（ADR-027）
     location: Location
     allergens: list[Allergen] = Field(default_factory=list)
     station_id: str
@@ -327,6 +329,7 @@ class ElderUpdate(MealRequest):
     """PATCH /elders/{id}（admin）：只改有送的欄位。"""
 
     alias: str | None = Field(default=None, min_length=1, max_length=20)
+    address: str | None = Field(default=None, max_length=120)  # 送 null 或空字串代表清除
     location: Location | None = None
     allergens: list[Allergen] | None = None
     station_id: str | None = None

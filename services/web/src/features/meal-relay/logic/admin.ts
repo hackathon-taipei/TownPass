@@ -4,7 +4,7 @@
  * - 身分：網址 `/#/f/meal-relay/admin?as=<admin id>`（data/client.ts 會把 ?as= 存在裝置上）；`getMe` 不是 admin → 沒有權限
  * - 審核：`listSuppliers('pending')`＋`reviewSupplier()`
  * - 看板：`getBoard()` → 統計與地圖（據點、食物點、長者）
- * - 長者名冊：`listElders()`、`createElder()`、`updateElder()`；只有代號、座標、過敏原，全部是模擬資料（ADR-024、ADR-026）
+ * - 長者名冊：`listElders()`、`createElder()`、`updateElder()`；只有代號、座標、地址、過敏原，全部是模擬資料（ADR-024、ADR-026、ADR-027）
  * - 重置：`resetDemo()`
  * - 斷網（ADR-024）：讀取用裝置上的資料並顯示 StaleBanner，寫入一律停用
  */
@@ -92,6 +92,9 @@ export const BOARD_POLL_MS = 15_000
 /** 代號長度上限（後端 ElderCreate.alias max_length） */
 export const ALIAS_MAX = 20
 
+/** 地址長度上限（後端 ElderCreate.address max_length）；只能填模擬地址（ADR-027） */
+export const ADDRESS_MAX = 120
+
 /* ---------------------------------------------------------------- 錯誤（§7） */
 
 /** 後端回傳的中文訊息（MealApiError.message）；其他錯誤用 fallback */
@@ -142,6 +145,8 @@ export function shortTimeText(iso: IsoDateTime | null | undefined): string {
 /** 表單的值：時間是 datetime-local 字串，送出時才轉成 ISO */
 export interface ElderDraft {
   alias: string
+  /** 選填，只能是模擬地址（ADR-027） */
+  address: string
   location: Location | null
   allergens: Allergen[]
   station_id: string
@@ -152,13 +157,14 @@ export interface ElderDraft {
 export type ElderDraftErrors = Partial<Record<keyof ElderDraft, string>>
 
 export function emptyElderDraft(): ElderDraft {
-  return { alias: '', location: null, allergens: [], station_id: '', next_care_at: '', next_meal_at: '' }
+  return { alias: '', address: '', location: null, allergens: [], station_id: '', next_care_at: '', next_meal_at: '' }
 }
 
 /** 修改時把長者的資料放進表單 */
 export function draftOfElder(e: Elder): ElderDraft {
   return {
     alias: e.alias,
+    address: e.address ?? '',
     location: { ...e.location },
     allergens: [...e.allergens],
     station_id: e.station_id,
@@ -174,6 +180,7 @@ export function validateElderDraft(d: ElderDraft): ElderDraftErrors {
   if (!alias) errors.alias = '請填代號'
   else if (alias.length > ALIAS_MAX) errors.alias = `代號最多 ${ALIAS_MAX} 個字`
   else if (/\d{6,}/.test(alias.replace(/[\s-]/g, ''))) errors.alias = '代號看起來像電話號碼，請改用代號，不要填真實資料'
+  if (d.address.trim().length > ADDRESS_MAX) errors.address = `地址最多 ${ADDRESS_MAX} 個字`
   if (!d.location) errors.location = '請在地圖上選位置'
   if (!d.station_id) errors.station_id = '請選據點'
   for (const key of ['next_care_at', 'next_meal_at'] as const) {
@@ -187,6 +194,7 @@ export function toElderCreate(d: ElderDraft): ElderCreate {
   if (!d.location) throw new Error('location is required')
   return {
     alias: d.alias.trim(),
+    address: d.address.trim(),
     location: { lat: d.location.lat, lng: d.location.lng },
     allergens: [...d.allergens],
     station_id: d.station_id,
@@ -200,6 +208,8 @@ export function toElderUpdate(d: ElderDraft, original: Elder): ElderUpdate {
   const body: ElderUpdate = {}
   const alias = d.alias.trim()
   if (alias !== original.alias) body.alias = alias
+  const address = d.address.trim()
+  if (address !== (original.address ?? '')) body.address = address
   if (d.location && (d.location.lat !== original.location.lat || d.location.lng !== original.location.lng)) {
     body.location = { lat: d.location.lat, lng: d.location.lng }
   }
@@ -215,6 +225,8 @@ export function toElderUpdate(d: ElderDraft, original: Elder): ElderUpdate {
 
 export interface ElderSummary {
   stationName: string
+  /** 沒填地址 → 「未填地址」 */
+  addressText: string
   allergensText: string
   seenText: string
   nextText: string
@@ -229,6 +241,7 @@ export function seenText(days: number | null): string {
 export function elderSummary(e: Elder, stations: readonly Station[]): ElderSummary {
   return {
     stationName: stations.find((s) => s.id === e.station_id)?.name ?? e.station_id,
+    addressText: e.address?.trim() || '未填地址',
     allergensText: e.allergens.length ? e.allergens.map((a) => ALLERGEN_LABEL[a]).join('、') : '沒有過敏原',
     seenText: seenText(e.days_since_seen),
     nextText: `下次關懷 ${shortTimeText(e.next_care_at)}・下次送餐 ${shortTimeText(e.next_meal_at)}`,

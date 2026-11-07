@@ -1,13 +1,14 @@
 <script setup lang="ts">
-/** @component MR-C53 ElderForm — 登記或修改長者：代號、位置（MR-C02）、據點（必填）、過敏原（MR-C01）、下次關懷／送餐時間，附隱私提示 */
+/** @component MR-C53 ElderForm — 登記或修改長者：代號、地址（選填，模擬）、位置（MR-C02）、據點（必填）、過敏原（MR-C01）、下次關懷／送餐時間，附隱私提示 */
 /**
  * 管理系統「長者名冊」用（ADR-026：名冊只有管理員維護）。v-model 是 logic/admin.ts 的 ElderDraft，
  * 驗證與送出（createElder／updateElder）都在 logic；本元件只發 submit、cancel。
- * ADR-024：只填代號、不要填真實姓名、電話、地址；Demo 只用模擬資料。
+ * ADR-024：只填代號、不要填真實姓名、電話；Demo 只用模擬資料。
+ * ADR-027：地址選填、最多 120 字（ADDRESS_MAX），只能填模擬地址（真實路名＋不存在的門牌，標「（模擬）」）。
  */
 import { BaseButton, BaseCard, BaseChip, BaseInput, SectionTitle } from '@/ui'
 import type { ElderDraft, ElderDraftErrors, Station } from '../logic/admin'
-import { PRIVACY_NOTE } from '../logic/admin'
+import { ADDRESS_MAX, PRIVACY_NOTE } from '../logic/admin'
 import type { Marker } from '../logic/mapMarker'
 import AllergenChecklist from './AllergenChecklist.vue'
 import LocationPicker from './LocationPicker.vue'
@@ -32,6 +33,14 @@ const emit = defineEmits<{ submit: []; cancel: [] }>()
 
     <form class="flex flex-col gap-4" novalidate @submit.prevent="emit('submit')">
       <BaseInput v-model="draft.alias" label="代號（必填）" placeholder="例：萬華-A01" :error="errors.alias" hint="不要填真實姓名、電話、地址" />
+
+      <BaseInput
+        v-model="draft.address"
+        label="地址（選填）"
+        placeholder="例：臺北市萬華區西園路一段 999 號（模擬）"
+        :error="errors.address"
+        :hint="`示範資料只能填模擬地址（最多 ${ADDRESS_MAX} 個字）`"
+      />
 
       <div>
         <p class="mb-1.5 text-sm font-medium text-grey-700">位置（必填）</p>
