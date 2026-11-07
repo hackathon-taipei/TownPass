@@ -1,11 +1,13 @@
 <script setup lang="ts">
-/** @component MR-C07 MapView — 鄰食地圖：定位針依狀態上色、落下／換色脈衝／淡出動畫、可選點 */
+/** @component MR-C07 MapView — 鄰食地圖：定位針用 icon＋三色、落下／換色脈衝／淡出動畫、我的位置企鵝、可選點 */
 /**
  * MapView — 鄰食轉運站地圖（型別與顏色見 ../logic/mapMarker.ts，對齊 docs/system/11-meal-relay.md v2.2）。
- * 長者定位針（kind: 'elder'）只放在管理系統看板與志工自己的任務（M13）；志工畫面不能出現長者清單（ADR-026）。
- * 合約沒有志工位置的 API，所以地圖上沒有志工。
+ * 長者定位針（kind: 'elder'）只放在管理員登記長者與志工自己的任務（M13）；志工畫面不能出現長者清單（ADR-026）。
+ * 定位針不只靠顏色：據點是 HeartHandshake（深灰）、長者是 User（warn／primary），icon 白色 14px（T-126）。
+ * kind: 'me' 畫成圓形企鵝頭像（MR-C23 的圖），位置只來自裝置定位，不送後端；沒有滑行、跳躍動畫。
+ * 已結束的定位針（已全數派出、已過期、已下架的食物點，完成、取消）不畫（visibleMarkers）。
  *
- *   markers: Marker[]                       // { id, kind, location, status?, label? }
+ *   markers: Marker[]                       // { id, kind, location, status?, label?, avatar? }
  *   center?: Location                       // 指定時移到這裡；沒指定時第一次載入縮放到所有定位針
  *   onPick?: (location: Location) => void   // 有傳才允許點選位置（@pick 與 :on-pick 等同）
  *   picked?: Location | null                // 目前選取的位置（由父層控制）
@@ -14,13 +16,22 @@
  * 輪詢更新時不會自動移動或縮放地圖。MapView 不呼叫任何 API（ARCHITECTURE §3）。
  * 底圖：隨附的大臺北向量底圖（public/maps/taipei.pmtiles），縮小時精簡路名，斷網可用。比賽規則不可用 Google Maps。
  */
-import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { computed, h, onBeforeUnmount, onMounted, ref, render, watch, type Component } from 'vue'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import type { Feature, LabelRule } from 'protomaps-leaflet'
+import { HeartHandshake, User } from 'lucide-vue-next'
 import './motion.css'
 import { MOTION, replayClass } from '../logic/motion'
-import { MAP_STATUS_LABEL, MARKER_KIND_LABEL, pinColorOf, type Location, type Marker, type MarkerKind } from '../logic/mapMarker'
+import {
+  MAP_STATUS_LABEL,
+  MARKER_KIND_LABEL,
+  pinColorOf,
+  visibleMarkers,
+  type Location,
+  type Marker,
+  type MarkerKind,
+} from '../logic/mapMarker'
 
 const props = defineProps<{
   markers: Marker[]
@@ -32,15 +43,33 @@ const props = defineProps<{
 const __ATTRIBUTION = '&copy; OpenStreetMap contributors'
 const __TAIPEI: L.LatLngTuple = [25.0375, 121.5637]
 
-/** 每種 kind 的小圖示，畫在 28×36 定位針的圓頭裡（中心約 14, 13.5） */
-const __GLYPH: Record<MarkerKind | 'picked', string> = {
+/** 定位針圓頭裡的 lucide icon（14px、白色），中心約 14, 13.5（T-126：不只靠顏色區分） */
+const __LUCIDE: Partial<Record<MarkerKind, Component>> = { station: HeartHandshake, elder: User }
+const __lucideCache = new Map<Component, string>()
+function __lucideSvg(icon: Component): string {
+  let svg = __lucideCache.get(icon)
+  if (svg === undefined) {
+    const box = document.createElement('div')
+    render(h(icon, { size: 14, strokeWidth: 2.25, x: 7, y: 6.5, class: 'tp-map__pin-icon', 'aria-hidden': 'true' }), box)
+    svg = box.innerHTML
+    render(null, box)
+    __lucideCache.set(icon, svg)
+  }
+  return svg
+}
+
+/** 沒有 lucide icon 的 kind 用的小圖示（食物點、提供者只出現在選點的參考定位針） */
+const __GLYPH: Record<Exclude<MarkerKind, 'me'> | 'picked', string> = {
   supplier: '<path class="tp-map__pin-glyph" d="M8.4 9.2h11.2l-1.1 3.3H9.5z M9.8 13.4h8.4v5.2H9.8z"/>', // 店面
-  station: '<path class="tp-map__pin-glyph" d="M14 7.9l6 5.1v5.7H8v-5.7z"/>', // 房子
-  elder:
-    '<circle class="tp-map__pin-glyph" cx="14" cy="10.4" r="2.7"/>' +
-    '<path class="tp-map__pin-glyph" d="M9 18.7c0-3 2.2-5.1 5-5.1s5 2.1 5 5.1z"/>', // 人像
+  station: '',
+  elder: '',
   point: '<path class="tp-map__pin-glyph" d="M8.2 8.6h11.6v2H8.2z M8.9 11.6h10.2v6.8H8.9z"/>', // 餐盒（食物點）
   picked: '<circle class="tp-map__pin-glyph" cx="14" cy="13.5" r="4.5"/>',
+}
+
+function __glyphOf(kind: Exclude<MarkerKind, 'me'> | 'picked'): string {
+  const icon = kind === 'picked' ? undefined : __LUCIDE[kind]
+  return icon ? __lucideSvg(icon) : __GLYPH[kind]
 }
 
 function __pinHtml(glyph: string): string {
@@ -55,6 +84,23 @@ function __pinHtml(glyph: string): string {
 
 function __icon(className: string, glyph: string): L.DivIcon {
   return L.divIcon({ className, html: __pinHtml(glyph), iconSize: [28, 36], iconAnchor: [14, 35], popupAnchor: [0, -32] })
+}
+
+/** 我的位置：圓形企鵝頭像（不是狀態，不上色）；src 只來自 penguinSrc，屬性用 DOM API 設定 */
+function __meIcon(m: Marker): L.DivIcon {
+  const box = document.createElement('div')
+  box.className = 'tp-map__me-face'
+  const img = box.appendChild(document.createElement('img'))
+  img.alt = ''
+  img.width = 36
+  img.height = 36
+  if (m.avatar) img.src = m.avatar
+  return L.divIcon({ className: 'tp-map__me', html: box, iconSize: [40, 40], iconAnchor: [20, 20], popupAnchor: [0, -20] })
+}
+
+function __iconOf(m: Marker, animate: boolean): L.DivIcon {
+  if (m.kind === 'me') return __meIcon(m)
+  return __icon(`${__classOf(m)}${animate ? ' tp-map__pin--enter' : ''}`, __glyphOf(m.kind))
 }
 
 const __statusText = (m: Marker) => (m.status ? MAP_STATUS_LABEL[m.status] : '')
@@ -78,7 +124,9 @@ let fitted = false
 /* ---- 定位針：依 id 差異更新（ANIMATION §5.6 實作要求 1、2） ---- */
 type Entry = { marker: L.Marker; data: Marker }
 const entries = new Map<string, Entry>()
-const __COLOR_CLASSES = ['yellow', 'blue', 'green', 'red', 'grey', 'default'].map((c) => `tp-map__pin--${c}`)
+const __COLOR_CLASSES = ['primary', 'warn', 'grey', 'station'].map((c) => `tp-map__pin--${c}`)
+/** 已結束的定位針不畫（T-126） */
+const shown = computed(() => visibleMarkers(props.markers))
 
 function __classOf(m: Marker) {
   return `tp-map__pin tp-map__pin--${pinColorOf(m.status)}`
@@ -86,9 +134,10 @@ function __classOf(m: Marker) {
 
 function __add(m: Marker, animate: boolean) {
   const marker = L.marker([m.location.lat, m.location.lng], {
-    icon: __icon(`${__classOf(m)}${animate ? ' tp-map__pin--enter' : ''}`, __GLYPH[m.kind]),
+    icon: __iconOf(m, animate),
     title: __aria(m),
     riseOnHover: true,
+    zIndexOffset: m.kind === 'me' ? 1000 : 0,
   })
     .bindPopup(__popupOf(m), { className: 'tp-map__popup', maxWidth: 240 })
     .addTo(map!)
@@ -102,10 +151,10 @@ function __update(entry: Entry, m: Marker) {
   if (prev.location.lat !== m.location.lat || prev.location.lng !== m.location.lng) {
     entry.marker.setLatLng([m.location.lat, m.location.lng])
   }
-  if (prev.kind !== m.kind) {
-    // 種類變了（很少見）：換圖示，視為新的定位針
-    entry.marker.setIcon(__icon(__classOf(m), __GLYPH[m.kind]))
-  } else if (prev.status !== m.status) {
+  if (prev.kind !== m.kind || prev.avatar !== m.avatar) {
+    // 種類或頭像變了（很少見）：換圖示，視為新的定位針
+    entry.marker.setIcon(__iconOf(m, false))
+  } else if (prev.status !== m.status && m.kind !== 'me') {
     // 只換 class，不重建元素：顏色平滑過渡，再播一次脈衝環
     const node = entry.marker.getElement()
     node?.classList.remove(...__COLOR_CLASSES)
@@ -130,19 +179,20 @@ function __remove(id: string) {
 function syncMarkers() {
   if (!map) return
   const firstLoad = !fitted
-  const next = new Set(props.markers.map((m) => m.id))
+  const list = shown.value
+  const next = new Set(list.map((m) => m.id))
   for (const id of [...entries.keys()]) if (!next.has(id)) __remove(id)
-  for (const m of props.markers) {
+  for (const m of list) {
     const entry = entries.get(m.id)
     if (entry) __update(entry, m)
-    else __add(m, true) // 第一次載入：全部同時落下；之後：只有新的落下
+    else __add(m, m.kind !== 'me') // 第一次載入：全部同時落下；之後：只有新的落下（我的位置不做動畫）
   }
   // 只在第一次載入時調整視野；輪詢更新不移動地圖（ANIMATION §5.6 實作要求 3）
-  if (firstLoad && props.markers.length) {
+  if (firstLoad && list.length) {
     fitted = true
     if (props.center) map.setView([props.center.lat, props.center.lng], 15)
     else
-      map.fitBounds(L.latLngBounds(props.markers.map((m) => [m.location.lat, m.location.lng])), {
+      map.fitBounds(L.latLngBounds(list.map((m) => [m.location.lat, m.location.lng])), {
         paddingTopLeft: [28, 48],
         paddingBottomRight: [28, 16],
         maxZoom: 16,

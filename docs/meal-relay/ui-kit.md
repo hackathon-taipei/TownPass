@@ -7,7 +7,7 @@
 
 | 編號 | 元件 | 用途 | 傳入 | 對應的端點 |
 |---|---|---|---|---|
-| MR-C07 | `MapView` | 地圖：食物點、長者、據點的定位針；選點；拖曳、滾輪、雙指縮放。**長者定位針只用在管理系統看板與志工自己的任務（M13）**，志工畫面不能出現長者清單；合約沒有志工位置，所以地圖上沒有志工 | `markers`、`center?`、`on-pick?`、`picked?` | `listPoints`、`getBoard`、`listElders`（管理員）、`listMyAssignments`（志工自己的任務）；選點後 `createElder`（管理員）、`createPoint`、`applySupplier` |
+| MR-C07 | `MapView` | 地圖：據點、長者、食物點的定位針（icon＋三色，T-126）、「我的位置」企鵝；選點；拖曳、滾輪、雙指縮放。已結束的定位針不畫。**長者定位針只用在管理員登記長者與志工自己的任務（M13）**，志工畫面不能出現長者清單；合約沒有志工位置，「我」只來自裝置定位、不送後端 | `markers`、`center?`、`on-pick?`、`picked?` | `listMyAssignments`＋`listStations`（志工任務卡）、`listPoints`、`listElders`（管理員選點參考）；選點後 `createElder`（管理員）、`createPoint`、`applySupplier` |
 | MR-C08 | `TabBar` | 分頁列 | `v-model`、`tabs` | — |
 | MR-C09 | `BottomSheet` | 底部面板 | `v-model`、`title` | 拜訪回報 `reportVisit` |
 | MR-C10 | `SubmitButton` | 送出按鈕：送出中停用，超過 300ms 才轉圈 | `loading`、`disabled` | 所有寫入 |
@@ -23,9 +23,11 @@
 | MR-C20 | `AllergenChips` | 過敏原晶片勾選（11 類） | `v-model` | `createElder`、`updateElder`（管理員）、`createFood` |
 | MR-C21 | `PageTransition` | 載入骨架、換頁、重置後淡出淡入 | `loading`、`page-key`、`variant` | `getMe`、`resetDemo` |
 | MR-C22 | `ResetDemoButton` | 重置示範資料 | `on-reset`、`@done` | `resetDemo` |
+| MR-C55 | `MapLegend` | 地圖圖例：定位針的 icon＋文字（據點、長者、我），跟著地圖上真的有的定位針（`legendOf`） | `items` | — |
+| MR-C56 | `EndedGroup` | 已結束的項目收合成一行「已結束 N 批」，點了才展開（T-126） | `count`、`unit?`（預設「批」）、預設插槽 | `listFoods`（提供者庫存）、`getBoard`（看板食物去向） |
 | MR-C23 | `VolunteerAvatar` | 志工的企鵝頭像：依志工 id 固定分到 6 隻之一，可輕輕搖擺 | `id`、`name?`、`size?`（預設 40）、`idle?`（預設 true） | 據點頁今天報到（`getMyStation` 的 `checkins`）、志工頁 |
 
-邏輯層：`logic/motion.ts`（`MOTION`、`useMotionNumber`、`diffById`、`replayClass`、`reducedMotion`）、`logic/toast.ts`、`logic/mapMarker.ts`（定位針型別、顏色、中文）、`logic/foodQty.ts`（`qtyHint`、`qtyRangeText`、`FOOD_QTY_FIELDS`、`foodQtyCounts`）、`logic/volunteerAvatar.ts`（`penguinOf`、`idlePhaseOf`、`penguinSrc`）、`logic/mealLabels.ts`（合約 §4 的中文、`allergenConflicts`、`claimProgress`、`timeLeftText`）。動畫的 class 在 `ui/motion.css`，每個元件都已匯入。
+邏輯層：`logic/motion.ts`（`MOTION`、`useMotionNumber`、`diffById`、`replayClass`、`reducedMotion`）、`logic/toast.ts`、`logic/mapMarker.ts`（定位針型別、`pinColorOf`、`isEndedMarker`／`visibleMarkers`、`taskMarkers`、`legendOf`、`useMyLocation`、中文）、`logic/shared.ts`（`isEnded`、`splitEnded`）、`logic/foodQty.ts`（`qtyHint`、`qtyRangeText`、`FOOD_QTY_FIELDS`、`foodQtyCounts`）、`logic/volunteerAvatar.ts`（`penguinOf`、`idlePhaseOf`、`penguinSrc`）、`logic/mealLabels.ts`（合約 §4 的中文、`allergenConflicts`、`claimProgress`、`timeLeftText`）。動畫的 class 在 `ui/motion.css`，每個元件都已匯入。
 
 ## 2. 動畫對照字詞表
 
@@ -65,18 +67,32 @@
 | E2 | 舊頁淡出 → 新頁淡入上移 | 志工 | `Role` | 首頁「進入志工頁」、Demo 換身分（`?as=`） | PageTransition `page-key` |
 | E3 | 內容淡出再淡入＋提示 | 種子資料 | `resetDemo` | 管理系統重置示範資料 | PageTransition `variant="refresh"`＋ResetDemoButton |
 
-### 地圖顏色（合約沒寫，暫定）
-| 定位針 | 狀態 | 顏色 |
-|---|---|---|
-| 食物點 | 有可派送的食物（`open`） | 黃 |
-| 食物點 | 食物全被派出（`claimed`） | 藍 |
-| 食物點 | 還沒被派出（`Food.unclaimed`，M5） | 紅 |
-| 食物點 | 已過期、已下架 | 灰 |
-| 長者 | 警示（`alert = true`，M10） | 紅 |
-| 長者 | 近期已見到本人（`alert = false`） | 綠 |
-| 據點、提供者 | — | 深灰 |
+### 狀態顏色：只剩三種（T-126，全部用官方 token）
+| 意義 | token | 晶片 | 條與定位針 | 用在 |
+|---|---|---|---|---|
+| **進行中／可用** | `primary` | `bg-primary-50 text-primary-700` | `primary-500` | 食物可派送、申請已派送／配送中、提供者已通過、長者正常、要做的事（送餐、關懷）、送餐進度條（含完成） |
+| **需要處理** | `warn` | `bg-warn-100/15 text-warn-200` | `warn-200` | 長者需要送餐／需要關懷／從未見到、食物還沒被派出（M5）、提供者未通過、錯誤、倒數剩不到 25% |
+| **結束／背景** | `grey` | `bg-grey-50 text-grey-500` | `grey-400` | 完成、已全數派出、已過期、已下架、取消、審核中、離線提示（StaleBanner `bg-grey-100 text-grey-700`） |
 
-長者定位針只出現在管理系統看板，以及志工自己 `assigned` 任務上的長者（M13）。
+不再用 `secondary`（黃）、`mango`、`success`（綠）表示狀態，也不再用「藍 vs 主色」區分狀態。
+
+### 地圖定位針（icon＋顏色，不只靠顏色）
+| 定位針 | 圓頭裡的 icon（白色 14px） | 顏色 |
+|---|---|---|
+| 據點 | `lucide-vue-next` `HeartHandshake` | 深灰 `grey-700`（是「地點」不是狀態，`pinColorOf(undefined) = 'station'`） |
+| 長者 | `lucide-vue-next` `User` | 有任何警示標籤（需要送餐、需要關懷、從未見到）→ `warn`；正常 → `primary` |
+| 食物點（只在選點時當參考） | 餐盒小圖示 | `open` → `primary`、`unclaimed` → `warn`；已全數派出、已過期、已下架**不畫** |
+| 我的位置 | 圓形企鵝頭像（MR-C23 的圖，`penguinSrc`），白底主色細邊 | 不上狀態色；沒有滑行、跳躍動畫 |
+
+圖例（MR-C55）用同樣的 icon＋文字，只列地圖上真的有的定位針，不再列六種顏色的說明。
+
+### 各角色的地圖內容（T-126）
+| 角色 | 地圖上有什麼 | 什麼時候出現 |
+|---|---|---|
+| 志工（任務卡 MR-C40） | 任務的據點（`station_id`）＋這張任務的長者（M13）＋我（企鵝） | 只在任務卡裡；拒絕定位時只有據點和長者 |
+| 提供者（MR-P06） | 只有選位置的 LocationPicker | 新增食物點（MR-C37）、提供者申請時；庫存頁、上架的食物點清單都不放地圖 |
+| 管理員（MR-P08） | 看板沒有總覽地圖，改用統計卡與清單 | 只在登記或修改長者位置時（MR-C53 的 LocationPicker） |
+| 據點（MR-P07） | 不需要地圖 | — |
 
 ## 3. 動態 token（`ui/motion.css`）
 | token | 值 | 用在 |
@@ -96,7 +112,7 @@
 |---|---|---|
 | 1 | 鄰食轉運站的地圖一律用 MR-C07 MapView | 已有選點、狀態顏色、輪詢差異更新與動畫；不需要在 O02 OsmMap 加選點 |
 | 2 | 元件編號從 MR-C07 開始 | MR-C01～C06 保留給共用元件（AllergenChecklist、LocationPicker、FoodCard、ElderStatusTag、StaleBanner、ImageInput） |
-| 3 | 地圖顏色如上表 | 合約沒寫；照「等待中黃、處理中藍、完成綠、警示紅、結束灰」 |
+| 3 | ~~地圖顏色：等待中黃、處理中藍、完成綠、警示紅、結束灰~~ → 改成三色原則（決策 16） | T-126 取代 |
 | 4 | 食物列倒數到 `expires_at` | 合約沒有申請期限；最晚食用時間對志工與提供者最有用 |
 | 5 | 申請列進度 3 步 | 合約 v2.2 只有 `claimed → delivering → done`（ADR-025、ADR-026） |
 | 6 | 過敏原警告停用取餐鈕 | M4 有交集就不能送；派送已排除，這是長者之後改過敏原時的保險 |
@@ -104,11 +120,18 @@
 | 8 | `useMotionNumber` 不用 `@vueuse/core` | repo 沒有這個套件；效果相同 |
 | 9 | 列舉中文暫放 `logic/mealLabels.ts` | 共用的 `logic/shared.ts` 建立後改從那裡匯入、刪掉這個檔案 |
 | 10 | AllergenChips（MR-C20）與 AllergenChecklist（MR-C01）用途相同 | 二選一，或讓 MR-C01 直接包 MR-C20 |
-| 11 | 志工的頭像是 6 隻企鵝之一（MR-C23），依 id 固定分配；**不畫在地圖上** | 合約 v2.2 沒有志工位置的 API；要在地圖上顯示志工，先在 #43 提合約變更 |
+| 11 | 志工的頭像是 6 隻企鵝之一（MR-C23），依 id 固定分配；不畫其他志工的位置 | 合約 v2.2 沒有志工位置的 API；志工自己的「我的位置」見決策 19 |
 | 12 | 頭像待機搖擺是「不搖晃」原則的例外 | 頭像需要有生命感；幅度小（±5°、2px）、每位錯開、可用 `idle=false` 關掉，減少動態時停止 |
 | 13 | QtyInput 用 `min`／`max` 取代 `remaining` | v2.2 沒有手動申請；份數只給上架與改份數，改份數的下限是已派出＋已送達（M14） |
 | 14 | 地圖與食物狀態的中文改成「可派送」「已全數派出」 | 照 v2.2 §4 `FoodStatus` |
 | 15 | 新元件編號 MR-C23 | MR-C24～C29 沒有被預定；第 2 波頁面從 MR-C30 開始（11-meal-relay.md），不會撞號 |
+| 16 | 狀態色只剩三種：primary 進行中／可用、warn 需要處理、grey 結束／背景；據點定位針深灰 `grey-700` | T-126 美術方向（漸進式揭示、情境式引導）：顏色越少，越能一眼看出「要不要處理」 |
+| 17 | 結束的東西預設收合：清單的已過期、已下架、已取消收成一行「已結束 N 批」（MR-C56，`splitEnded`）；地圖不畫已全數派出、已過期、已下架的食物點與完成、取消（`isEndedMarker`） | 不以淡色佔位，需要時點一下展開。已全數派出還有份數在配送、提供者還能修改或下架，所以清單上保留（灰色晶片），只有地圖不畫 |
+| 18 | 各角色只在需要的時刻看到地圖（上表）；拿掉看板總覽地圖，也拿掉上架頁的食物點總覽地圖（MR-C36 改成只有清單） | 地圖只回答「這一步要去哪裡／選哪裡」；看板用統計卡與清單就夠 |
+| 19 | 「我的位置」用 `navigator.geolocation`（`useMyLocation`），只在裝置上畫，不送後端、不存；拒絕或取不到就不畫、不跳錯誤 | 隱私（AGENTS.md 第 5 條）：位置不離開裝置；合約沒有志工位置的 API，也不需要 |
+| 20 | 定位針用 icon＋顏色（據點 HeartHandshake、長者 User、我＝企鵝），圖例也是 icon＋文字 | 不只靠顏色區分；這是地圖定位針，不違反「清單、晶片不加 icon」 |
+| 21 | icon 只放在當下這一步的主要動作按鈕；拿掉首頁說明的 IconBadge、據點清單列的 MapPin、志工資訊外部連結按鈕的 ExternalLink、據點 QR 斷網提示的 WifiOff | T-126 第 4 點；EmptyState（M05）的 icon 是共用元件內建，`ui/**` 不在本工單範圍，保留 |
+| 22 | 任務卡要畫據點，所以 `useMyTasks` 另外讀一次公開的 `listStations`（志工頁本來就會讀），`TaskView` 多一個 `station` | 合約的 `Assignment` 只有 `station_id`、沒有位置；讀不到就不畫據點，不影響任務 |
 
 ## 5. 素材來源與授權
 

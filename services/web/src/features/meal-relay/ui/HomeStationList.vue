@@ -20,7 +20,7 @@ defineProps<{ stations?: Station[] | null; error?: string; source: string }>()
       <EmptyState v-else-if="stations.length === 0" title="目前沒有據點資料" :icon="MapPin" />
       <ul v-else class="divide-y divide-grey-100">
         <li v-for="s in stations" :key="s.id">
-          <ListItem :title="s.name" subtitle="社區照顧關懷據點" :icon="MapPin" />
+          <ListItem :title="s.name" subtitle="社區照顧關懷據點" />
         </li>
       </ul>
       <SourceNote class="mt-2" :source="source" />

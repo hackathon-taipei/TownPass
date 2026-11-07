@@ -14,7 +14,7 @@ const text = computed(() => staleText(props.staleAt, props.now))
 
 <template>
   <Transition name="fade-up">
-    <div v-if="text" role="status" class="rounded-xl bg-secondary-100 px-3 py-2 text-sm font-medium text-secondary-800">
+    <div v-if="text" role="status" class="rounded-xl bg-grey-100 px-3 py-2 text-sm font-medium text-grey-700">
       {{ text }}
     </div>
   </Transition>

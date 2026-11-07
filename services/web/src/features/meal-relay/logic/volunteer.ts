@@ -110,6 +110,8 @@ export type TaskView = {
   todo: VisitKind[]
   /** 給志工的補充說明；沒有時為空字串 */
   note: string
+  /** 任務的據點（station_id 對到 listStations 的據點，畫在任務卡地圖上，T-126）；還沒讀到或找不到 → null */
+  station: Station | null
 }
 
 /** 進行中的申請：任務的 claim_id 要在 listMyClaims（只有 claimed、delivering）裡找得到 */
@@ -119,7 +121,7 @@ export function activeClaimOf(a: Pick<Assignment, 'claim_id'>, claims: readonly 
 }
 
 /** 任務卡要顯示的內容（只有 assigned 的任務，M13） */
-export function taskViews(assignments: readonly Assignment[], claims: readonly Claim[]): TaskView[] {
+export function taskViews(assignments: readonly Assignment[], claims: readonly Claim[], stations: readonly Station[] = []): TaskView[] {
   return assignments
     .filter((a) => a.status === 'assigned')
     .map((a) => {
@@ -129,7 +131,8 @@ export function taskViews(assignments: readonly Assignment[], claims: readonly C
       let note = ''
       if (a.claim_id && !claim) note = '這份餐已取消，這次只做關懷'
       else if (a.needs_meal && !a.claim_id) note = '這次沒有合適的餐，只做關懷'
-      return { id: a.id, assignment: a, claim, kind, todo, note }
+      const station = stations.find((s) => s.id === a.station_id) ?? null
+      return { id: a.id, assignment: a, claim, kind, todo, note, station }
     })
 }
 
@@ -401,7 +404,9 @@ export function useMyTasks() {
 
   const staleAt = computed(() => staleOf(assignments.value, claims.value))
   const offline = computed(() => !!staleAt.value)
-  const tasks = computed(() => taskViews(assignments.value ?? [], claims.value ?? []))
+  /** 任務卡地圖的據點位置（公開的據點清單，T-126）；讀不到就不畫據點，不影響任務 */
+  const stations = ref<Station[]>([])
+  const tasks = computed(() => taskViews(assignments.value ?? [], claims.value ?? [], stations.value))
   const reportOpen = computed({
     get: () => !!reportTask.value,
     set: (v: boolean) => {
@@ -417,6 +422,8 @@ export function useMyTasks() {
       const [a, c] = await Promise.all([listMyAssignments(), listMyClaims()])
       assignments.value = a
       claims.value = c
+      // 公開的據點清單（志工頁也用），只為了在任務卡地圖上畫據點；失敗就不畫，不影響任務
+      if (a.length && !stations.value.length) void listStations().then((s) => (stations.value = [...s]), () => undefined)
     } catch (e) {
       loadError.value = errorText(e)
     } finally {

@@ -56,6 +56,28 @@ export function elderTagsOf(elder: Pick<Elder, 'meal_due' | 'care_due' | 'last_s
   return tags
 }
 
+/* ---------------------------------------------------------------- 已結束（T-126） */
+
+/** 清單收合的狀態：已過期、已下架（食物）、取消（申請） */
+export type EndedStatus = 'expired' | 'closed' | 'cancelled'
+
+/**
+ * 這筆是不是已經結束（T-126「結束的東西預設收合」）：食物已過期、已下架，申請已取消。
+ * 已全數派出（食物 claimed）不算結束：還有份數在配送中，提供者也還能修改、下架，所以留在清單上（灰色晶片）；
+ * 地圖上則不畫（見 mapMarker.ts 的 isEndedMarker）。
+ */
+export function isEnded(status: string): status is EndedStatus {
+  return status === 'expired' || status === 'closed' || status === 'cancelled'
+}
+
+/** 依 isEnded 拆成「進行中」與「已結束」，各自保持原本的順序 */
+export function splitEnded<T extends { status: string }>(items: readonly T[]): { active: T[]; ended: T[] } {
+  const active: T[] = []
+  const ended: T[] = []
+  for (const it of items) (isEnded(it.status) ? ended : active).push(it)
+  return { active, ended }
+}
+
 /* ---------------------------------------------------------------- 斷網（ADR-024） */
 
 /** 斷網提示文字；staleAt 為空（線上資料）回空字串 */

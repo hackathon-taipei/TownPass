@@ -10,7 +10,9 @@ import {
   IMAGE_MAX_BYTES,
   IMAGE_MAX_EDGE,
   IMAGE_QUALITY_STEPS,
+  isEnded,
   isImageMime,
+  splitEnded,
   staleText,
 } from '@/features/meal-relay/logic/shared'
 
@@ -162,5 +164,28 @@ describe('圖片常數（M19、§5）', () => {
     const sorted = [...steps].sort((a, b) => b - a)
     expect(steps).toEqual(sorted)
     expect(steps).toEqual([0.85, 0.7, 0.55, 0.4])
+  })
+})
+
+describe('isEnded／splitEnded（已結束的收合，T-126）', () => {
+  it('已過期、已下架、取消算結束', () => {
+    for (const s of ['expired', 'closed', 'cancelled']) expect(isEnded(s), s).toBe(true)
+  })
+  it('可派送、已全數派出（還在配送）、已派送、配送中、完成不算結束', () => {
+    for (const s of ['open', 'claimed', 'delivering', 'done']) expect(isEnded(s), s).toBe(false)
+  })
+  it('splitEnded 拆成進行中與已結束，各自保持順序', () => {
+    const items = [
+      { id: 'a', status: 'open' },
+      { id: 'b', status: 'expired' },
+      { id: 'c', status: 'claimed' },
+      { id: 'd', status: 'closed' },
+    ]
+    const { active, ended } = splitEnded(items)
+    expect(active.map((x) => x.id)).toEqual(['a', 'c'])
+    expect(ended.map((x) => x.id)).toEqual(['b', 'd'])
+  })
+  it('空清單', () => {
+    expect(splitEnded([])).toEqual({ active: [], ended: [] })
   })
 })

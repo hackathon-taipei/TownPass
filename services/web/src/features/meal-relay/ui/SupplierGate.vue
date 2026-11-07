@@ -6,7 +6,7 @@
  *   沒有申請 → #apply 插槽（申請表，送出用 SubmitButton）
  *   pending／rejected → 狀態卡（晶片顏色依狀態過渡）
  *   approved → 預設插槽（提供者頁）。若是在這個畫面上從審核中變成通過，
- *              先讓晶片變綠停一下（--motion-emphasis 再多一點），再換成提供者頁。
+ *              先讓晶片變成主色「已通過」停一下（--motion-emphasis 再多一點），再換成提供者頁。
  *
  *   <SupplierGate :supplier="me.supplier">
  *     <template #apply><SupplierApplyForm /></template>
@@ -41,8 +41,8 @@ const view = computed(() => {
 })
 
 const CHIP: Record<Supplier['status'], string> = {
-  pending: 'bg-secondary-100 text-secondary-800',
-  approved: 'bg-success/15 text-success',
+  pending: 'bg-grey-50 text-grey-500',
+  approved: 'bg-primary-50 text-primary-700',
   rejected: 'bg-warn-100/15 text-warn-200',
 }
 </script>

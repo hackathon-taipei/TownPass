@@ -9,7 +9,6 @@
  */
 import './motion.css'
 import { computed } from 'vue'
-import { WifiOff } from 'lucide-vue-next'
 import { QR_OFFLINE_TEXT, QR_RETRYING_TEXT, qrSvg } from '../logic/station'
 
 const props = defineProps<{ text: string | null }>()
@@ -30,7 +29,6 @@ const svg = computed(() => (props.text ? qrSvg(props.text) : null))
     </svg>
     <Transition name="fade-up">
       <div v-if="!svg" role="status" class="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-grey-50 px-6 text-center">
-        <WifiOff class="size-14 text-grey-400" aria-hidden="true" />
         <p class="text-xl font-semibold text-grey-800">{{ QR_OFFLINE_TEXT }}</p>
         <p class="text-base text-grey-500">{{ QR_RETRYING_TEXT }}</p>
       </div>

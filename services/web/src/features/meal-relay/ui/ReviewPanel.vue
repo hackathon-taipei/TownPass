@@ -42,7 +42,7 @@ const items = computed(() => props.pending.map((s) => ({ id: s.id, name: s.name,
         <li v-for="s in reviewed" :key="s.id">
           <ListItem :title="s.name" :subtitle="`${ORG_TYPE_LABEL[s.org_type]}・審核於 ${shortTimeText(s.reviewed_at)}`">
             <template #trailing>
-              <BaseTag :tone="s.status === 'approved' ? 'success' : 'warn'">{{ SUPPLIER_STATUS_LABEL[s.status] }}</BaseTag>
+              <BaseTag :tone="s.status === 'approved' ? 'primary' : 'warn'">{{ SUPPLIER_STATUS_LABEL[s.status] }}</BaseTag>
             </template>
           </ListItem>
         </li>

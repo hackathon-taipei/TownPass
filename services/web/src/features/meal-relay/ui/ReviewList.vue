@@ -49,7 +49,7 @@ async function decide(id: string, result: Decision) {
         <span
           v-if="decided.has(r.id)"
           class="shrink-0 rounded-full px-2 py-0.5 text-xs font-medium transition-colors duration-200"
-          :class="decided.get(r.id) === 'approved' ? 'bg-success/15 text-success' : 'bg-warn-100/15 text-warn-200'"
+          :class="decided.get(r.id) === 'approved' ? 'bg-primary-50 text-primary-700' : 'bg-warn-100/15 text-warn-200'"
           role="status"
         >
           {{ SUPPLIER_STATUS_LABEL[decided.get(r.id)!] }}

@@ -16,7 +16,9 @@
   --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* ===== 定位針（ANIMATION §5.6） ===== */
+/* ===== 定位針（ANIMATION §5.6） =====
+ * 三種狀態色＋據點深灰（T-126）：primary 進行中／正常、warn 需要處理、grey 結束、station 地點（grey-700）。
+ * 圓頭裡是白色 lucide icon（.tp-map__pin-icon，據點 HeartHandshake、長者 User）或小圖示（.tp-map__pin-glyph）。 */
 .tp-map .tp-map__pin {
   background: none;
   border: 0;
@@ -24,26 +26,46 @@
   --pin-stroke: var(--color-grey-900);
   --pin-glyph: var(--color-white);
 }
-.tp-map .tp-map__pin--yellow {
-  --pin-fill: var(--color-mango);
-  --pin-stroke: var(--color-secondary-700);
-  --pin-glyph: var(--color-grey-900);
-}
-.tp-map .tp-map__pin--blue {
+.tp-map .tp-map__pin--primary {
   --pin-fill: var(--color-primary-500);
   --pin-stroke: var(--color-primary-700);
 }
-.tp-map .tp-map__pin--green {
-  --pin-fill: var(--color-success);
-  --pin-stroke: color-mix(in srgb, var(--color-success) 65%, var(--color-grey-900));
-}
-.tp-map .tp-map__pin--red {
+.tp-map .tp-map__pin--warn {
   --pin-fill: var(--color-warn-200);
   --pin-stroke: color-mix(in srgb, var(--color-warn-200) 65%, var(--color-grey-900));
 }
 .tp-map .tp-map__pin--grey {
   --pin-fill: var(--color-grey-400);
   --pin-stroke: var(--color-grey-600);
+}
+.tp-map .tp-map__pin--station {
+  --pin-fill: var(--color-grey-700);
+  --pin-stroke: var(--color-grey-900);
+}
+.tp-map .tp-map__pin-icon {
+  color: var(--pin-glyph);
+  pointer-events: none;
+}
+
+/* 我的位置：圓形企鵝頭像（MR-C23 的圖），白框＋主色細邊；不上狀態色、沒有滑行或跳躍動畫 */
+.tp-map .tp-map__me {
+  background: none;
+  border: 0;
+}
+.tp-map .tp-map__me-face {
+  width: 40px;
+  height: 40px;
+  border-radius: 9999px;
+  overflow: hidden;
+  background: var(--color-white);
+  border: 2px solid var(--color-primary-500);
+  box-shadow: var(--shadow-card);
+}
+.tp-map .tp-map__me-face img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 .tp-map .tp-map__pin--picked {
   --pin-fill: var(--color-white);
@@ -65,15 +87,15 @@
   fill: var(--pin-glyph);
   transition: fill var(--motion-base) var(--ease-in-out);
 }
-.tp-map .tp-map__pin svg {
+.tp-map .tp-map__pin > svg {
   display: block;
   overflow: visible;
   transform-origin: 50% 100%;
   filter: drop-shadow(0 2px 2px color-mix(in srgb, var(--color-grey-900) 30%, transparent));
   transition: transform var(--motion-fast) var(--ease-out);
 }
-.tp-map .tp-map__pin:hover svg,
-.tp-map .tp-map__pin:focus-visible svg {
+.tp-map .tp-map__pin:hover > svg,
+.tp-map .tp-map__pin:focus-visible > svg {
   transform: scale(1.1);
 }
 .tp-map .tp-map__pin:focus-visible {
@@ -84,7 +106,7 @@
 }
 
 /* 新增：從上方落下（backwards：結束後不鎖住 transform，懸停放大才有效） */
-.tp-map .tp-map__pin--enter svg {
+.tp-map .tp-map__pin--enter > svg {
   animation: tp-pin-drop var(--motion-slow) var(--ease-out) backwards;
 }
 @keyframes tp-pin-drop {
@@ -118,7 +140,7 @@
 }
 
 /* 移除：淡出縮小 */
-.tp-map .tp-map__pin--leave svg {
+.tp-map .tp-map__pin--leave > svg {
   animation: tp-pin-leave var(--motion-base) var(--ease-in) forwards;
 }
 @keyframes tp-pin-leave {
