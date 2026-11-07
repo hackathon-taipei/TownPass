@@ -28,7 +28,6 @@
 | ML-C01 | DeviceModelCard | 手機硬體、選用模型與理由、模型揭露 | `addons/model/ui/DeviceModelCard.vue` |
 | MR-P01 | HomePage | 鄰食轉運站首頁（佔位） | `features/meal-relay/ui/HomePage.vue` |
 | MR-P02 | ElderPage | 長者頁（佔位） | `features/meal-relay/ui/ElderPage.vue` |
-| MR-P03 | FoodDetailPage | 食物資訊與申請（佔位） | `features/meal-relay/ui/FoodDetailPage.vue` |
 | MR-P04 | VolunteerPage | 志工頁（佔位） | `features/meal-relay/ui/VolunteerPage.vue` |
 | MR-P05 | TaskPage | 我的任務與拜訪回報（佔位） | `features/meal-relay/ui/TaskPage.vue` |
 | MR-P06 | SupplierPage | 提供者頁（佔位） | `features/meal-relay/ui/SupplierPage.vue` |

@@ -21,8 +21,9 @@ OrgType = Literal["person", "school", "agency", "shop", "other"]
 SupplierStatus = Literal["pending", "approved", "rejected"]
 PointKind = Literal["station", "village_office", "school", "custom"]
 FoodStatus = Literal["open", "claimed", "expired", "closed"]
-ClaimMethod = Literal["pickup", "delivery"]
-ClaimStatus = Literal["requested", "ready_for_pickup", "claimed", "delivering", "done", "cancelled"]
+# ADR-025：申請只由報到派送建立（M7、M17），只剩送餐；pickup、requested、ready_for_pickup 已取消
+ClaimMethod = Literal["delivery"]
+ClaimStatus = Literal["claimed", "delivering", "done", "cancelled"]
 VisitKind = Literal["meal", "care"]
 VisitResult = Literal["seen", "left_at_door", "returned"]
 AssignmentStatus = Literal["assigned", "done", "released"]
@@ -125,7 +126,7 @@ class Elder(BaseModel):
     alert: bool
     days_since_seen: int | None  # 從未見到 → null
     days_since_meal: int | None
-    pending_request: bool  # 有沒有 requested 申請
+    pending_request: bool = False  # 欄位保留但一律 false（ADR-025：長者不訂餐）
 
 
 class ClaimElder(BaseModel):
@@ -303,15 +304,6 @@ class ImageUpload(MealRequest):
     """POST /images：前端壓縮後的 base64 data URL（M19），例：data:image/jpeg;base64,...."""
 
     data_url: str = Field(min_length=1)
-
-
-class ClaimCreate(MealRequest):
-    """POST /claims。長者申請時 elder_id 可省略（用自己的資料）；志工必填。M3 上限由 service 檢查。"""
-
-    food_id: str
-    qty: int = Field(default=1, ge=1)
-    method: ClaimMethod
-    elder_id: str | None = None
 
 
 class ClaimCancel(MealRequest):

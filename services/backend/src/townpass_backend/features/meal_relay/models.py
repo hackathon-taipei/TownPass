@@ -120,8 +120,8 @@ class MealClaim(SQLModel, table=True):
     food_id: str = Field(default="", index=True)
     elder_id: str = Field(default="", index=True)
     qty: int = 1
-    method: str = "pickup"
-    status: str = Field(default="requested", index=True)
+    method: str = "delivery"  # ADR-025：只剩送餐（欄位保留）
+    status: str = Field(default="claimed", index=True)  # M7：派送建立時就是 claimed
     requested_by: str = ""
     volunteer_id: str | None = Field(default=None, index=True)
     assignment_id: str | None = Field(default=None, index=True)

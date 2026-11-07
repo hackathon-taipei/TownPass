@@ -1,11 +1,11 @@
 # 鄰食轉運站（meal-relay）系統規格與合約
 
-> 版本 v2.0｜2026-11-07｜整合者 `n753951f` 定案。取代隊長版 `GLOSSARY.md`／`ARCHITECTURE.md` v1.1 的認領模式，沿用其中的拜訪結果、`refresh`、相對時間種子、錯誤代碼與驗收清單。
+> 版本 v2.1｜2026-11-07｜v2.1：長者不訂餐，餐點一律由系統在志工報到時派發（ADR-025）。整合者 `n753951f` 定案。取代隊長版 `GLOSSARY.md`／`ARCHITECTURE.md` v1.1 的認領模式，沿用其中的拜訪結果、`refresh`、相對時間種子、錯誤代碼與驗收清單。
 > **這份是合約：** 欄位、列舉值、端點、錯誤代碼、規則編號（M1～M20）以本文件為準。要改合約先停下來在工單留言（`townpass-ticket` D 節）。實作規則時在程式註解標規則編號，例如 `# M7`。
 
 ## 1. 目標
 
-提供者（店家、學校、機關）把多出來的食物上架到地圖上的食物點；長者自己找食物自取，或請志工送。志工到據點掃 QR code 報到，系統自動把該據點還沒送餐、還沒關懷的長者派給他，並盡量讓同一位長者由同一位志工服務。
+提供者（店家、學校、機關）把多出來的食物上架到地圖上的食物點。**長者不訂餐**：志工到據點掃 QR code 報到，系統自動把該據點還沒送餐、還沒關懷的長者派給他，並自動挑好沒有過敏衝突的餐，盡量讓同一位長者由同一位志工服務。長者只要填一次自己的資料（過敏、位置），就能看到下次送餐與關懷的時間。
 
 **不做：** 真實登入、推播、導航與路線規劃、慢性病或飲食需求、AI 聊天、多語。
 
@@ -15,9 +15,9 @@
 
 | 角色 | 代碼 | 在哪裡用 | 身分怎麼來 | 做什麼 |
 |---|---|---|---|---|
-| 長者 | `elder` | 台北通 App | 沒有匯入或沒有角色的帳號一律是長者 | 勾過敏、點位置、找食物、申請自取或送餐 |
+| 長者 | `elder` | 台北通 App | 沒有匯入或沒有角色的帳號一律是長者 | 填自己的資料（勾過敏、點位置）、看自己的送餐狀態。**不訂餐、不找食物**，餐點由系統派發 |
 | 志工 | `volunteer` | 台北通 App | 匯入，綁一個據點 | 掃據點 QR 報到、接自動派送的任務、送餐與關懷、新增長者 |
-| 提供者 | `supplier` | 台北通 App | 長者帳號送出申請，管理員通過後變成提供者 | 選或新增食物點、上架食物、確認自取 |
+| 提供者 | `supplier` | 台北通 App | 長者帳號送出申請，管理員通過後變成提供者 | 選或新增食物點、上架與下架食物；把食物交給來取餐的志工 |
 | 據點 | `station` | 據點的手機或平板開台北通 App | 匯入，綁一個據點 | 顯示據點 QR code、看今天報到的志工 |
 | 管理員 | `admin` | 管理系統（獨立網頁，不在 App 裡） | 匯入 | 審核提供者、看板與統計、管理長者與合併重複、重置 Demo |
 
@@ -36,7 +36,7 @@
 | `meal_food` 食物 | `id` PK（`f`）、`point_id`、`supplier_id`、`name`、`category`、`allergens`（JSON）、`qty`、`expires_at`、`image_id`?、`source_note`、`closed`（下架，預設 false）、`created_at` | `remaining`、`status`、`unclaimed` 不存，回應時計算 |
 | `meal_image` 圖片 | `id` PK（`img`）、`mime`、`data`（bytes）、`size`、`uploaded_by`、`created_at` | 食物圖片與放門口照片（M19） |
 | `meal_elder` 長者 | `id` PK（`e`）、`alias`、`account_id`?（自己用 App 的長者）、`station_id`、`lat`、`lng`、`allergens`（JSON）、`created_by`、`created_at`、`last_seen_at`?、`last_meal_at`?、`next_care_at`?、`next_meal_at`?、`primary_volunteer_id`?、`merged_into`? | 全部是模擬資料；不存姓名、身分證、電話、地址文字 |
-| `meal_claim` 申請 | `id` PK（`c`）、`food_id`、`elder_id`、`qty`、`method`、`status`、`requested_by`、`volunteer_id`?、`assignment_id`?、`created_at`、`claimed_at`?、`picked_up_at`?、`done_at`?、`cancel_reason`? | 每筆綁一位長者 |
+| `meal_claim` 申請（送餐） | `id` PK（`c`）、`food_id`、`elder_id`、`qty`、`method`、`status`、`requested_by`、`volunteer_id`?、`assignment_id`?、`created_at`、`claimed_at`?、`picked_up_at`?、`done_at`?、`cancel_reason`? | 只由自動派送建立（M17），每筆綁一位長者；`method` 一律 `delivery`、`requested_by` 一律是志工帳號 id（欄位保留，資料表只增不減） |
 | `meal_visit` 拜訪 | `id` PK（`vi`）、`elder_id`、`volunteer_id`、`kind`、`claim_id`?、`assignment_id`?、`result`、`photo_image_id`?、`visited_at` | |
 | `meal_checkin` 報到 | `id` PK（`ck`）、`volunteer_id`（帳號 id）、`station_id`、`checked_in_at` | |
 | `meal_assignment` 派送任務 | `id` PK（`as`）、`checkin_id`、`volunteer_id`、`elder_id`、`station_id`、`needs_meal`、`needs_care`、`claim_id`?、`status`、`assigned_at`、`expires_at`、`done_at`? | 自動派送的結果 |
@@ -54,8 +54,8 @@
 | `SupplierStatus` | `pending` 審核中、`approved` 已通過、`rejected` 未通過 |
 | `PointKind` | `station` 關懷據點、`village_office` 里辦公處、`school` 學校、`custom` 自訂 |
 | `FoodStatus`（計算） | `open` 可申請、`claimed` 已全數申請、`expired` 已過期、`closed` 已下架 |
-| `ClaimMethod` | `pickup` 自取、`delivery` 送餐 |
-| `ClaimStatus` | `requested` 待接單、`ready_for_pickup` 待領取、`claimed` 已接單、`delivering` 配送中、`done` 完成、`cancelled` 取消 |
+| `ClaimMethod` | `delivery` 送餐（只剩這一種；`pickup` 已取消，ADR-025） |
+| `ClaimStatus` | `claimed` 已派送、`delivering` 配送中、`done` 完成、`cancelled` 取消（`requested`、`ready_for_pickup` 已取消，ADR-025） |
 | `VisitKind` | `meal` 送餐、`care` 純關懷 |
 | `VisitResult` | `seen` 見到本人、`left_at_door` 放門口（附照片）、`returned` 未見到，帶回 |
 | `AssignmentStatus` | `assigned` 進行中、`done` 完成、`released` 釋出 |
@@ -78,23 +78,23 @@
 | 編號 | 規則 |
 |---|---|
 | M1 | `remaining = qty − Σ 未取消申請的 qty`。`remaining = 0` → `status = claimed`；`closed` → `closed`；超過 `expires_at` → `expired`。優先序：`closed` > `expired` > `claimed` > `open`。 |
-| M2 | 申請時預扣份數：只有 `status = open` 的食物可以申請；`qty > remaining` → `QTY_EXCEEDED`。 |
-| M3 | 每筆申請綁一位長者，`qty` 為 1～`MAX_QTY_PER_CLAIM`。 |
-| M4 | 過敏原：食物的 `allergens` 與長者的 `allergens` 有交集就不能申請 → `ALLERGEN_CONFLICT`。查詢食物時傳 `for_elder` 會直接篩掉衝突的食物。 |
-| M5 | `unclaimed = status = open 且 now > created_at + CLAIM_WINDOW_SEC`。只是提醒，仍可申請。 |
-| M6 | 過期：`expires_at` 已過，未完成的申請（`requested`、`ready_for_pickup`、`claimed`、`delivering`）一律 `cancelled`（`cancel_reason = expired`）。 |
-| M7 | 申請的初始狀態：自取 → `ready_for_pickup`；長者申請送餐 → `requested`；志工替長者申請送餐 → `claimed`（`volunteer_id = 自己`）。只有長者本人或志工能申請。 |
-| M8 | 狀態轉換：`requested →(志工接單) claimed →(取餐) delivering →(回報) done`；`ready_for_pickup →(提供者確認領取) done`；`requested`、`ready_for_pickup`、`claimed`、`delivering` 都可 `cancelled`。取消就退回份數（M1 自然成立）。 |
+| M2 | 預扣份數：派送建立申請時就扣（M17），只挑 `status = open` 且 `remaining ≥ qty` 的食物。 |
+| M3 | 每筆申請綁一位長者，`qty` 固定為 1（`MAX_QTY_PER_CLAIM` 保留給之後調整）。 |
+| M4 | 過敏原：派送挑食物時排除與長者 `allergens` 有交集的食物；後端任何建立申請的地方都要再檢查一次，有衝突就 `ALLERGEN_CONFLICT`。查詢食物時傳 `for_elder` 會篩掉衝突的食物（給管理系統與測試用）。 |
+| M5 | `unclaimed = status = open 且 now > created_at + CLAIM_WINDOW_SEC`。只是提醒（這份食物還沒被派出去），仍可被派送。 |
+| M6 | 過期：`expires_at` 已過，未完成的申請（`claimed`、`delivering`）一律 `cancelled`（`cancel_reason = expired`）。 |
+| M7 | **只有自動派送會建立申請**（M17）：初始狀態 `claimed`、`volunteer_id = 報到的志工`、`assignment_id = 任務`。長者、志工、提供者都沒有手動申請的入口，也沒有自取。 |
+| M8 | 狀態轉換：`claimed →(志工取餐) delivering →(回報) done`；`claimed`、`delivering` 可由該志工取消 → `cancelled`，份數退回（M1 自然成立），任務仍保留，可以只做關懷。 |
 | M9 | 拜訪回報：`seen` → 更新 `last_seen_at`，清空 `next_care_at`；`kind = meal` 的 `seen` 或 `left_at_door` → 申請 `done`、更新 `last_meal_at`、清空 `next_meal_at`；`returned` → 申請 `cancelled`（`cancel_reason = returned`）。`seen`、`left_at_door` 會把 `primary_volunteer_id` 設成這位志工。 |
-| M10 | 長者警示：`care_due = next_care_at 有值 ? now ≥ next_care_at : (last_seen_at 為空 或 超過 CARE_ALERT_DAYS)`；`meal_due` 同理用 `next_meal_at`、`last_meal_at`、`MEAL_ALERT_DAYS`；另外有 `requested` 申請的長者 `meal_due = true`。`alert = care_due 或 meal_due`。 |
+| M10 | 長者警示：`care_due = next_care_at 有值 ? now ≥ next_care_at : (last_seen_at 為空 或 超過 CARE_ALERT_DAYS)`；`meal_due` 同理用 `next_meal_at`、`last_meal_at`、`MEAL_ALERT_DAYS`。`alert = care_due 或 meal_due`。 |
 | M11 | `left_at_door` 必須 `kind = meal`、必須附 `photo_image_id`，生鮮蔬果（`produce`）不能放門口 → `FRESH_CANNOT_LEAVE`。 |
 | M12 | 新增長者時，`DUPLICATE_RADIUS_M` 公尺內已有長者 → 回應附 `nearby`，前端提示；不阻擋。自己用 App 的長者以 `account_id` 唯一。 |
 | M13 | 志工只能看、改自己據點的長者與申請；管理員全部。合併長者：被合併的設 `merged_into`，不再出現在清單、不再被派送。 |
-| M14 | 提供者只有 `approved` 才能新增食物點、上架、確認自取；只能改自己的食物。 |
+| M14 | 提供者只有 `approved` 才能新增食物點、上架、下架；只能改自己的食物。 |
 | M15 | 據點 QR 內容固定為 `meal-relay:checkin:<checkin_code>`。`checkin_code` 由種子產生，不等於據點 id。 |
-| M16 | 自動派送（志工報到時）：候選 = 該據點 `alert = true`、未合併、且沒有被別的志工以 `assigned` 任務持有的長者。排序：①`primary_volunteer_id` 是自己 ②沒有主要志工 ③主要志工今天沒報到；同組內依 有 `requested` 申請 > `last_seen_at` 為空 > 逾期天數多 > 離據點近。取前 `DISPATCH_LIMIT` 位。主要志工今天已報到的長者留給他。 |
-| M17 | 派送任務內容：長者有 `requested` 申請 → 把該申請改成 `claimed` 給這位志工並掛上任務；否則 `meal_due` → 自動挑食物（`open`、`remaining ≥ 1`、無過敏衝突，依離據點近、到期早排序）建立 `claimed` 的送餐申請；找不到合適食物 → `claim_id` 為空，任務仍保留關懷。自動建立的申請 `requested_by` 必須是志工帳號 id、`assignment_id` 是任務 id（M18 靠這兩欄分辨，見 `meal_relay.is_auto_claim`）。同一位志工重複報到時回傳既有的進行中任務，不重複派送。 |
-| M18 | 任務完成：該長者有一筆拜訪回報就 `done`。任務超過 `expires_at` 未完成 → `released`：自動建立且還沒取餐的申請取消；原本是長者 `requested` 的申請退回 `requested`；已在 `delivering` 的不動。 |
+| M16 | 自動派送（志工報到時）：候選 = 該據點 `alert = true`、未合併、且沒有被別的志工以 `assigned` 任務持有的長者。排序：①`primary_volunteer_id` 是自己 ②沒有主要志工 ③主要志工今天沒報到；同組內依 `last_seen_at` 為空 > 逾期天數多 > 離據點近。取前 `DISPATCH_LIMIT` 位。主要志工今天已報到的長者留給他。 |
+| M17 | 派送任務內容：`meal_due` → 自動挑食物（`open`、`remaining ≥ 1`、無過敏衝突，依離據點近、到期早排序）建立 `claimed` 的送餐申請；找不到合適食物 → `claim_id` 為空，任務仍保留關懷。自動建立的申請 `requested_by` 是志工帳號 id、`assignment_id` 是任務 id。同一位志工重複報到時回傳既有的進行中任務，不重複派送。 |
+| M18 | 任務完成：該長者有一筆拜訪回報就 `done`。任務超過 `expires_at` 未完成 → `released`：還沒取餐（`claimed`）的申請取消、份數退回；已在 `delivering` 的不動。 |
 | M19 | 圖片：前端壓縮後以 base64 上傳，後端檢查 mime 為 `image/jpeg`、`image/png`、`image/webp` 且大小 ≤ `IMAGE_MAX_BYTES`。 |
 | M20 | `refresh(now)`：每個請求在業務邏輯前執行，處理 M6、M18（寫回資料庫）；M1、M5、M10 在組裝回應時計算。不用背景排程。 |
 
@@ -118,7 +118,6 @@
 | `ALLERGEN_CONFLICT` | 409 | M4 |
 | `INVALID_STATE` | 409 | 狀態不允許這個操作 |
 | `ALREADY_APPLIED` | 409 | 已申請過提供者 |
-| `ELDER_PROFILE_REQUIRED` | 409 | 長者還沒建立自己的資料（位置必填）就申請 |
 | `FRESH_CANNOT_LEAVE` | 409 | M11 |
 | `PHOTO_REQUIRED` | 422 | M11 |
 | `IMAGE_TOO_LARGE` | 413 | M19 |
@@ -142,15 +141,11 @@
 | `updateFood` | `PATCH /foods/{id}`（`qty`、`closed`） | supplier（自己的） | `meal_food` |
 | `uploadImage` | `POST /images` | supplier、volunteer | `meal_food` |
 | `getImage` | `GET /images/{id}`（回傳圖片本身，不需 header） | 全部 | `meal_food` |
-| `createClaim` | `POST /claims` | elder（自己）、volunteer（自己據點的長者） | `meal_claim` |
-| `listMyClaims` | `GET /claims/mine` | elder、volunteer | `meal_claim` |
-| `listStationClaims` | `GET /claims?status=requested` | volunteer（自己據點） | `meal_claim` |
-| `listPickupClaims` | `GET /claims/pickup` | supplier（自己的食物、`ready_for_pickup`） | `meal_claim` |
-| `acceptClaim` | `POST /claims/{id}/accept` | volunteer | `meal_claim` |
+| `listMyClaims` | `GET /claims/mine` | volunteer | `meal_claim` |
 | `pickupClaim` | `POST /claims/{id}/pickup` | volunteer（自己的） | `meal_claim` |
-| `confirmPickup` | `POST /claims/{id}/confirm-pickup` | supplier（自己的食物） | `meal_claim` |
-| `cancelClaim` | `POST /claims/{id}/cancel` | 申請人、該志工、該提供者 | `meal_claim` |
-| `getMyElder` | `GET /elders/me` | elder | `meal_elder` |
+| `cancelClaim` | `POST /claims/{id}/cancel` | volunteer（自己的） | `meal_claim` |
+| `getMyElder` | `GET /elders/me`（沒有資料回 `null`） | elder | `meal_elder` |
+| `listMyElderVisits` | `GET /elders/me/visits`（最近 10 筆送餐與關懷，新的在前） | elder | `meal_elder` |
 | `upsertMyElder` | `PUT /elders/me`（`location`、`allergens`、`alias`?） | elder | `meal_elder` |
 | `listElders` | `GET /elders` | volunteer（自己據點）、admin | `meal_elder` |
 | `createElder` | `POST /elders` | volunteer（自己據點）、admin | `meal_elder` |
@@ -168,7 +163,7 @@
 
 - `Me`：`{id, role, name, station_id, supplier: Supplier|null, elder: Elder|null}`
 - `Food`：資料表欄位 ＋ `location`（食物點位置）、`point_name`、`supplier_name`、`remaining`、`status`、`unclaimed`、`image_url`
-- `Elder`：資料表欄位 ＋ `location`、`care_due`、`meal_due`、`alert`、`days_since_seen`、`days_since_meal`、`pending_request`（有沒有 `requested` 申請）
+- `Elder`：資料表欄位 ＋ `location`、`care_due`、`meal_due`、`alert`、`days_since_seen`、`days_since_meal`（`pending_request` 欄位保留但一律 `false`，ADR-025）
 - `Claim`：資料表欄位 ＋ `food`（`Food`）、`elder`（`{id, alias, location}`）
 - `Assignment`：資料表欄位 ＋ `elder`（`Elder`）、`claim`（`Claim|null`）
 - `CheckInResult`：`{checkin, station, assignments: Assignment[]}`
@@ -195,11 +190,11 @@
 | 路由 | 頁面 | 檔案 | 誰做 |
 |---|---|---|---|
 | `/#/f/meal-relay` | MR-P01 首頁：注意事項、進入、切換為志工、我要提供食物、管理系統連結 | `ui/HomePage.vue`、`logic/home.ts` | T-116 |
-| `elder` | MR-P02 長者頁：過敏與位置 → 種類 → 地圖 | `ui/ElderPage.vue`、`logic/elder.ts` | T-116 |
-| `food/:id` | MR-P03 食物資訊與申請 | `ui/FoodDetailPage.vue`（邏輯在 `logic/elder.ts`） | T-116 |
-| `volunteer` | MR-P04 志工頁：據點長者地圖、掃描報到、待接單、新增長者 | `ui/VolunteerPage.vue`、`logic/volunteer.ts` | T-118 |
+| `elder` | MR-P02 長者頁：我的資料（勾過敏、點位置，第一次必填）＋我的送餐（下次送餐與關懷時間、最近紀錄） | `ui/ElderPage.vue`、`logic/elder.ts` | T-116 |
+| ~~`food/:id`~~ | ~~MR-P03 食物資訊~~：**取消**（ADR-025），路由與檔案由 T-122 移除，編號不再使用 | — | — |
+| `volunteer` | MR-P04 志工頁：據點長者地圖、掃描報到、新增與修改長者 | `ui/VolunteerPage.vue`、`logic/volunteer.ts` | T-118 |
 | `volunteer/tasks` | MR-P05 我的任務與拜訪回報 | `ui/TaskPage.vue`（邏輯在 `logic/volunteer.ts`） | T-118 |
-| `supplier` | MR-P06 提供者頁：申請與狀態、食物點地圖、上架、待領取 | `ui/SupplierPage.vue`、`logic/supplier.ts` | T-117 |
+| `supplier` | MR-P06 提供者頁：申請與狀態、食物點地圖、上架與下架 | `ui/SupplierPage.vue`、`logic/supplier.ts` | T-117 |
 | `station` | MR-P07 據點頁：QR code、今天報到 | `ui/StationPage.vue`、`logic/station.ts` | T-119 |
 | `admin` | MR-P08 管理系統：登入、審核、看板、長者 | `ui/AdminPage.vue`、`logic/admin.ts` | T-120 |
 
@@ -220,7 +215,7 @@
 | `points.json` | 食物點 | 6，含據點、里辦、學校、自訂 |
 | `foods.json` | 食物 | 6，含便當、生鮮、有過敏原的、快過期的 |
 | `elders.json` | 長者（模擬） | 12：從未見到 2、逾期 3、最近才見過 3、有下次時間 2、有過敏 2；`u-vol-1` 是其中 4 位的主要志工 |
-| `claims.json` | 申請 | `requested` 1、`ready_for_pickup` 1 |
+| `claims.json` | 申請 | 0（申請只由派送產生；檔案保留為空陣列） |
 
 時間可寫相對值：`"now"`、`"now+90m"`、`"now-2d"`，匯入時換算。座標用開放資料的真實位置；長者座標放在路上或公共空間，不對應任何住家。`POST /demo/reset` 清空 `meal_` 開頭的表並重新匯入。
 
@@ -232,10 +227,10 @@
 | V2 | 未匯入的 id 呼叫 `GET /me` | `role = elder`、`elder = null` |
 | V3 | 志工呼叫 `POST /foods` | 403 `FORBIDDEN_ROLE` |
 | V4 | 審核中的提供者上架 | 403 `SUPPLIER_NOT_APPROVED` |
-| V5 | 剩 1 份時申請 2 份 | 409 `QTY_EXCEEDED` |
-| V6 | 對花生過敏的長者申請含花生的食物 | 409 `ALLERGEN_CONFLICT`；`GET /foods?for_elder=` 不含該食物 |
-| V7 | 取消申請 | `remaining` 加回 |
-| V8 | 上架後超過 `CLAIM_WINDOW_SEC` | `unclaimed = true`，仍可申請 |
+| V5 | 只剩 0 份的食物 | 派送不會挑它 |
+| V6 | 對花生過敏的長者被派送 | 不會挑含花生的食物；`GET /foods?for_elder=` 不含該食物 |
+| V7 | 志工取消申請 | `remaining` 加回，任務仍在 |
+| V8 | 上架後超過 `CLAIM_WINDOW_SEC` | `unclaimed = true`，仍可被派送 |
 | V9 | 把 `expires_at` 設成過去再呼叫任一 API | 食物 `expired`，未完成申請 `cancelled` |
 | V10 | 回報 `seen` | `last_seen_at` 更新、`alert` 依 M10 重算、`primary_volunteer_id` 是該志工 |
 | V11 | 生鮮回報 `left_at_door` | 409 `FRESH_CANNOT_LEAVE` |
@@ -243,7 +238,7 @@
 | V13 | `u-vol-1` 報到 | 先拿到自己是主要志工的警示長者，最多 `DISPATCH_LIMIT` 位 |
 | V14 | `u-vol-1` 已報到後 `u-vol-2` 報到 | 不會拿到 `u-vol-1` 持有或主要服務的長者 |
 | V15 | 同一志工重複報到 | 回傳同一批任務 |
-| V16 | 任務過了 `expires_at` | `released`，自動建立的申請取消、份數退回 |
+| V16 | 任務過了 `expires_at` | `released`，還沒取餐的申請取消、份數退回 |
 | V17 | 重置 Demo | 回到種子狀態 |
 
 ## 12. 工單與平行開發波次
@@ -253,6 +248,7 @@
 | 波次 | 工單 | 開工條件 |
 |---|---|---|
 | 0 | T-107（#24） 合約、資料層與骨架 | 無 |
+| 0.5 | T-122（#41） 長者不訂餐、只由派送建立申請（合約 v2.1） | 無；**#27、#29 等它合併才解除 blocked** |
 | 1 | T-108（#25） 帳號與審核、T-109（#26） 食物與圖片、T-110（#27） 申請、T-111（#28） 長者與回報、T-112（#29） 報到與派送、T-113（#30） 看板、T-114（#31） 前端共用元件、T-115（#32） 開放資料 | T-107（#24） 合併 |
 | 2 | T-116（#33） 首頁與長者頁、T-117（#34） 提供者頁、T-118（#35） 志工頁與掃描、T-119（#36） 據點頁、T-120（#37） 管理系統 | T-114（#31） 合併；實機操作要等對應的後端工單合併（各工單的「依賴」） |
 | 3 | T-121（#38） 整合與 Demo 準備 | 全部合併 |
