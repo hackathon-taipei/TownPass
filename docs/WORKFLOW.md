@@ -35,9 +35,9 @@ powershell -ExecutionPolicy Bypass -File tools\start.ps1
 ### 3. 保持雲端與地端同步
 | 什麼時候 | 做什麼 |
 |---|---|
-| 每次開工 | 重跑 `tools\start.ps1`（`main` 自動更新） |
+| 每次開工 | 重跑 `tools\start.ps1`。**只有在 `main` 上而且沒有未提交的改動才會自動更新**；在工單分支上只會顯示落後幾個 commit，要照下面的 rebase 更新 |
 | 開新分支前 | `git switch main`、`git pull --ff-only origin main`，再 `git switch -c t-<編號>-<名稱>` |
-| 開 PR 前，或別人合併了東西 | `git fetch origin`、`git rebase origin/main`、`git push --force-with-lease` |
+| 開 PR 前，或整合者通知有新合併 | `git fetch origin`、`git rebase origin/main`、`git push --force-with-lease` |
 | 合併之後 | `git switch main`、`git pull --ff-only origin main` |
 
 規則：`main` 只透過 PR 改；`--force-with-lease` 只用在自己的分支，**絕不對 `main`**；衝突自己解，解不了就在工單留言。
@@ -124,7 +124,7 @@ git switch main; git pull --ff-only origin main
 ```
 網頁部署到 https://hackathon-taipei.github.io/TownPass/，後端部署到 https://townpass-backend-dmk2.onrender.com。打開確認一次。
 
-一次合一個。合併後，其他 PR 要 rebase 並等 CI 重新通過才能合併（`main` 要求分支是最新的）。
+一次合一個。**每合併一個就在群組通知大家**：其他 PR 要 rebase 並等 CI 重新通過才能合併（`main` 要求分支是最新的）。
 
 **要停下來問人的情況**：要改 API／bridge 合約、驗收標準做不到、可能違反比賽規則、CI 修不好。細節見 `townpass-ticket` skill 的 D 節。
 
