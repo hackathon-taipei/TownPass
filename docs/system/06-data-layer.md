@@ -59,5 +59,6 @@
 
 ## 4. 個資與安全
 - 不存：身分證字號、電話、地址、生日、email（`LoginRequest` 設 `extra="forbid"`，送了就 422）
+- 唯一例外：鄰食轉運站的長者可存代號、精確座標、過敏原，**只限模擬資料**（ADR-024）。資料表見 [11-meal-relay.md](11-meal-relay.md) §3
 - 不記錄 token；`SECRET_KEY` 只從環境變數讀
 - 每個查詢個人資料的 repo 函數都要有 `user_id` 參數

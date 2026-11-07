@@ -93,7 +93,7 @@
 | M14 | 提供者只有 `approved` 才能新增食物點、上架、確認自取；只能改自己的食物。 |
 | M15 | 據點 QR 內容固定為 `meal-relay:checkin:<checkin_code>`。`checkin_code` 由種子產生，不等於據點 id。 |
 | M16 | 自動派送（志工報到時）：候選 = 該據點 `alert = true`、未合併、且沒有被別的志工以 `assigned` 任務持有的長者。排序：①`primary_volunteer_id` 是自己 ②沒有主要志工 ③主要志工今天沒報到；同組內依 有 `requested` 申請 > `last_seen_at` 為空 > 逾期天數多 > 離據點近。取前 `DISPATCH_LIMIT` 位。主要志工今天已報到的長者留給他。 |
-| M17 | 派送任務內容：長者有 `requested` 申請 → 把該申請改成 `claimed` 給這位志工並掛上任務；否則 `meal_due` → 自動挑食物（`open`、`remaining ≥ 1`、無過敏衝突，依離據點近、到期早排序）建立 `claimed` 的送餐申請；找不到合適食物 → `claim_id` 為空，任務仍保留關懷。同一位志工重複報到時回傳既有的進行中任務，不重複派送。 |
+| M17 | 派送任務內容：長者有 `requested` 申請 → 把該申請改成 `claimed` 給這位志工並掛上任務；否則 `meal_due` → 自動挑食物（`open`、`remaining ≥ 1`、無過敏衝突，依離據點近、到期早排序）建立 `claimed` 的送餐申請；找不到合適食物 → `claim_id` 為空，任務仍保留關懷。自動建立的申請 `requested_by` 必須是志工帳號 id、`assignment_id` 是任務 id（M18 靠這兩欄分辨，見 `meal_relay.is_auto_claim`）。同一位志工重複報到時回傳既有的進行中任務，不重複派送。 |
 | M18 | 任務完成：該長者有一筆拜訪回報就 `done`。任務超過 `expires_at` 未完成 → `released`：自動建立且還沒取餐的申請取消；原本是長者 `requested` 的申請退回 `requested`；已在 `delivering` 的不動。 |
 | M19 | 圖片：前端壓縮後以 base64 上傳，後端檢查 mime 為 `image/jpeg`、`image/png`、`image/webp` 且大小 ≤ `IMAGE_MAX_BYTES`。 |
 | M20 | `refresh(now)`：每個請求在業務邏輯前執行，處理 M6、M18（寫回資料庫）；M1、M5、M10 在組裝回應時計算。不用背景排程。 |
@@ -122,6 +122,7 @@
 | `FRESH_CANNOT_LEAVE` | 409 | M11 |
 | `PHOTO_REQUIRED` | 422 | M11 |
 | `IMAGE_TOO_LARGE` | 413 | M19 |
+| `OFFLINE` | 0（只在前端） | 連不上後端；讀取改用裝置上的資料，寫入直接失敗 |
 
 ## 8. 端點（前綴 `/meal-relay`，全部要帶 `X-Demo-User`）
 
@@ -186,7 +187,9 @@
 | `features/meal_dispatch/` | 據點、報到、自動派送、任務釋出 | T-112 |
 | `features/meal_board/` | 看板 | T-113 |
 
-其他套件只從 `townpass_backend.features.meal_relay`（套件根）使用共用的東西（B5）。
+其他套件只從 `townpass_backend.features.meal_relay`（套件根）使用共用的東西（B5）。各套件的路由一律用 `meal_router("<tag>")` 建立（前綴 `/meal-relay`，錯誤自動轉成 §7 格式，422 也是），身分用 `CurrentAccount`、`require_roles(...)`，業務錯誤丟 `MealError`。不要直接查 `meal_` 表，用 `meal_relay.repo` 與轉換函數 `to_food`、`to_elder`…。
+
+回應的空值約定：`GET /elders/me`、`GET /suppliers/mine` 沒有資料時回 `null`；`mergeElder` 回傳保留下來的長者；`Station` 不含 `checkin_code`，只有據點自己的 `GET /stations/mine` 給 `qr_text`。
 
 ### 前端（`services/web/src/features/meal-relay/`，功能代碼 `MR`）
 | 路由 | 頁面 | 檔案 | 誰做 |
@@ -200,7 +203,8 @@
 | `station` | MR-P07 據點頁：QR code、今天報到 | `ui/StationPage.vue`、`logic/station.ts` | T-119 |
 | `admin` | MR-P08 管理系統：登入、審核、看板、長者 | `ui/AdminPage.vue`、`logic/admin.ts` | T-120 |
 
-- `data/*.ts`、`index.ts`（含全部路由與佔位頁面）由 T-107 建立；之後各工單只改自己的 `ui`、`logic` 檔案。
+- `data/*.ts`、`index.ts`（含全部路由與佔位頁面）由 T-107 建立；之後各工單只改自己的 `ui`、`logic` 檔案。邏輯層從 `../data` 取用（`data/index.ts` 統一匯出），圖片網址用 `imageSrc()` 接上後端位址。
+- `?as=<id>` 會存在裝置上，之後都用這個帳號；`setAccountId(null)` 清掉後回到台北通帳號。
 - 共用的功能元件 `MR-C01`～`MR-C06`（`ui/` 下）與 `logic/shared.ts` 由 T-114 建立。
 - 首頁的「進入」依角色導向：elder → `elder`、volunteer → `volunteer`、supplier → `supplier`、station → `station`；admin 只用管理系統網址 `/#/f/meal-relay/admin`。
 - 掃描：志工頁按「掃描報到」→ bridge `qr_code_scan`（App 已有，可相機或相簿圖片）；瀏覽器沒有 App 時改成貼上 QR 文字。
@@ -241,3 +245,19 @@
 | V15 | 同一志工重複報到 | 回傳同一批任務 |
 | V16 | 任務過了 `expires_at` | `released`，自動建立的申請取消、份數退回 |
 | V17 | 重置 Demo | 回到種子狀態 |
+
+## 12. 工單與平行開發波次
+
+同一波的工單擁有不重疊的檔案，可以交給不同的人或 AI 同時做。下一波要等它依賴的工單合併。
+
+| 波次 | 工單 | 開工條件 |
+|---|---|---|
+| 0 | T-107 合約、資料層與骨架 | 無 |
+| 1 | T-108 帳號與審核、T-109 食物與圖片、T-110 申請、T-111 長者與回報、T-112 報到與派送、T-113 看板、T-114 前端共用元件、T-115 開放資料 | T-107 合併 |
+| 2 | T-116 首頁與長者頁、T-117 提供者頁、T-118 志工頁與掃描、T-119 據點頁、T-120 管理系統 | T-114 合併；實機操作要等對應的後端工單合併（各工單的「依賴」） |
+| 3 | T-121 整合與 Demo 準備 | 全部合併 |
+
+- 後端第 1 波的 6 張彼此獨立：共用的規則（`refresh`、剩餘份數、過敏衝突、警示計算、轉換函數）都在 `meal_relay`。
+- 前端第 2 波的 5 張彼此獨立：每張只改自己的頁面檔與 `logic/<角色>.ts`；`data/`、`index.ts` 與共用元件已在前兩波完成。
+- 各工單的文件寫在自己的 `README.md` 或 `docs/meal-relay/T-1xx.md`，不改共用的系統文件，避免合併衝突；T-121 統一整理。
+- `components.md` 是自動產生的，合併衝突時 rebase 後重跑 `node tools/check-arch.mjs --catalog`。
