@@ -1,64 +1,66 @@
 <script setup lang="ts">
-/** @component MR-P06 SupplierPage — 提供者頁：申請與審核狀態、上架、我的庫存（剩餘／派出中／已送達，已結束的收合）、修改、下架 */
+/** @component MR-P06 SupplierPage — 提供者頁（設計 v2）：申請 → 審核中／未通過 → 我的庫存｜上架食物（分頁與網址 ?tab= 同步） */
 /**
  * MR-P06 = T01 PageContainer {
- *   MR-C05 StaleBanner,
+ *   MR-C60 BrandHeader（「提供食物」；上架分頁是「上架食物」）, MR-C05 StaleBanner,
  *   MR-C21 PageTransition {
- *     MR-C18 SupplierGate {
- *       #apply: MR-C35 SupplierApplyForm（一般市民）
- *       審核中／未通過：Gate 的狀態卡＋V4 提示（不能上架）
- *       通過：MR-C57 PlacePhoto（店面照片，有才顯示，ADR-029）、MR-C08 TabBar {
- *         我的庫存（沒有地圖）：MR-C13 StatCard×4、MR-C03 FoodCard×N（修改、下架）、MR-C59 EndedGroup（已結束 N 批）、A07 SourceNote
- *         上架食物：MR-C36 PointPicker（M02 清單、MR-C37 新增食物點＋LocationPicker 選位置）、MR-C38 FoodPublishForm
- *       }
+ *     讀取失敗：M05 EmptyState＋A01「再試一次」；志工、據點、管理員：M05 EmptyState
+ *     沒有申請：MR-C35 SupplierApplyForm { MR-C62, A04, MR-C92 OrgTypePicker, MR-C93 ApplyLocationField { MR-C07, MR-C09＋MR-C02 }, MR-C06, MR-C64, MR-C10 }
+ *     審核中／未通過：MR-C86 SupplierReviewStatus { MR-C62, MR-C64（V4）, A01「重新整理」 }
+ *     通過：MR-C57 PlacePhoto（店面照片，有才顯示，ADR-029）＋單位名稱・「已通過」, MR-C66 SegmentedTabs {
+ *       我的庫存：MR-C87 InventoryPanel { MR-C88 InventoryTotals, MR-C85 InventoryRow×N, MR-C64, MR-C65 Accordion（已結束）, A01「＋ 上架新食物」 }
+ *       上架食物：MR-C38 FoodPublishForm { MR-C63, MR-C06, A04, MR-C89, MR-C68, MR-C90, #point: MR-C91 PointField { MR-C09＋MR-C36 PointPicker（MR-C37） }, MR-C64, MR-C10 }
  *     }
  *   },
- *   MR-C39 FoodEditSheet、MR-C12 ToastHost
+ *   MR-C39 FoodEditSheet（修改）, MR-C67 ConfirmDialog（下架，danger）, MR-C12 ToastHost
  * }
- * 狀態與 API 都在 logic/supplier.ts 的 useSupplierPage()。
+ * 狀態與 API 都在 logic/supplier.ts 的 useSupplierPage()；分頁用 useSupplierTab()（router push，App 返回鍵退回上一個分頁）。
  */
-import { computed, onBeforeUnmount, onMounted } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { CircleAlert, Store } from 'lucide-vue-next'
-import { BaseButton, BaseCard, EmptyState, PageContainer, SourceNote } from '@/ui'
-import { splitEnded } from '../logic/shared'
-import { NOT_APPROVED_TEXT, useSupplierPage, type SupplierTab } from '../logic/supplier'
-import EndedGroup from './EndedGroup.vue'
-import FoodCard from './FoodCard.vue'
+import { BaseButton, EmptyState, PageContainer } from '@/ui'
+import { SUPPLIER_TABS, SUPPLIER_TAB_LABEL, useSupplierPage, useSupplierTab, type Food } from '../logic/supplier'
+import BrandHeader from './BrandHeader.vue'
+import ConfirmDialog from './ConfirmDialog.vue'
 import FoodEditSheet from './FoodEditSheet.vue'
 import FoodPublishForm from './FoodPublishForm.vue'
+import InventoryPanel from './InventoryPanel.vue'
 import PageTransition from './PageTransition.vue'
 import PlacePhoto from './PlacePhoto.vue'
-import PointPicker from './PointPicker.vue'
+import PointField from './PointField.vue'
+import SegmentedTabs from './SegmentedTabs.vue'
 import StaleBanner from './StaleBanner.vue'
-import StatCard from './StatCard.vue'
 import SupplierApplyForm from './SupplierApplyForm.vue'
-import SupplierGate from './SupplierGate.vue'
-import TabBar from './TabBar.vue'
+import SupplierReviewStatus from './SupplierReviewStatus.vue'
 import ToastHost from './ToastHost.vue'
 
-const s = useSupplierPage()
-const { now, saving, offline, tab } = s
-/** 已過期、已下架的收合成「已結束 N 批」（T-126） */
-const stock = computed(() => splitEnded(s.inventory.value))
-const TABS: { value: SupplierTab; label: string }[] = [
-  { value: 'inventory', label: '我的庫存' },
-  { value: 'publish', label: '上架食物' },
-]
+const tab = useSupplierTab()
+const s = useSupplierPage({ tab })
+const { now, saving, offline, stage } = s
+const TABS = SUPPLIER_TABS.map((value) => ({ value, label: SUPPLIER_TAB_LABEL[value] }))
+const title = computed(() => (stage.value === 'approved' && tab.value === 'publish' ? '上架食物' : '提供食物'))
+/** 確認視窗淡出時 closingFood 已清掉，文字沿用最後一次要下架的那一批，避免閃成空白 */
+const closing = ref<Food | null>(null)
+watch(s.closingFood, (f) => f && (closing.value = f))
+const closeMessage = computed(() => {
+  const f = closing.value
+  return f ? `下架後，剩下的 ${f.remaining} 份不會再派送；派出中的 ${f.dispatched_qty} 份照常送達。` : ''
+})
 
 onMounted(s.start)
 onBeforeUnmount(s.stop)
 </script>
 
 <template>
-  <PageContainer title="提供食物" back>
-    <div class="flex flex-col gap-4 pt-2">
+  <PageContainer>
+    <div class="-mx-4"><BrandHeader :title="title" /></div>
+    <div class="flex flex-col gap-4 pt-3">
       <StaleBanner :stale-at="s.staleAt.value" :now="now" />
 
       <PageTransition :loading="s.view.value === 'loading'" :page-key="s.me.value?.role ?? 'none'">
         <EmptyState v-if="s.view.value === 'error'" title="讀取失敗" :description="s.loadError.value" :icon="CircleAlert">
           <BaseButton variant="outline" @click="s.load">再試一次</BaseButton>
         </EmptyState>
-
         <EmptyState
           v-else-if="s.view.value === 'other_role'"
           title="這裡是提供者用的頁面"
@@ -66,50 +68,64 @@ onBeforeUnmount(s.stop)
           :icon="Store"
         />
 
-        <div v-else class="flex flex-col gap-3">
-          <SupplierGate :supplier="s.supplier.value">
-            <template #apply>
-              <SupplierApplyForm :form="s.applyForm" :saving="saving" :offline="offline" :error="s.applyError.value" @submit="s.apply" />
-            </template>
-
-            <div class="flex flex-col gap-4">
-              <PlacePhoto v-if="s.supplierPhoto.value" :photo="s.supplierPhoto.value" size="md" />
-              <TabBar v-model="tab" :tabs="TABS" />
-              <Transition name="tab-fade" mode="out-in">
-                <section v-if="tab === 'inventory'" key="inventory" class="flex flex-col gap-3" aria-label="我的庫存">
-                  <div class="grid grid-cols-2 gap-2">
-                    <StatCard label="剩餘（可派送）" :value="s.totals.value.remaining" />
-                    <StatCard label="派出中" :value="s.totals.value.dispatched" />
-                    <StatCard label="已送達" :value="s.totals.value.delivered" />
-                    <StatCard label="還沒被派出（批）" :value="s.totals.value.unclaimed" tone="alert" />
-                  </div>
-                  <EmptyState v-if="!s.inventory.value.length" title="還沒有上架的食物" description="把多出來的食物上架，志工報到時系統會自動派給長者。">
-                    <BaseButton @click="tab = 'publish'">上架食物</BaseButton>
-                  </EmptyState>
-                  <TransitionGroup name="list" tag="div" class="flex flex-col gap-3">
-                    <FoodCard
-                      v-for="f in stock.active"
-                      :key="f.id"
-                      :class="{ flash: f.id === s.freshFoodId.value }"
-                      :food="f"
-                      :now="now"
-                      actions
-                      @edit="s.openSheet($event, 'edit')"
-                      @close="s.openSheet($event, 'close')"
-                    />
-                  </TransitionGroup>
-                  <EndedGroup :count="stock.ended.length">
-                    <FoodCard v-for="f in stock.ended" :key="f.id" :food="f" :now="now" />
-                  </EndedGroup>
-                  <SourceNote v-if="s.inventory.value.length" :source="`食物點 ${s.sourceText.value}；食物為模擬資料`" />
-                </section>
-
-                <section v-else key="publish" class="flex flex-col gap-4" aria-label="上架食物">
-                  <PointPicker
+        <Transition v-else name="swap" mode="out-in">
+          <SupplierApplyForm
+            v-if="stage === 'apply'"
+            key="apply"
+            :form="s.applyForm"
+            :saving="saving"
+            :offline="offline"
+            :error="s.applyError.value"
+            :checking="s.checking.value"
+            @submit="s.apply"
+            @recheck="s.recheck"
+          />
+          <SupplierReviewStatus
+            v-else-if="s.supplier.value && stage !== 'approved'"
+            key="review"
+            :supplier="s.supplier.value"
+            :checking="s.checking.value"
+            @refresh="s.recheck"
+          />
+          <div v-else key="approved" class="flex flex-col gap-4">
+            <div class="flex items-center justify-center gap-2">
+              <PlacePhoto v-if="s.supplierPhoto.value" :photo="s.supplierPhoto.value" size="sm" />
+              <span class="min-w-0 truncate text-base font-bold text-grey-900">{{ s.supplier.value?.name }}</span>
+              <span class="shrink-0 rounded-full bg-primary-50 px-2.5 py-0.5 text-sm font-semibold text-primary-700">已通過</span>
+            </div>
+            <SegmentedTabs v-model="tab" :tabs="TABS" label="提供者分頁" />
+            <Transition name="tab-fade" mode="out-in">
+              <InventoryPanel
+                v-if="tab === 'inventory'"
+                key="inventory"
+                :active="s.stock.value.active"
+                :ended="s.stock.value.ended"
+                :totals="s.totals.value"
+                :has-waiting="s.hasWaiting.value"
+                :now="now"
+                :fresh-id="s.freshFoodId.value"
+                :offline="offline"
+                @edit="s.openSheet($event, 'edit')"
+                @close="s.openSheet($event, 'close')"
+                @publish="tab = 'publish'"
+              />
+              <FoodPublishForm
+                v-else
+                key="publish"
+                :form="s.foodForm"
+                :now="now"
+                :saving="saving"
+                :offline="offline"
+                :error="s.foodError.value"
+                @image="s.setImage"
+                @submit="s.publish"
+              >
+                <template #point>
+                  <PointField
                     v-model:adding="s.addingPoint.value"
+                    :point="s.selectedPoint.value"
                     :points="s.points.value"
                     :markers="s.markers.value"
-                    :selected-id="s.foodForm.point_id"
                     :source-text="s.sourceText.value"
                     :point-form="s.pointForm"
                     :saving="saving"
@@ -118,41 +134,32 @@ onBeforeUnmount(s.stop)
                     @select="s.selectPoint"
                     @create="s.addPoint"
                   />
-                  <FoodPublishForm
-                    :form="s.foodForm"
-                    :now="now"
-                    :point-name="s.selectedPoint.value?.name"
-                    :saving="saving"
-                    :offline="offline"
-                    :error="s.foodError.value"
-                    @image="s.setImage"
-                    @submit="s.publish"
-                  />
-                </section>
-              </Transition>
-            </div>
-          </SupplierGate>
-
-          <!-- V4：審核中不能上架 -->
-          <BaseCard v-if="s.supplier.value?.status === 'pending'" flat role="note">
-            <p class="text-sm font-medium text-grey-800">{{ NOT_APPROVED_TEXT }}</p>
-            <p class="mt-1 text-sm text-grey-500">這個頁面會自動更新審核結果。</p>
-          </BaseCard>
-        </div>
+                </template>
+              </FoodPublishForm>
+            </Transition>
+          </div>
+        </Transition>
       </PageTransition>
     </div>
 
     <FoodEditSheet
       v-model="s.sheetOpen.value"
       :food="s.editingFood.value"
-      :mode="s.sheetMode.value"
       :form="s.editForm"
       :now="now"
       :error="s.editError.value"
       :saving="saving"
       :offline="offline"
       @save="s.saveEdit"
-      @close="s.confirmClose"
+    />
+    <ConfirmDialog
+      v-model="s.closeDialogOpen.value"
+      :title="`下架「${closing?.name ?? ''}」？`"
+      :message="closeMessage"
+      confirm-text="下架"
+      danger
+      @confirm="s.confirmClose"
+      @cancel="s.cancelClose"
     />
     <ToastHost />
   </PageContainer>

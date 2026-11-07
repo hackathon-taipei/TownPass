@@ -1,47 +1,47 @@
 <script setup lang="ts">
-/** @component MR-C35 SupplierApplyForm — 申請成為提供者：單位名稱、類型、位置（MR-C02）、店面照片（MR-C06，選填，個人不顯示）→ applySupplier */
+/** @component MR-C35 SupplierApplyForm — 申請成為提供者：單位名稱、類型（MR-C92）、位置與地址（MR-C93）、店面照片（MR-C06，選填，個人不顯示）→ applySupplier */
 /**
- * 一般市民（citizen）用；放在 MR-C18 SupplierGate 的 #apply 插槽。
- * 表單狀態在 logic/supplier.ts 的 useSupplierPage()（applyForm），這裡只綁欄位、發 submit。
+ * 設計 v2（docs/meal-relay/design-v2/README.md §3.4，03 左）：
+ *   標語＋MR-C62 MascotBadge、A04 單位名稱、MR-C92 OrgTypePicker、MR-C93 ApplyLocationField、
+ *   店面照片（ADR-029）、MR-C64 InfoNote「審核通過後，就能上架食物」、MR-C10「送出申請」、連結「已申請？查看審核狀態」。
+ * 一般市民（citizen）用；表單狀態在 logic/supplier.ts 的 useSupplierPage()（applyForm），這裡只綁欄位、發 emit。
  * 送出鍵在必填欄位都填好前停用（D4），離線時也停用（ADR-024）。
  * 店面照片（ADR-029）：選了類型、而且不是「個人」才顯示；只拍招牌或店門口，不能有人臉、車牌、個資。
- * T-130：類型選項用 MR-C56 CategoryIcon（lucide icon＋中文）。
  */
 import { computed } from 'vue'
-import { BaseChip, BaseInput, SectionTitle } from '@/ui'
+import { ChevronRight } from 'lucide-vue-next'
+import { BaseInput } from '@/ui'
 import { STOREFRONT_PHOTO_RULE, showsStorefrontPhoto } from '../logic/placePhoto'
-import { ORG_TYPES, buildSupplierApply, setFormImage, type ApplyForm } from '../logic/supplier'
-import CategoryIcon from './CategoryIcon.vue'
+import { buildSupplierApply, setFormImage, type ApplyForm } from '../logic/supplier'
+import ApplyLocationField from './ApplyLocationField.vue'
 import ImageInput from './ImageInput.vue'
-import LocationPicker from './LocationPicker.vue'
+import InfoNote from './InfoNote.vue'
+import MascotBadge from './MascotBadge.vue'
+import OrgTypePicker from './OrgTypePicker.vue'
 import SubmitButton from './SubmitButton.vue'
 
-const props = defineProps<{ form: ApplyForm; saving?: boolean; offline?: boolean; error?: string }>()
-const emit = defineEmits<{ submit: [] }>()
+const props = defineProps<{ form: ApplyForm; saving?: boolean; offline?: boolean; error?: string; checking?: boolean }>()
+const emit = defineEmits<{ submit: []; recheck: [] }>()
 
-const ready = computed(() => buildSupplierApply(props.form).ok)
+const built = computed(() => buildSupplierApply(props.form))
+const addressError = computed(() => (built.value.ok ? '' : (built.value.errors.address ?? '')))
 </script>
 
 <template>
-  <form class="flex flex-col gap-4" @submit.prevent="emit('submit')">
-    <SectionTitle title="申請成為提供者" />
-    <p class="text-sm text-grey-600">店家、學校、機關或個人都可以申請；管理員審核通過後就能上架多出來的食物。</p>
+  <form class="flex flex-col gap-4" aria-label="申請成為提供者" @submit.prevent="emit('submit')">
+    <div class="flex items-center gap-3">
+      <h2 class="min-w-0 flex-1 text-2xl leading-snug font-extrabold text-primary-800">讓多出來的一份，<br />成為一份照顧</h2>
+      <MascotBadge :size="88" glow />
+    </div>
 
     <BaseInput v-model="form.name" label="單位名稱" placeholder="例：萬華好味便當" />
-
-    <fieldset>
-      <legend class="mb-2 text-sm font-medium text-grey-700">類型</legend>
-      <div class="flex flex-wrap gap-2">
-        <BaseChip v-for="t in ORG_TYPES" :key="t" :active="form.org_type === t" @click="form.org_type = t">
-          <CategoryIcon kind="org" :value="t" />
-        </BaseChip>
-      </div>
-    </fieldset>
-
-    <div>
-      <p class="mb-2 text-sm font-medium text-grey-700">位置</p>
-      <LocationPicker v-model="form.location" label="在地圖上點一下單位的位置" />
-    </div>
+    <OrgTypePicker v-model="form.org_type" />
+    <ApplyLocationField
+      v-model="form.location"
+      v-model:address="form.address"
+      :show-address="form.org_type !== 'person'"
+      :address-error="addressError"
+    />
 
     <div v-if="showsStorefrontPhoto(form.org_type)">
       <p class="mb-1.5 text-sm font-medium text-grey-700">店面照片（選填）</p>
@@ -55,7 +55,16 @@ const ready = computed(() => buildSupplierApply(props.form).ok)
       />
     </div>
 
+    <InfoNote text="審核通過後，就能上架食物" />
     <p v-if="error" class="text-sm text-warn-200" role="alert">{{ error }}</p>
-    <SubmitButton :loading="saving" :disabled="!ready || offline">送出申請</SubmitButton>
+    <SubmitButton class="min-h-12 text-lg" :loading="saving" :disabled="!built.ok || offline">送出申請</SubmitButton>
+    <button
+      type="button"
+      class="press mx-auto flex min-h-11 items-center gap-0.5 px-2 text-base font-semibold text-primary-700 disabled:text-grey-400"
+      :disabled="checking"
+      @click="emit('recheck')"
+    >
+      已申請？查看審核狀態<ChevronRight class="h-4 w-4" aria-hidden="true" />
+    </button>
   </form>
 </template>
