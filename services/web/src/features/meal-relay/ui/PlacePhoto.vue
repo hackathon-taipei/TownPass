@@ -1,5 +1,5 @@
 <script setup lang="ts">
-/** @component MR-C55 PlacePhoto — 地點照片縮圖（入口、店面）：點一下用底部面板（MR-C09）放大；圖片讀不到就整個隱藏 */
+/** @component MR-C57 PlacePhoto — 地點照片縮圖（入口、店面）：點一下用底部面板（MR-C09）放大；圖片讀不到就整個隱藏 */
 /**
  * 合約 v2.3（ADR-028）：有照片才顯示。父層用 logic/placePhoto.ts 的 xxxPhotoOf() 取得 photo，
  * 回傳 null 時不要放這個元件（不留空框、不放佔位圖）。圖片讀取失敗（例如斷網）也自動隱藏。

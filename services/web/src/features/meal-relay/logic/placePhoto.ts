@@ -3,12 +3,12 @@
  * 合約 docs/system/11-meal-relay.md v2.3：`Station.image_url`、`Point.image_url`、`Food.point_image_url`、`PointCreate.image_id`。
  *
  * 有照片才顯示（回傳 null ＝ 不放縮圖，也不留空框）；網址一律用 data 層的 imageSrc() 接上後端位址。
- * 畫面用 MR-C55 PlacePhoto 顯示縮圖，點一下放大。
+ * 畫面用 MR-C57 PlacePhoto 顯示縮圖，點一下放大。
  */
 import { imageSrc } from '../data'
 import type { Food, Point, Station } from '../data'
 
-/** MR-C55 PlacePhoto 要的資料：圖片完整網址、替代文字、放大時的標題 */
+/** MR-C57 PlacePhoto 要的資料：圖片完整網址、替代文字、放大時的標題 */
 export interface PlacePhoto {
   src: string
   alt: string
