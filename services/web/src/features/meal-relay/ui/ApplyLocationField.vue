@@ -20,33 +20,36 @@ const address = defineModel<string>('address', { required: true })
 defineProps<{ showAddress: boolean; addressError?: string }>()
 
 const open = ref(false)
-const coordText = computed(() => (location.value ? `${location.value.lat.toFixed(5)}, ${location.value.lng.toFixed(5)}` : ''))
+const locationText = computed(() => {
+  if (!location.value) return '還沒選位置'
+  return `${location.value.lat.toFixed(5)}, ${location.value.lng.toFixed(5)}`
+})
 </script>
 
 <template>
   <div class="flex flex-col gap-2">
-    <p class="text-sm font-medium text-grey-700">單位位置</p>
-    <div v-if="location" class="relative">
-      <MapView :markers="[]" :center="location" :picked="location" />
-      <span class="pointer-events-none absolute top-2 left-2 z-[500] rounded-md bg-white px-2 py-0.5 text-xs text-grey-600 shadow-card">位置示意</span>
+    <p class="text-sm font-bold text-grey-900">單位位置</p>
+    <div class="relative isolate">
+      <MapView class="[&_.tp-map]:h-28" :markers="[]" :center="location ?? undefined" :picked="location" />
+      <span class="pointer-events-none absolute top-2 left-2 z-[500] rounded-md bg-white px-2 py-0.5 text-xs text-grey-800 shadow-card">位置示意</span>
     </div>
-    <button
-      v-else
-      type="button"
-      class="press flex h-24 w-full flex-col items-center justify-center gap-1 rounded-xl bg-grey-50 text-sm text-grey-500 ring-1 ring-grey-200"
-      @click="open = true"
-    >
-      <MapPin class="h-6 w-6" aria-hidden="true" />還沒選位置
-    </button>
-    <div class="flex flex-wrap items-center justify-between gap-2">
-      <p class="min-w-0 text-sm text-grey-700">
-        <template v-if="location">已選位置：<span class="tabular-nums">{{ coordText }}</span></template>
-        <template v-else>請在地圖上點一下單位的位置</template>
-      </p>
-      <BaseButton variant="outline" :icon="MapPin" @click="open = true">在地圖上選位置</BaseButton>
+    <div class="flex items-start justify-between gap-2">
+      <BaseInput
+        v-if="showAddress"
+        v-model="address"
+        class="min-w-0 flex-1 [&_label]:sr-only [&_input]:text-sm"
+        label="地址（選填）"
+        :icon="MapPin"
+        :placeholder="location ? locationText : '地址（選填）'"
+        :error="addressError"
+      />
+      <div v-else class="flex min-w-0 items-center gap-1.5 pt-3 text-sm text-grey-700">
+        <MapPin class="size-4 shrink-0" aria-hidden="true" />
+        <p class="break-words tabular-nums">{{ locationText }}</p>
+      </div>
+      <BaseButton class="min-h-11 shrink-0" variant="outline" size="sm" :icon="MapPin" @click="open = true">在地圖上選位置</BaseButton>
     </div>
-    <BaseInput v-if="showAddress" v-model="address" label="地址（選填）" placeholder="例：臺北市萬華區西園路一段 999 號" :error="addressError" />
-    <p v-else class="text-sm text-grey-500">個人提供者不用填地址，位置只用在地圖上。</p>
+    <p v-if="!showAddress" class="text-sm text-grey-500">個人提供者不用填地址，位置只用在地圖上。</p>
 
     <BottomSheet v-model="open" title="在地圖上選位置">
       <div class="flex flex-col gap-3">

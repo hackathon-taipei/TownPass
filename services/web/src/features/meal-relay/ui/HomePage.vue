@@ -45,9 +45,9 @@ const {
 
 <template>
   <PageContainer>
-    <div class="space-y-4 pt-3">
+    <div class="space-y-3.5 pt-2">
       <StaleBanner :stale-at="staleAt" :now="now" />
-      <BrandHero />
+      <BrandHero class="-mx-1.5" />
       <PageTransition :loading="me === undefined" :page-key="me?.role ?? 'none'">
         <template #skeleton>
           <div class="h-13 w-full animate-pulse rounded-xl bg-grey-200" />

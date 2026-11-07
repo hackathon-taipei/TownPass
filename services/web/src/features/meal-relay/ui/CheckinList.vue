@@ -8,6 +8,7 @@
  */
 import './motion.css'
 import { computed } from 'vue'
+import { UsersRound } from 'lucide-vue-next'
 import type { Checkin } from '../logic/station'
 import { checkinHeading } from '../logic/station'
 import CheckinRow from './CheckinRow.vue'
@@ -17,10 +18,12 @@ const heading = computed(() => checkinHeading(props.checkins.length))
 </script>
 
 <template>
-  <section class="border-t border-grey-100 pt-4">
-    <h2 class="text-xl font-bold text-grey-900">{{ heading }}</h2>
+  <section class="border-t border-grey-200 pt-3">
+    <h2 class="flex items-center gap-2.5 text-xl font-extrabold text-primary-900">
+      <UsersRound class="size-6 shrink-0 text-primary-700" aria-hidden="true" />{{ heading }}
+    </h2>
     <p v-if="!checkins.length" class="py-4 text-base text-grey-500">今天還沒有志工報到</p>
-    <TransitionGroup v-else name="list" tag="ul" class="mt-3 space-y-2">
+    <TransitionGroup v-else name="list" tag="ul" class="mt-2 space-y-1">
       <li v-for="c in checkins" :key="c.id">
         <CheckinRow :checkin="c" />
       </li>

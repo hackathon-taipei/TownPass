@@ -16,8 +16,9 @@ const ICON: Record<EntryRole, Component> = { citizen: Package, supplier: Package
 </script>
 
 <template>
-  <BaseButton block size="lg" class="rounded-xl px-5 shadow-card" :to="entry.to" :icon="ICON[entry.role]">
-    <span class="min-w-0 flex-1 truncate text-left text-lg font-bold">{{ entry.label }}</span>
-    <ChevronRight class="size-6 shrink-0" aria-hidden="true" />
+  <BaseButton block size="lg" class="relative h-16! rounded-2xl! bg-linear-to-br from-primary-600 to-primary-700 px-9!" :to="entry.to">
+    <component :is="ICON[entry.role]" class="size-8 shrink-0" aria-hidden="true" />
+    <span class="text-[clamp(1.25rem,6vw,1.75rem)] leading-tight font-extrabold">{{ entry.label }}</span>
+    <ChevronRight class="absolute right-3 size-6" aria-hidden="true" />
   </BaseButton>
 </template>

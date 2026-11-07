@@ -6,15 +6,21 @@
  *
  *   <ImageInput :preview-url="photoUrl" :disabled="saving" @change="onImage" @clear="onClear" />
  *   onImage({ data, mime, bytes }) 的 data 已去掉 data: 前綴
+ *   layout="inline" 有照片時並排顯示操作，可用 hint 補充拍照說明、retakeLabel 自訂重拍按鈕。
  */
 import './motion.css'
 import { computed, ref, watch } from 'vue'
+import { Camera } from 'lucide-vue-next'
 import { IMAGE_MAX_BYTES, IMAGE_QUALITY_STEPS, base64Bytes, fitSize, isImageMime } from '../logic/shared'
 
 const props = defineProps<{
   label?: string
   disabled?: boolean
   previewUrl?: string | null
+  /** 有預覽時，讓照片和操作並排。 */
+  layout?: 'inline'
+  hint?: string
+  retakeLabel?: string
 }>()
 
 const emit = defineEmits<{
@@ -38,7 +44,7 @@ const shown = computed(() => (localPreview.value !== null ? localPreview.value |
 const idle = computed(() => !shown.value)
 const buttonText = computed(() => {
   if (busy.value) return '處理中…'
-  return idle.value ? (props.label ?? '拍照或選圖') : '重新拍照'
+  return idle.value ? (props.label ?? '拍照或選圖') : (props.retakeLabel ?? '重新拍照')
 })
 
 function openPicker() {
@@ -125,7 +131,10 @@ function clear() {
 </script>
 
 <template>
-  <div class="space-y-2">
+  <div
+    class="space-y-2"
+    :class="{ 'grid grid-cols-[minmax(0,3fr)_minmax(0,2fr)] items-center gap-3 space-y-0': layout === 'inline' && shown }"
+  >
     <input
       ref="fileInput"
       type="file"
@@ -141,30 +150,37 @@ function clear() {
       :src="shown"
       alt="圖片預覽"
       class="max-h-48 w-full rounded-xl object-cover ring-1 ring-grey-100"
+      :class="layout === 'inline' && 'aspect-video'"
     />
 
-    <button
-      type="button"
-      class="press flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-white text-base font-medium text-primary-700 ring-1 ring-primary-200 disabled:text-grey-400"
-      :disabled="disabled || busy"
-      :aria-busy="busy"
-      @click="openPicker"
-    >
-      {{ buttonText }}
-    </button>
+    <div class="space-y-2">
+      <button
+        type="button"
+        class="press flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-white text-base font-medium text-primary-700 ring-1 ring-primary-200 disabled:text-grey-400"
+        :class="layout === 'inline' && 'rounded-lg ring-grey-400'"
+        :disabled="disabled || busy"
+        :aria-busy="busy"
+        @click="openPicker"
+      >
+        <Camera v-if="layout === 'inline'" class="size-5 shrink-0" aria-hidden="true" />
+        {{ buttonText }}
+      </button>
 
-    <button
-      v-if="shown && !busy"
-      type="button"
-      class="press flex h-11 w-full items-center justify-center rounded-xl text-sm text-grey-600 disabled:text-grey-400"
-      :disabled="disabled"
-      @click="clear"
-    >
-      移除
-    </button>
+      <p v-if="hint" class="text-xs text-grey-500">{{ hint }}</p>
+      <button
+        v-if="shown && !busy"
+        type="button"
+        class="press flex h-11 w-full items-center justify-center rounded-xl text-sm text-grey-600 disabled:text-grey-400"
+        :class="layout === 'inline' && 'h-auto min-h-9'"
+        :disabled="disabled"
+        @click="clear"
+      >
+        移除
+      </button>
+    </div>
 
     <Transition name="fade-up">
-      <p v-if="error" class="text-sm text-warn-200" role="alert">{{ error }}</p>
+      <p v-if="error" class="col-span-full text-sm text-warn-200" role="alert">{{ error }}</p>
     </Transition>
   </div>
 </template>

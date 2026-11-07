@@ -54,39 +54,40 @@ function confirmReject() {
   if (s) void decide(s.id, 'rejected')
 }
 
-const cell = 'py-3 pr-3 align-middle max-lg:py-0'
+const cell = 'py-3 pr-4 align-middle max-lg:py-0'
 </script>
 
 <template>
   <div class="grid gap-4 lg:grid-cols-3">
-    <BaseCard class="lg:col-span-2">
-      <h2 class="text-xl font-extrabold text-grey-900">待審核 {{ pending.length }} 件</h2>
+    <BaseCard flat :class="reviewed.length ? 'lg:col-span-2' : 'lg:col-span-3'">
+      <p class="mb-2 w-fit rounded-lg bg-primary-700 px-4 py-1 text-lg font-extrabold text-white">待審核</p>
+      <h2 class="mr-display text-2xl font-extrabold text-primary-900">待審核 {{ pending.length }} 件</h2>
       <p v-if="error" role="alert" class="mt-2 text-sm text-warn-200">{{ error }}</p>
       <p v-if="offline" role="status" class="mt-2 text-sm text-grey-600">目前離線，暫時不能審核</p>
 
-      <table v-if="pending.length" class="mt-3 w-full text-left">
+      <table v-if="pending.length" class="mt-3 w-full text-left lg:border-separate lg:border-spacing-0 lg:overflow-hidden lg:rounded-xl lg:border lg:border-grey-200">
         <thead class="max-lg:sr-only">
-          <tr class="bg-grey-50 text-sm text-grey-600">
-            <th scope="col" class="rounded-l-lg py-2 pr-3 pl-3 font-semibold">單位名稱</th>
-            <th scope="col" class="py-2 pr-3 font-semibold">類型</th>
-            <th scope="col" class="py-2 pr-3 font-semibold">位置</th>
-            <th scope="col" class="rounded-r-lg py-2 pr-3 font-semibold">操作</th>
+          <tr class="bg-grey-100 text-base text-grey-800">
+            <th scope="col" class="py-2 pr-4 pl-4 font-bold">單位名稱</th>
+            <th scope="col" class="py-2 pr-4 font-bold">類型</th>
+            <th scope="col" class="py-2 pr-4 font-bold">位置</th>
+            <th scope="col" class="py-2 pr-4 font-bold">操作</th>
           </tr>
         </thead>
         <tbody>
           <tr
             v-for="s in pending"
             :key="s.id"
-            class="border-b border-grey-100 max-lg:flex max-lg:flex-wrap max-lg:items-center max-lg:gap-x-3 max-lg:gap-y-2 max-lg:py-3"
+            class="max-lg:flex max-lg:flex-wrap max-lg:items-center max-lg:gap-x-3 max-lg:gap-y-2 max-lg:border-b max-lg:border-grey-100 max-lg:py-3 lg:not-last:[&>td]:border-b lg:[&>td]:border-grey-100"
           >
-            <td :class="cell" class="lg:pl-3 max-lg:w-full">
+            <td :class="cell" class="max-lg:w-full lg:pl-4">
               <div class="flex items-center gap-2">
                 <PlacePhoto v-if="supplierPhotoOf(s)" :photo="supplierPhotoOf(s)!" />
                 <span class="text-base font-medium text-grey-900">{{ s.name }}</span>
               </div>
             </td>
             <td :class="cell" class="text-base text-grey-700 whitespace-nowrap">{{ ORG_TYPE_LABEL[s.org_type] }}</td>
-            <td :class="cell" class="text-sm break-words text-grey-700 max-lg:min-w-0 max-lg:flex-1">{{ supplierPlaceText(s) }}</td>
+            <td :class="cell" class="break-words text-grey-700 max-lg:min-w-0 max-lg:flex-1">{{ supplierPlaceText(s) }}</td>
             <td :class="cell" class="max-lg:w-full">
               <div class="flex items-center gap-2">
                 <span
@@ -100,7 +101,7 @@ const cell = 'py-3 pr-3 align-middle max-lg:py-0'
                 <template v-else>
                   <button
                     type="button"
-                    class="press min-h-11 rounded-lg bg-primary-600 px-4 text-base font-bold text-white disabled:opacity-50"
+                    class="press min-h-11 rounded-lg bg-primary-700 px-4 text-base font-bold whitespace-nowrap text-white disabled:opacity-50"
                     :disabled="offline || busy.has(s.id)"
                     :aria-label="`通過 ${s.name}`"
                     @click="decide(s.id, 'approved')"
@@ -109,7 +110,7 @@ const cell = 'py-3 pr-3 align-middle max-lg:py-0'
                   </button>
                   <button
                     type="button"
-                    class="press min-h-11 rounded-lg bg-white px-4 text-base font-bold text-grey-700 ring-1 ring-grey-300 disabled:opacity-50"
+                    class="press min-h-11 rounded-lg border border-grey-400 bg-white px-4 text-base font-bold whitespace-nowrap text-grey-800 disabled:opacity-50"
                     :disabled="offline || busy.has(s.id)"
                     :aria-label="`不通過 ${s.name}`"
                     @click="openReject(s)"
@@ -126,9 +127,9 @@ const cell = 'py-3 pr-3 align-middle max-lg:py-0'
       <p class="mt-3 text-xs text-grey-500">通過後申請人變成提供者，可以新增食物點與上架；不通過的申請不能重送。</p>
     </BaseCard>
 
-    <BaseCard>
+    <BaseCard v-if="reviewed.length" flat>
       <SectionTitle title="剛審核的結果" />
-      <ul v-if="reviewed.length" class="divide-y divide-grey-100">
+      <ul class="divide-y divide-grey-100">
         <li v-for="s in reviewed" :key="s.id">
           <ListItem :title="s.name" :subtitle="`${ORG_TYPE_LABEL[s.org_type]}・審核於 ${shortTimeText(s.reviewed_at)}`">
             <template #trailing>
@@ -137,7 +138,6 @@ const cell = 'py-3 pr-3 align-middle max-lg:py-0'
           </ListItem>
         </li>
       </ul>
-      <p v-else class="py-4 text-center text-sm text-grey-500">這次還沒有審核</p>
     </BaseCard>
 
     <ConfirmDialog

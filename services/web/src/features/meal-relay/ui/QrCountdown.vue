@@ -7,6 +7,7 @@
  *   <QrCountdown :seconds="secondsLeft" :fraction="fraction" />
  */
 import { computed } from 'vue'
+import { RefreshCw } from 'lucide-vue-next'
 import { qrCountdownParts } from '../logic/station'
 
 const props = defineProps<{ seconds: number; fraction: number }>()
@@ -15,11 +16,12 @@ const scale = computed(() => Math.min(1, Math.max(0, props.fraction)))
 </script>
 
 <template>
-  <div class="flex items-center gap-3" role="timer" :aria-label="`QR code ${parts.value} ${parts.unit}`">
-    <p class="shrink-0 text-lg font-medium text-grey-700 md:text-xl">
+  <div class="flex items-center gap-2.5 px-1" role="timer" :aria-label="`QR code ${parts.value} ${parts.unit}`">
+    <RefreshCw class="size-5 shrink-0 text-primary-700" aria-hidden="true" />
+    <p class="shrink-0 text-base font-medium text-grey-700 md:text-xl">
       <span class="font-bold tabular-nums text-primary-700">{{ parts.value }}</span> {{ parts.unit }}
     </p>
-    <div class="h-2.5 min-w-0 flex-1 overflow-hidden rounded-full bg-grey-100" aria-hidden="true">
+    <div class="ml-2 h-2.5 min-w-0 flex-1 overflow-hidden rounded-full bg-grey-100" aria-hidden="true">
       <div
         class="h-full origin-left rounded-full bg-primary-500 transition-transform duration-200 ease-linear"
         :style="{ transform: `scaleX(${scale})` }"

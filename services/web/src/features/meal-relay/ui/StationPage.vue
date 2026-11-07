@@ -16,7 +16,7 @@
  *   }
  */
 import { onMounted } from 'vue'
-import { CircleAlert } from 'lucide-vue-next'
+import { CircleAlert, Info } from 'lucide-vue-next'
 import { BaseButton, EmptyState, PageContainer, SourceNote } from '@/ui'
 import { useStation } from '../logic/station'
 import { mealHomeRoute } from '../logic/shared'
@@ -35,7 +35,7 @@ onMounted(start)
     <div class="-mx-4">
       <BrandHeader title="據點報到" variant="banner" />
     </div>
-    <div class="relative -mx-4 -mt-2 rounded-t-2xl bg-white px-4 pt-5">
+    <div class="relative -mx-4 -mt-2 rounded-t-3xl bg-white px-5 pt-4">
       <PageTransition :loading="loading" :page-key="errorMessage ? 'error' : 'station'">
         <EmptyState v-if="errorMessage" title="無法顯示報到 QR code" :description="errorMessage" :icon="CircleAlert">
           <BaseButton @click="retry">重試</BaseButton>
@@ -43,12 +43,14 @@ onMounted(start)
         <EmptyState v-else-if="isStation === false" title="這一頁給據點使用" description="請從首頁進入適合你身分的服務。" :icon="CircleAlert">
           <BaseButton variant="outline" :to="mealHomeRoute">回首頁</BaseButton>
         </EmptyState>
-        <div v-else class="space-y-5">
+        <div v-else class="space-y-3.5">
           <StaleBanner :stale-at="staleAt" :now="now" />
           <StationQrCard :station-name="station?.name ?? '據點'" :qr-text="qrText" :seconds="secondsLeft" :fraction="fraction" />
           <CheckinList :checkins="checkins" />
           <footer class="space-y-1 text-center">
-            <p class="text-sm text-grey-500">每次更新後，請掃描最新 QR code</p>
+            <p class="flex items-center justify-center gap-2 text-sm text-grey-700">
+              <Info class="size-4 shrink-0" aria-hidden="true" />每次更新後，請掃描最新 QR code
+            </p>
             <SourceNote v-if="station" :source="station.source" />
           </footer>
         </div>

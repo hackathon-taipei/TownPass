@@ -68,7 +68,7 @@
 | MR-C47 | CheckinList | 今天報到的志工清單：標題「今天報到・N 位」，新的在上 | `features/meal-relay/ui/CheckinList.vue` |
 | MR-C48 | CheckinRow | 今天報到的一位志工：企鵝頭像、名字、報到時間（淺灰圓角列） | `features/meal-relay/ui/CheckinRow.vue` |
 | MR-C49 | StationQrCard | 據點名稱膠囊、掃描說明、報到 QR code 與更新倒數 | `features/meal-relay/ui/StationQrCard.vue` |
-| MR-C50 | AdminShell | 管理系統外框：鄰食蜂頁首（MR-C60）＋右側動作；寬度 ≥ 1024px 多欄，以下一欄（最寬 7xl） | `features/meal-relay/ui/AdminShell.vue` |
+| MR-C50 | AdminShell | 管理系統白底外框：鄰食蜂頁首（MR-C60）＋右側動作；寬度 ≥ 1024px 多欄，以下一欄 | `features/meal-relay/ui/AdminShell.vue` |
 | MR-C51 | ReviewPanel | 待審核表格：單位名稱（店面照片 MR-C57）、類型、位置（地址，沒有就座標）、通過／不通過（先確認 MR-C67）＋剛審核的結果；離線時按鈕停用 | `features/meal-relay/ui/ReviewPanel.vue` |
 | MR-C52 | BoardPanel | 服務看板：今天的服務概況（5 張統計卡 MR-C13＋地圖 MR-C07 與圖例 MR-C58）、食物去向（照片、剩餘｜已派送｜已送達），已結束的收合（MR-C59） | `features/meal-relay/ui/BoardPanel.vue` |
 | MR-C53 | ElderForm | 長者表單：代號（長者 id，唯讀）、稱呼、所屬據點、模擬地址、過敏原（MR-C01）、下次關懷時間；「更多設定」（MR-C65）裡是下次送餐時間與位置（MR-C02）；「儲存變更」 | `features/meal-relay/ui/ElderForm.vue` |

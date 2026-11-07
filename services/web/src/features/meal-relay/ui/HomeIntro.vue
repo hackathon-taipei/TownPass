@@ -6,5 +6,10 @@ import InfoNote from './InfoNote.vue'
 </script>
 
 <template>
-  <InfoNote text="長者不用操作 App" detail="需要送餐或關懷，請洽里長或社區關懷據點" :icon="Users" />
+  <InfoNote
+    class="min-h-16 [&_svg]:size-8 [&_p:first-child]:text-xl [&_p:first-child]:leading-tight [&_p:first-child]:font-extrabold [&_p:first-child]:text-primary-900 [&_p:last-child]:text-sm"
+    text="長者不用操作 App"
+    detail="需要送餐或關懷，請洽里長或社區關懷據點"
+    :icon="Users"
+  />
 </template>

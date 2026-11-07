@@ -61,7 +61,9 @@ onBeforeUnmount(() => {
       <slot name="icon">
         <component :is="icon" v-if="icon" class="h-5 w-5 shrink-0 text-primary-600" aria-hidden="true" />
       </slot>
-      <span class="min-w-0 flex-1 truncate text-base font-bold text-grey-900">{{ title }}</span>
+      <slot name="title">
+        <span class="min-w-0 flex-1 truncate text-base font-bold text-grey-900">{{ title }}</span>
+      </slot>
       <slot name="chip" />
       <ChevronDown class="tp-accordion__arrow h-5 w-5 shrink-0 text-grey-600" :class="{ 'tp-accordion__arrow--open': isOpen }" aria-hidden="true" />
     </button>

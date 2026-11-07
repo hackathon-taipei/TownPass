@@ -15,15 +15,15 @@ const model = defineModel<OrgType | null>({ required: true })
 
 <template>
   <fieldset>
-    <legend class="mb-2 text-sm font-medium text-grey-700">提供者類型</legend>
-    <div class="grid grid-cols-5 gap-1.5" role="radiogroup" aria-label="提供者類型">
+    <legend class="mb-2 text-sm font-bold text-grey-900">提供者類型</legend>
+    <div class="grid grid-cols-5 gap-2" role="radiogroup" aria-label="提供者類型">
       <button
         v-for="t in ORG_TYPE_ORDER"
         :key="t"
         type="button"
         role="radio"
-        class="press relative flex min-h-16 flex-col items-center justify-center gap-1 rounded-xl px-1 text-sm font-semibold ring-1 transition-colors duration-200"
-        :class="model === t ? 'bg-primary-50 text-primary-700 ring-2 ring-primary-600' : 'bg-white text-grey-700 ring-grey-200'"
+        class="press relative flex min-h-16 flex-col items-center justify-center gap-1 rounded-lg px-1 text-sm font-semibold ring-1 transition-colors duration-200"
+        :class="model === t ? 'bg-primary-50 text-primary-800 ring-2 ring-primary-600' : 'bg-white text-grey-800 ring-grey-300'"
         :aria-checked="model === t"
         :data-org-type="t"
         @click="model = t"

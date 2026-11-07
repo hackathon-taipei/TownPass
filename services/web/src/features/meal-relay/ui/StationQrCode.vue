@@ -16,7 +16,7 @@ const svg = computed(() => (props.text ? qrSvg(props.text) : null))
 </script>
 
 <template>
-  <div class="relative aspect-square w-full overflow-hidden rounded-xl bg-white ring-1 ring-grey-100">
+  <div class="relative aspect-square w-full overflow-hidden rounded-xl bg-white">
     <svg
       v-if="svg"
       class="size-full text-grey-950"

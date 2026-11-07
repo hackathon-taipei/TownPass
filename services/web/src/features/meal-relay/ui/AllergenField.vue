@@ -6,7 +6,7 @@
  *   <AllergenField v-model="form.allergens" />
  */
 import { ref } from 'vue'
-import { Plus, X } from 'lucide-vue-next'
+import { X } from 'lucide-vue-next'
 import { BaseButton } from '@/ui'
 import { ALLERGEN_LABEL } from '../logic/shared'
 import { withoutAllergen, type Allergen } from '../logic/supplier'
@@ -18,19 +18,19 @@ const open = ref(false)
 </script>
 
 <template>
-  <fieldset>
-    <legend class="mb-2 text-sm font-medium text-grey-700">過敏原</legend>
-    <div class="flex flex-wrap items-center gap-2">
+  <div class="grid grid-cols-[5.5rem_minmax(0,1fr)] items-start gap-2" role="group" aria-label="過敏原">
+    <p class="pt-2 text-sm font-bold text-grey-900" aria-hidden="true">過敏原</p>
+    <div class="flex flex-wrap items-center gap-1.5">
       <span
         v-for="a in model"
         :key="a"
-        class="inline-flex h-11 items-center gap-0.5 rounded-full bg-primary-600 pr-1 pl-3.5 text-sm font-semibold text-white"
+        class="inline-flex min-h-9 items-center gap-0.5 rounded-lg bg-primary-600 pl-2 text-xs font-semibold text-white"
         :data-allergen="a"
       >
         {{ ALLERGEN_LABEL[a] }}
         <button
           type="button"
-          class="press flex size-9 items-center justify-center rounded-full"
+          class="press flex h-9 w-7 items-center justify-center rounded-lg"
           :aria-label="`移除${ALLERGEN_LABEL[a]}`"
           @click="model = withoutAllergen(model, a)"
         >
@@ -39,13 +39,13 @@ const open = ref(false)
       </span>
       <button
         type="button"
-        class="press inline-flex h-11 items-center gap-1 rounded-full bg-white px-3.5 text-sm font-semibold text-primary-700 ring-1 ring-primary-600"
+        class="press inline-flex min-h-9 items-center rounded-lg bg-white px-2 text-xs font-semibold text-grey-800 ring-1 ring-grey-400"
         @click="open = true"
       >
-        <Plus class="h-4 w-4" aria-hidden="true" />選擇過敏原
+        選擇過敏原
       </button>
     </div>
-    <p v-if="!model.length" class="mt-1 text-sm text-grey-500">沒有就不用選；系統不會派給對這些過敏的長者</p>
+    <p v-if="!model.length" class="col-start-2 text-xs text-grey-500">沒有就不用選；系統不會派給對這些過敏的長者</p>
 
     <BottomSheet v-model="open" title="選擇過敏原">
       <div class="flex flex-col gap-4">
@@ -53,5 +53,5 @@ const open = ref(false)
         <BaseButton block size="lg" @click="open = false">完成</BaseButton>
       </div>
     </BottomSheet>
-  </fieldset>
+  </div>
 </template>

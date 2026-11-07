@@ -28,7 +28,15 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
           :aria-label="title"
         >
           <div class="mx-auto mb-3 h-1 w-10 rounded-full bg-grey-200" aria-hidden="true" />
-          <h2 class="text-lg font-bold text-grey-900">{{ title }}</h2>
+          <div v-if="$slots['header-action']" class="flex justify-end">
+            <slot name="header-action" />
+          </div>
+          <h2
+            class="break-words"
+            :class="$slots['header-action'] ? 'mr-display text-[clamp(1.5rem,7.5vw,2rem)] leading-tight font-black text-primary-900' : 'text-lg font-bold text-grey-900'"
+          >
+            {{ title }}
+          </h2>
           <div class="mt-3">
             <slot />
           </div>

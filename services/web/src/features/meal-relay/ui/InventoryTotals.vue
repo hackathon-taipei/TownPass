@@ -17,10 +17,10 @@ const cols = [
 </script>
 
 <template>
-  <dl class="grid grid-cols-3 divide-x divide-grey-200 rounded-xl bg-white py-3 ring-1 ring-grey-100" aria-label="庫存總計">
+  <dl class="grid grid-cols-3 divide-x divide-grey-300 py-1" aria-label="庫存總計">
     <div v-for="c in cols" :key="c.label" class="flex flex-col items-center gap-1">
-      <dt class="text-sm text-grey-600">{{ c.label }}</dt>
-      <dd class="text-3xl font-extrabold text-grey-900 tabular-nums">{{ c.value.value }}</dd>
+      <dt class="text-sm font-semibold text-grey-800">{{ c.label }}</dt>
+      <dd class="mr-display text-4xl leading-none font-extrabold text-primary-800 tabular-nums">{{ c.value.value }}</dd>
     </div>
   </dl>
 </template>

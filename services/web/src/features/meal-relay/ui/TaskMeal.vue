@@ -37,12 +37,12 @@ const place = computed(() => pickupPlaceOf(props.claim.food))
         :aria-label="`放大「${photo.alt}」的照片`"
         @click="zoom = true"
       >
-        <FoodThumb :food="claim.food" size="lg" />
+        <FoodThumb class="aspect-[6/5] h-auto! w-[clamp(5rem,31vw,7.25rem)]! rounded-xl!" :food="claim.food" />
       </button>
       <div class="min-w-0 flex-1">
-        <p class="text-lg font-extrabold break-words text-grey-900">{{ claim.food.name }}</p>
+        <p class="text-xl leading-tight font-black break-words text-primary-900">{{ claim.food.name }}</p>
         <p class="text-sm text-grey-600">{{ mealLineOf(claim) }}</p>
-        <p class="mt-1 inline-block rounded-lg bg-secondary-100 px-2 py-0.5 text-sm font-bold text-grey-900">取餐地點：{{ place.name }}</p>
+        <p class="mt-1 inline-block rounded-lg bg-secondary-200 px-1.5 py-0.5 text-sm leading-snug font-bold text-grey-900">取餐地點：{{ place.name }}</p>
         <p v-if="place.address" class="mt-0.5 text-sm break-words text-grey-600">{{ place.address }}</p>
       </div>
     </div>

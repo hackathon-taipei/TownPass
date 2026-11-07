@@ -4,6 +4,7 @@
  * 設計 v2（docs/meal-relay/design-v2/README.md §2、§3.1 第 5 項）：MR-C65 Accordion，預設收合，原地展開說明與 3 個連結。
  * 連結由父層用 bridge open_link 開啟（@open(url)），開法與 T-116 相同。
  */
+import { UserRound } from 'lucide-vue-next'
 import { BaseButton } from '@/ui'
 import type { VolunteerLink } from '../logic/home'
 import Accordion from './Accordion.vue'
@@ -13,7 +14,8 @@ defineEmits<{ open: [url: string] }>()
 </script>
 
 <template>
-  <Accordion title="想成為志工？">
+  <Accordion class="bg-grey-50/60!" title="想成為志工？">
+    <template #icon><UserRound class="size-6 shrink-0 text-grey-900" aria-hidden="true" /></template>
     <p class="text-base text-grey-700">
       志工由各社區關懷據點依「臺北市政府所屬各機關志願服務管理及運用原則」，透過臺北市志工管理整合平臺招募，在臺北 E 大完成志願服務基礎訓練與據點的特殊訓練後加入據點。這個服務不受理志工申請，想幫忙請到臺北市志工管理整合平臺報名。
     </p>

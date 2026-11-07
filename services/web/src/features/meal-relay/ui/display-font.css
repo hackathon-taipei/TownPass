@@ -1,0 +1,14 @@
+/* 顯示標題字型取自 jf open 粉圓 v2.1，依 OFL 改名並只保留設計稿標題字元。
+   https://github.com/justfont/open-huninn-font/releases/tag/v2.1
+   授權見 public/meal-relay/brand/OFL-Huninn.txt。 */
+@font-face {
+  font-family: 'Meal Relay Display';
+  src: url('./meal-relay-display.woff2') format('woff2');
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+}
+
+.mr-display {
+  font-family: 'Meal Relay Display', var(--font-sans);
+}

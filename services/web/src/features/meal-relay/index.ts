@@ -6,6 +6,7 @@
  */
 import { HandPlatter } from 'lucide-vue-next'
 import { defineFeature } from '@/framework'
+import './ui/display-font.css'
 
 export default defineFeature({
   id: 'meal-relay',

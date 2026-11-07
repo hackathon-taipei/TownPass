@@ -21,22 +21,27 @@ defineProps<{
 </script>
 
 <template>
-  <section class="rounded-2xl bg-white p-4 shadow-card ring-1 ring-grey-100" aria-label="今天的報到">
+  <section class="rounded-2xl bg-linear-to-br from-grey-50/50 to-primary-50 p-4 ring-1 ring-primary-200" aria-label="今天的報到">
     <div class="flex items-center gap-3">
-      <span class="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary-50 text-primary-600" aria-hidden="true">
-        <House class="h-7 w-7" :stroke-width="2.25" />
+      <span class="flex size-12 shrink-0 items-center justify-center text-primary-700" aria-hidden="true">
+        <House class="size-10" :stroke-width="2.5" />
       </span>
       <div class="min-w-0 flex-1">
-        <p class="text-lg font-extrabold break-words text-grey-900">{{ stationName || '報到的據點' }}</p>
-        <p v-if="checkedInAt" class="text-base text-grey-600">今天 {{ checkedInAt }} 報到</p>
+        <p class="text-2xl leading-tight font-black break-words text-primary-800">{{ stationName || '報到的據點' }}</p>
+        <p v-if="checkedInAt" class="text-lg text-grey-600">今天 {{ checkedInAt }} 報到</p>
       </div>
     </div>
-    <hr class="my-4 border-grey-100" />
-    <p class="text-center text-2xl font-extrabold text-grey-900" aria-live="polite">
-      <span :key="taskCount" class="bump mr-1 inline-block text-5xl text-secondary-500 tabular-nums">{{ taskCount }}</span>
+    <hr class="my-3 border-grey-200" />
+    <p class="flex items-baseline justify-center gap-3 py-1 text-[clamp(1.625rem,7.5vw,2.25rem)] leading-tight font-black text-primary-800" aria-live="polite">
+      <span :key="taskCount" class="bump relative inline-block text-7xl leading-none text-secondary-600 tabular-nums">
+        {{ taskCount }}
+        <svg class="pointer-events-none absolute -top-1 -right-4 size-6 text-secondary-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" aria-hidden="true">
+          <path d="m6 10 2-6m3 9 5-5m-2 9 6-2" />
+        </svg>
+      </span>
       件待完成
     </p>
-    <BaseButton class="mt-4 rounded-xl" block size="lg" :to="tasksTo">
+    <BaseButton class="mt-3 h-14! rounded-xl! bg-linear-to-br from-primary-600 to-primary-700 text-2xl! font-extrabold!" block size="lg" :to="tasksTo">
       查看我的任務
       <ArrowRight class="h-6 w-6" aria-hidden="true" />
     </BaseButton>

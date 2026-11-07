@@ -25,13 +25,13 @@ watch(doorBlock, (block) => block && result.value === 'left_at_door' && (result.
     <label
       v-for="opt in REPORT_OPTIONS"
       :key="opt.value"
-      class="flex min-h-13 items-center gap-3 rounded-xl px-4 py-2 ring-1 transition-colors"
+      class="flex min-h-11 items-center gap-3 rounded-lg px-4 py-2 ring-1 transition-colors"
       :class="
         disabledOf(opt.value)
           ? 'cursor-not-allowed bg-grey-50 text-grey-400 ring-grey-100'
           : result === opt.value
-            ? 'bg-primary-50 text-grey-900 ring-2 ring-primary-500'
-            : 'bg-white text-grey-900 ring-grey-200'
+            ? 'bg-linear-to-r from-primary-50 to-primary-100 text-grey-900 ring-primary-100'
+            : 'bg-grey-50/40 text-grey-900 ring-grey-300'
       "
       :data-option="opt.value"
     >

@@ -174,7 +174,7 @@ export function taskStatusOf(task: Pick<TaskView, 'claim'>): TaskStatus {
 export type TaskChip = { label: string; kind: 'todo' | 'status' }
 export function taskChipsOf(task: Pick<TaskView, 'claim' | 'todo'>): TaskChip[] {
   const status = taskStatusOf(task)
-  if (status === 'care') return [{ label: TASK_STATUS_LABEL.care, kind: 'status' }]
+  if (status === 'care') return [{ label: TASK_STATUS_LABEL.care, kind: 'todo' }]
   return [
     { label: task.todo.includes('care') ? '送餐+關懷' : '送餐', kind: 'todo' },
     { label: TASK_STATUS_LABEL[status], kind: 'status' },

@@ -6,7 +6,6 @@
  * 只轉發 PointPicker 的 emit，API 由頁面的 useSupplierPage() 呼叫。
  */
 import { ref, watch } from 'vue'
-import { MapPin } from 'lucide-vue-next'
 import type { Marker } from '../logic/mapMarker'
 import type { Point, PointForm } from '../logic/supplier'
 import BottomSheet from './BottomSheet.vue'
@@ -36,15 +35,14 @@ watch(
 </script>
 
 <template>
-  <div>
-    <p class="mb-2 text-sm font-medium text-grey-700">食物點</p>
-    <div class="flex min-h-12 items-center gap-2 rounded-xl bg-white px-3 py-2 ring-1 ring-grey-200">
-      <MapPin class="h-5 w-5 shrink-0 text-primary-600" aria-hidden="true" />
+  <div class="grid grid-cols-[5.5rem_minmax(0,1fr)] items-start gap-2" role="group" aria-label="食物點">
+    <p class="pt-3 text-sm font-bold text-grey-900" aria-hidden="true">食物點</p>
+    <div class="flex min-h-11 items-center gap-2 rounded-lg bg-white pl-3 ring-1 ring-grey-300">
       <div class="min-w-0 flex-1">
-        <p class="text-base break-words" :class="point ? 'font-semibold text-grey-900' : 'text-grey-500'">{{ point?.name ?? '還沒選食物點' }}</p>
+        <p class="text-sm break-words" :class="point ? 'font-semibold text-grey-900' : 'text-grey-500'">{{ point?.name ?? '還沒選食物點' }}</p>
         <p v-if="point?.address" class="text-xs text-grey-500">{{ point.address }}</p>
       </div>
-      <button type="button" class="press min-h-11 shrink-0 rounded-lg px-2 text-base font-semibold text-primary-700" @click="open = true">
+      <button type="button" class="press min-h-11 shrink-0 rounded-lg px-2 text-sm font-semibold text-primary-700" @click="open = true">
         {{ point ? '變更' : '選擇' }}
       </button>
     </div>

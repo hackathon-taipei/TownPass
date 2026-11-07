@@ -18,11 +18,11 @@ watch(
 </script>
 
 <template>
-  <div ref="card" class="rounded-xl bg-white p-3 shadow-card ring-1 ring-grey-100" :class="icon ? 'flex items-center gap-2.5' : ''">
-    <component :is="icon" v-if="icon" class="h-7 w-7 shrink-0 text-primary-600" :stroke-width="1.75" aria-hidden="true" />
+  <div ref="card" class="rounded-xl border border-grey-200 bg-white p-2.5 xl:p-3" :class="icon ? 'flex items-center gap-2.5' : ''">
+    <component :is="icon" v-if="icon" class="size-7 shrink-0 text-primary-700 xl:size-9" :stroke-width="1.75" aria-hidden="true" />
     <div :class="icon ? 'min-w-0' : 'contents'">
-      <p class="text-xs text-grey-600">{{ label }}</p>
-      <p class="mt-1 text-2xl font-bold tabular-nums" :class="tone === 'alert' && value > 0 ? 'text-warn-200' : 'text-grey-900'">
+      <p class="text-xs font-semibold text-grey-800 xl:text-sm">{{ label }}</p>
+      <p class="text-2xl leading-none font-extrabold tabular-nums xl:text-3xl" :class="tone === 'alert' && value > 0 ? 'text-warn-200' : 'text-primary-900'">
         {{ shown }}
       </p>
     </div>

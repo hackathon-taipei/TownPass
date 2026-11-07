@@ -7,16 +7,21 @@
  *   <VolunteerSteps :current="step" />
  */
 import { computed } from 'vue'
-import { CircleCheck, Package, ScanLine } from 'lucide-vue-next'
+import { CircleCheck, CookingPot, ScanLine } from 'lucide-vue-next'
 import { VOLUNTEER_STEP_LABELS, type VolunteerStep } from '../logic/volunteer'
 import StepIndicator from './StepIndicator.vue'
 
 defineProps<{ current: VolunteerStep }>()
 
-const ICONS = [ScanLine, Package, CircleCheck]
+const ICONS = [ScanLine, CookingPot, CircleCheck]
 const steps = computed(() => VOLUNTEER_STEP_LABELS.map((label, i) => ({ label, icon: ICONS[i]! })))
 </script>
 
 <template>
-  <StepIndicator :steps="steps" :current="current" aria-label="今天的步驟" />
+  <StepIndicator
+    class="min-h-23 justify-around! bg-linear-to-br from-primary-50 to-primary-100 [&_li[data-state]]:text-primary-800 [&_li[data-state]_svg]:size-8 [&_li[data-state]_span]:text-base [&_li[data-state]_span]:font-extrabold"
+    :steps="steps"
+    :current="current"
+    aria-label="今天的步驟"
+  />
 </template>

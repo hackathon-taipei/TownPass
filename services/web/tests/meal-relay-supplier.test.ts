@@ -635,7 +635,7 @@ describe('畫面 MR-P06：分頁與網址 ?tab= 同步（T-136）', () => {
     expect(el.querySelector('h1')!.textContent).toBe('上架食物')
     expect(el.querySelector('[aria-current="step"]')?.textContent).toContain('拍照')
 
-    byText(el, '[role="tab"]', '我的庫存')!.click()
+    el.querySelector<HTMLButtonElement>('button[aria-label="返回我的庫存"]')!.click()
     await until(() => router.currentRoute.value.query.tab === 'inventory', '網址變成 inventory')
     expect(router.currentRoute.value.query).toEqual({ as: 'u-sup-1', tab: 'inventory' })
     await until(() => !!el.querySelector('section[aria-label="我的庫存"]'), '庫存分頁')

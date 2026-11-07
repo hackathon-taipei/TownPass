@@ -26,7 +26,7 @@ const photos = computed(
 
 <template>
   <section>
-    <SectionTitle title="附近關懷據點" />
+    <SectionTitle class="mr-display [&_h2]:text-xl [&_h2]:font-extrabold [&_h2]:text-primary-800" title="附近關懷據點" />
     <BaseCard v-if="stations === undefined"><SkeletonBlock :lines="3" /></BaseCard>
     <BaseCard v-else-if="stations === null">
       <EmptyState title="讀不到據點清單" :description="error" :icon="MapPin">
@@ -34,20 +34,20 @@ const photos = computed(
       </EmptyState>
     </BaseCard>
     <BaseCard v-else-if="stations.length === 0"><EmptyState title="目前沒有據點資料" :icon="MapPin" /></BaseCard>
-    <ul v-else class="space-y-2">
+    <ul v-else class="space-y-px">
       <li
         v-for="s in stations"
         :key="s.id"
-        class="press relative flex min-h-16 items-center gap-3 rounded-xl bg-white px-3 py-2 ring-1 ring-grey-200 active:bg-grey-50"
+        class="press relative flex min-h-14 items-center gap-2.5 rounded-xl border border-grey-200 bg-grey-50/40 px-3 py-1.5 active:bg-grey-50"
       >
-        <MapPin class="size-6 shrink-0 text-primary-600" aria-hidden="true" />
+        <MapPin class="size-7 shrink-0 fill-primary-700 text-primary-700 [&_circle]:fill-white [&_circle]:stroke-white" aria-hidden="true" />
         <button
           type="button"
           class="min-w-0 flex-1 text-left after:absolute after:inset-0 after:rounded-xl"
           :aria-label="`${s.name}，${stationAddressText(s)}，查看位置`"
           @click="$emit('select', s)"
         >
-          <span class="block truncate text-base font-bold text-grey-900">{{ s.name }}</span>
+          <span class="block text-lg leading-tight font-extrabold break-words text-grey-900">{{ s.name }}</span>
           <span class="block text-sm text-grey-600">{{ stationAddressText(s) }}</span>
         </button>
         <PlacePhoto v-if="photos.get(s.id)" class="relative z-10" :photo="photos.get(s.id)!" />

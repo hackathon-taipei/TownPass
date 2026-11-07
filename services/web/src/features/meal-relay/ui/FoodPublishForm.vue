@@ -52,8 +52,8 @@ let __skipHintShown = false
 </script>
 
 <template>
-  <form class="flex flex-col gap-4" aria-label="上架食物" @submit.prevent="emit('submit')">
-    <StepIndicator :steps="[...PUBLISH_STEPS]" :current="step" />
+  <form class="flex flex-col gap-3" aria-label="上架食物" @submit.prevent="emit('submit')">
+    <StepIndicator class="border-b border-grey-200" :steps="[...PUBLISH_STEPS]" :current="step" />
 
     <section class="flex flex-col gap-2" aria-label="食物照片">
       <template v-if="!revealed">
@@ -62,12 +62,14 @@ let __skipHintShown = false
       </template>
       <ImageInput
         :label="revealed ? '拍照或選圖' : '拍照'"
+        layout="inline"
+        hint="照片選填，方便志工辨認"
+        retake-label="重拍"
         :preview-url="form.image_preview"
         :disabled="saving"
         @change="onImage"
         @clear="emit('image', null)"
       />
-      <p class="text-xs text-grey-500">照片選填，方便志工辨認</p>
       <BaseButton v-if="!revealed" variant="ghost" block @click="skip">略過，先填資料</BaseButton>
       <Transition name="fade-up">
         <p v-if="hintShown" class="text-sm text-grey-600" role="status">有照片，志工比較好找</p>
@@ -75,20 +77,40 @@ let __skipHintShown = false
     </section>
 
     <Transition name="fade-up">
-      <div v-if="revealed" class="flex flex-col gap-4">
-        <BaseInput v-model="form.name" label="食物名稱" placeholder="例：雞腿便當" />
+      <div v-if="revealed" class="flex flex-col gap-3">
+        <BaseInput v-model="form.name" class="publish-input" label="食物名稱" placeholder="例：雞腿便當" />
         <CategoryPicker v-model="form.category" />
-        <fieldset>
-          <legend class="mb-1.5 text-sm font-medium text-grey-700">份數</legend>
-          <NumberStepper :model-value="form.qty ?? 1" :min="1" :max="999" label="份數" @update:model-value="form.qty = $event" />
-        </fieldset>
-        <BaseInput v-model="form.expires_local" type="datetime-local" label="最晚食用時間" :error="timeError" />
+        <div class="grid grid-cols-[5.5rem_minmax(0,1fr)] items-start gap-2">
+          <span class="pt-3 text-sm font-bold text-grey-900" aria-hidden="true">份數</span>
+          <NumberStepper class="w-full [&_input]:flex-1" :model-value="form.qty ?? 1" :min="1" :max="999" label="份數" @update:model-value="form.qty = $event" />
+        </div>
+        <BaseInput v-model="form.expires_local" class="publish-input" type="datetime-local" label="最晚食用時間" :error="timeError" />
         <AllergenField v-model="form.allergens" />
         <slot name="point" />
         <InfoNote text="上架後仍可修改份數與時間" />
         <p v-if="error" class="text-sm text-warn-200" role="alert">{{ error }}</p>
-        <SubmitButton class="min-h-12 text-lg" :loading="saving" :disabled="step < 2 || offline">確認上架</SubmitButton>
+        <SubmitButton class="min-h-12 text-xl font-bold enabled:bg-primary-700 enabled:hover:bg-primary-800" :loading="saving" :disabled="step < 2 || offline">確認上架</SubmitButton>
       </div>
     </Transition>
   </form>
 </template>
+
+<style scoped>
+.publish-input {
+  display: grid;
+  grid-template-columns: 5.5rem minmax(0, 1fr);
+  gap: 0.375rem 0.5rem;
+}
+.publish-input :deep(label) {
+  padding-top: 0.625rem;
+  font-weight: 700;
+  color: var(--color-grey-900);
+}
+.publish-input :deep(input) {
+  min-width: 0;
+  border-color: var(--color-grey-300);
+}
+.publish-input :deep(p) {
+  grid-column: 2;
+}
+</style>

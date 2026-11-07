@@ -30,7 +30,10 @@ const legend = computed(() => legendOf(markers.value))
 </script>
 
 <template>
-  <Accordion v-model="open" title="查看位置" :icon="MapPin">
+  <Accordion v-model="open" class="bg-grey-50/40! [&>button]:min-h-9!" title="查看位置">
+    <template #icon>
+      <MapPin class="size-5 shrink-0 fill-primary-700 text-primary-700 [&_circle]:fill-white [&_circle]:stroke-white" aria-hidden="true" />
+    </template>
     <template v-if="open">
       <!-- 據點讀到後重建一次地圖，讓第一次縮放包含據點與長者 -->
       <MapView :key="task.station ? 'with-station' : 'elder-only'" :markers="markers" />

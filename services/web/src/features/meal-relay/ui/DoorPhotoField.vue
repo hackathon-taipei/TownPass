@@ -31,13 +31,13 @@ function onFile(e: Event) {
         :key="photoUrl"
         :src="photoUrl"
         alt="門口照片"
-        class="h-28 w-40 shrink-0 rounded-xl object-cover ring-1 ring-grey-100"
+        class="aspect-video min-w-0 flex-1 rounded-xl object-cover ring-1 ring-grey-100"
       />
       <p v-else class="min-w-0 flex-1 text-sm text-grey-600">{{ uploading ? '照片上傳中…' : '放門口一定要拍照' }}</p>
     </Transition>
     <button
       type="button"
-      class="press inline-flex min-h-12 shrink-0 items-center gap-1.5 rounded-xl bg-white px-4 text-base font-bold text-primary-700 ring-1 ring-primary-500 disabled:opacity-40"
+      class="press inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-lg border border-primary-600 bg-white px-2.5 text-sm font-bold text-primary-800 disabled:opacity-40"
       :class="photoUrl ? 'ml-auto' : ''"
       :disabled="disabled || uploading"
       @click="fileInput?.click()"

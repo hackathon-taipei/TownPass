@@ -7,9 +7,9 @@
 
 | 編號 | 元件 | 用途 | 傳入 | 對應的端點 |
 |---|---|---|---|---|
-| MR-C07 | `MapView` | 地圖：據點、長者、食物點的定位針（icon＋三色，T-126）、「我的位置」企鵝；選點；拖曳、滾輪、雙指縮放。已結束的定位針不畫。**長者定位針只用在管理員登記長者與志工自己的任務（M13）**，志工畫面不能出現長者清單；合約沒有志工位置，「我」只來自裝置定位、不送後端 | `markers`、`center?`、`on-pick?`、`picked?` | `listMyAssignments`＋`listStations`（志工任務卡）、`listPoints`、`listElders`（管理員選點參考）；選點後 `createElder`（管理員）、`createPoint`、`applySupplier` |
+| MR-C07 | `MapView` | 地圖：據點、長者、食物點的定位針（icon＋三色，T-126）、「我的位置」企鵝；選點；拖曳、滾輪、雙指縮放。已結束的定位針不畫。**長者定位針只用在管理員登記長者與志工自己的任務（M13）**，志工畫面不能出現長者清單；合約沒有志工位置，「我」只來自裝置定位、不送後端 | `markers`、`center?`、`on-pick?`、`picked?`、`zoomPosition?`（預設 `bottomright`，管理看板用 `bottomleft` 避開右側圖例） | `listMyAssignments`＋`listStations`（志工任務卡）、`listPoints`、`listElders`（管理員選點參考）；選點後 `createElder`（管理員）、`createPoint`、`applySupplier` |
 | MR-C08 | `TabBar` | 分頁列 | `v-model`、`tabs` | — |
-| MR-C09 | `BottomSheet` | 底部面板 | `v-model`、`title` | 拜訪回報 `reportVisit` |
+| MR-C09 | `BottomSheet` | 底部面板 | `v-model`、`title`、可選 `#header-action`（回報用於右上關閉按鈕） | 拜訪回報 `reportVisit` |
 | MR-C10 | `SubmitButton` | 送出按鈕：送出中停用，超過 300ms 才轉圈 | `loading`、`disabled` | 所有寫入 |
 | MR-C11 | `QtyInput` | 份數輸入框：只收 `min`～`max` 的整數；低於下限顯示「不能少於已派出＋已送達的 N 份」 | `v-model`、`min?`（預設 1；改份數時傳 `dispatched_qty + delivered_qty`，M14）、`max?`（預設 999）、`server-error?` | `createFood`、`updateFood`（`QTY_BELOW_USED`） |
 | MR-C12 | `ToastHost` | 提示訊息（`toast('…')`、`toast(message, 'error')`） | — | 所有寫入的成功與錯誤 |
@@ -55,7 +55,7 @@
 | MR-C62 | `MascotBadge` 企鵝圓形頭像 | `size?`（預設 64）、`glow?`（右上光芒）、`done?`（右下角 lucide `CircleCheck`）、`alt?`（沒傳視為裝飾圖） | — | 01 中志工問候的頭像（`glow`）、04 右完成畫面（`size=160 glow done`，見下方「完成插圖」） |
 | MR-C63 | `StepIndicator` 步驟列 | `steps`（`{label, icon?}[]`）、`current`（從 0 起算） | — | 01 中「報到 → 取餐 → 回報」（每步都有 `icon` 時為圖示版）、03 右「① 拍照 → ② 填寫資訊 → ③ 上架」（沒有 `icon` 時為數字圓圈版）。已完成打勾、目前步驟加粗加底色並標 `aria-current="step"`、還沒到的變灰 |
 | MR-C64 | `InfoNote` 淺黃提醒卡 | `text?`、`detail?`（第二行小字）、`icon?`（預設 lucide `Info`） | 預設插槽（取代 `text`） | 01 左「長者不用操作 App」、03 左「審核通過後，就能上架食物」、03 中「還有食物等待派送」、03 右「上架後仍可修改份數與時間」 |
-| MR-C65 | `Accordion` 收合列 | `title`、`group?`（同名的列一次只展開一個）、`name?`（在群組裡的名字，預設自動編號）、`icon?`；`v-model` 綁開關（不綁就自己管） | 插槽：預設＝展開內容、`#chip`＝標題列右側晶片、`#icon`＝左側圖示 | 01 左「想成為志工？」、01 右任務卡與「查看位置」、03 中「已結束的食物（N）」。展開與收合有高度動畫，`prefers-reduced-motion` 時沒有動畫；收合時內容 `inert` |
+| MR-C65 | `Accordion` 收合列 | `title`、`group?`（同名的列一次只展開一個）、`name?`（在群組裡的名字，預設自動編號）、`icon?`；`v-model` 綁開關（不綁就自己管） | 插槽：預設＝展開內容、`#title`＝自訂標題文字、`#chip`＝標題列右側晶片、`#icon`＝左側圖示 | 01 左「想成為志工？」、01 右任務卡與「查看位置」、03 中「已結束的食物（N）」。展開與收合有高度動畫，`prefers-reduced-motion` 時沒有動畫；收合時內容 `inert` |
 | MR-C66 | `SegmentedTabs` 分段切換 | `v-model`、`tabs`（`{value, label, badge?}[]`）、`label?`（無障礙名稱） | — | 03 中「我的庫存｜上架食物」、02 管理系統「待審核 ②｜服務看板｜長者名冊」。與網址 `?tab=` 同步用 `useTabQuery('tab', ['inventory', 'publish'] as const)`，回傳可寫的 computed 直接 `v-model`；寫入用 router push，App 返回鍵可退回上一個分頁 |
 | MR-C67 | `ConfirmDialog` 確認視窗 | `v-model`（開關）、`title`、`message?`、`confirmText?`（預設「確認」）、`cancelText?`（預設「取消」）、`danger?` | `confirm`、`cancel`（兩者都會把 `v-model` 設回 false） | 下架、取消這份餐、重置示範資料、不通過（設計圖沒有，樣式依規格）。`danger` 時確認鍵是紅色（`warn` token）；開啟時焦點在「取消」；Esc、點遮罩＝取消；Tab 只在兩顆按鈕間循環；關閉後焦點回到開啟前的元素 |
 | MR-C68 | `NumberStepper` −／數字／+ | `v-model`（數字）、`min?`（預設 1）、`max?`（預設 999）、`step?`（預設 1）、`label?`（預設「數量」，給螢幕閱讀器） | — | 03 右「份數」。到下限 − 停用、到上限 + 停用；中間可直接輸入（只收數字，全形也行；輸入中不超出範圍才先收進去，離開欄位或按 Enter 才收進上下限；空白或非數字還原）。與 MR-C11 `QtyInput`（純輸入框＋錯誤提示）不同 |
@@ -185,6 +185,16 @@
 |---|---|---|---|
 | 志工企鵝頭像 6 張 | `services/web/public/meal-relay/penguins/penguin-1～6.png`（160×160 去背 PNG） | 團隊成員郭畇呈於 2026-11-07 用 Google Gemini 以文字描述生成一張 2×3 的貼圖，再由團隊用自己的程式切割、去背。是原創的戴帽 T、綠色太陽眼鏡企鵝，**不是**既有角色（不是 Tux、Pingu 等） | 隨本 repo 以 AGPL-3.0 釋出。Google 的生成式 AI 使用條款不主張輸出內容的所有權。生成工具只在設計階段使用，執行時不呼叫任何雲端模型（比賽規則 4） |
 | 鄰食蜂標誌（完整版、企鵝頭像、字標） | `services/web/public/meal-relay/brand/logo.webp`、`mascot.webp`、`wordmark.webp`（去背 WebP） | 設計者提供的標誌原圖 `docs/meal-relay/design-v2/05-logo.webp`（白底），T-132 用 Python Pillow 去背、裁切、縮小 | 隨本 repo 以 AGPL-3.0 釋出；原圖的製作方式與授權請設計者確認後補在這裡（換圖時檔名與尺寸不變，程式不用改） |
+| 任務完成企鵝 | `services/web/public/meal-relay/brand/mascot-done.webp` | `docs/meal-relay/design-v2/04-station-report-done.webp` 右欄的企鵝與勾號，裁切去背 | 鄰食蜂設計素材 |
+| 鄰食蜂展示標題字型 | `services/web/src/features/meal-relay/ui/meal-relay-display.woff2` | [justfont jf open 粉圓 v2.1](https://github.com/justfont/open-huninn-font/releases/tag/v2.1)，重新命名並保留設計標題與數字所需字元 | SIL OFL 1.1，授權全文見 `services/web/public/meal-relay/brand/OFL-Huninn.txt` |
 | 地圖底圖 | `services/web/public/maps/taipei.pmtiles` | OpenStreetMap、Protomaps | ODbL（OpenStreetMap）；地圖右下角有標示 |
 
 若主辦單位認定 AI 生成的圖不能用，就把這 6 張換成開放授權的圖，或團隊自己畫的圖：檔名和尺寸不變，程式不用改。
+
+## 6. 設計 v2 畫面細節
+
+- 大標題或統計數字可套 `mr-display`。字型跟著建置資產由 Service Worker 預先快取。子集缺少的字元會使用系統字，內文和表單也使用系統字。
+- MR-C06 `ImageInput` 的 `layout="inline"` 可在已有照片時把預覽、重拍和移除並排。可用 `hint` 與 `retakeLabel` 調整提示及按鈕文字。
+- 志工任務的待取餐與配送中使用蜂蜜黃色狀態標籤。送餐加關懷、純關懷使用淺青色任務類型標籤，過敏原仍以紅色標示。
+- 提供者的上架表單用單欄標籤配對輸入欄位。頁首「返回我的庫存」保留分頁操作，店面照片放在申請表的選填收合區。
+- 管理看板、審核和長者名冊各自顯示於對應分頁。桌面看板保留可操作的 OpenStreetMap 地圖，長者名冊與編輯表單左右並排，手機編輯則用底部面板。

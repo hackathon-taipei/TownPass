@@ -36,15 +36,15 @@ const CHIP_TONE = { primary: 'bg-primary-50 text-primary-700', warn: 'bg-warn-10
 
 <template>
   <article
-    class="flex gap-3 rounded-xl bg-white p-3 shadow-card ring-1 transition-shadow duration-200"
-    :class="fresh ? 'flash ring-2 ring-primary-500' : 'ring-grey-100'"
+    class="flex gap-3 py-2.5 transition-shadow duration-200"
+    :class="{ 'flash rounded-xl ring-2 ring-primary-500': fresh }"
     :data-fresh="fresh || undefined"
     :aria-label="food.name"
   >
-    <FoodThumb :food="food" size="lg" />
-    <div class="flex min-w-0 flex-1 flex-col gap-1">
+    <FoodThumb :food="food" class="inventory-photo" />
+    <div class="flex min-w-0 flex-1 flex-col gap-0.5">
       <div class="flex items-start gap-2">
-        <h3 class="min-w-0 flex-1 text-base font-bold break-words text-grey-900">{{ food.name }}</h3>
+        <h3 class="min-w-0 flex-1 text-base font-extrabold break-words text-grey-900">{{ food.name }}</h3>
         <span v-if="chip" class="shrink-0 rounded-full px-2 py-0.5 text-xs font-medium" :class="CHIP_TONE[chip.tone]">{{ chip.text }}</span>
       </div>
       <p class="text-sm text-grey-600">{{ expiresText(food.expires_at, now) }}</p>
@@ -54,10 +54,10 @@ const CHIP_TONE = { primary: 'bg-primary-50 text-primary-700', warn: 'bg-warn-10
           <span class="font-bold text-grey-900 tabular-nums">{{ shown[f.key].value }}</span>
         </template>
       </p>
-      <div v-if="actions" class="mt-1 grid grid-cols-2 gap-2">
+      <div v-if="actions" class="mt-auto grid grid-cols-2 gap-2 pt-1">
         <button
           type="button"
-          class="press flex min-h-12 items-center justify-center gap-1.5 rounded-xl bg-white text-base font-semibold text-grey-800 ring-1 ring-grey-200 disabled:text-grey-400"
+          class="press flex min-h-11 items-center justify-center gap-1 rounded-lg bg-white text-sm font-semibold text-grey-800 ring-1 ring-grey-400 disabled:text-grey-400"
           :disabled="offline"
           :aria-label="`修改「${food.name}」`"
           @click="emit('edit', food.id)"
@@ -66,7 +66,7 @@ const CHIP_TONE = { primary: 'bg-primary-50 text-primary-700', warn: 'bg-warn-10
         </button>
         <button
           type="button"
-          class="press flex min-h-12 items-center justify-center gap-1.5 rounded-xl bg-white text-base font-semibold text-warn-200 ring-1 ring-grey-200 disabled:text-grey-400"
+          class="press flex min-h-11 items-center justify-center gap-1 rounded-lg bg-white text-sm font-semibold text-grey-800 ring-1 ring-grey-400 disabled:text-grey-400"
           :disabled="offline"
           :aria-label="`下架「${food.name}」`"
           @click="emit('close', food.id)"
@@ -77,3 +77,12 @@ const CHIP_TONE = { primary: 'bg-primary-50 text-primary-700', warn: 'bg-warn-10
     </div>
   </article>
 </template>
+
+<style scoped>
+.inventory-photo {
+  width: clamp(4.5rem, 32%, 7.5rem);
+  height: auto;
+  aspect-ratio: 1.13;
+  align-self: start;
+}
+</style>

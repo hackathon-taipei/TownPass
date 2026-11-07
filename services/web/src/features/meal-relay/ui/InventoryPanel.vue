@@ -32,7 +32,7 @@ const emit = defineEmits<{ edit: [id: string]; close: [id: string]; publish: [] 
 
     <EmptyState v-if="!active.length && !ended.length" title="還沒有上架的食物" description="把多出來的食物上架，志工報到時系統會自動派給長者。" />
 
-    <TransitionGroup name="list" tag="div" class="flex flex-col gap-3">
+    <TransitionGroup name="list" tag="div" class="divide-y divide-grey-200 border-t border-grey-200">
       <InventoryRow
         v-for="f in active"
         :key="f.id"
@@ -46,7 +46,7 @@ const emit = defineEmits<{ edit: [id: string]; close: [id: string]; publish: [] 
       />
     </TransitionGroup>
 
-    <InfoNote v-if="hasWaiting" text="還有食物等待派送" detail="志工報到時，系統會自動派給長者" :icon="Truck" />
+    <InfoNote v-if="hasWaiting" class="justify-center [&>div]:flex-none" text="還有食物等待派送" :icon="Truck" />
 
     <Accordion v-if="ended.length" :title="`已結束的食物（${ended.length}）`" :icon="Clock">
       <div class="flex flex-col gap-3">
@@ -54,7 +54,7 @@ const emit = defineEmits<{ edit: [id: string]; close: [id: string]; publish: [] 
       </div>
     </Accordion>
 
-    <BaseButton block size="lg" :icon="Plus" @click="emit('publish')">上架新食物</BaseButton>
+    <BaseButton class="mt-1 text-xl font-bold enabled:bg-primary-600 enabled:hover:bg-primary-700" block size="lg" :icon="Plus" @click="emit('publish')">上架新食物</BaseButton>
     <p class="text-center text-xs text-grey-500">食物為示範資料</p>
   </section>
 </template>

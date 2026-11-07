@@ -41,13 +41,13 @@ onBeforeUnmount(() => admin.stop())
 <template>
   <AdminShell>
     <template v-if="access === 'admin'" #actions>
-      <span class="flex items-center gap-1.5 text-base font-semibold text-grey-800" :title="accountId ? `帳號：${accountId}` : undefined">
-        <User class="h-5 w-5 text-grey-700" aria-hidden="true" />管理員
+      <span class="flex items-center gap-2 text-base font-bold text-primary-900 lg:text-xl" :title="accountId ? `帳號：${accountId}` : undefined">
+        <User class="size-6 lg:size-7" aria-hidden="true" />管理員
       </span>
       <span class="h-6 w-px bg-grey-200" aria-hidden="true" />
       <button
         type="button"
-        class="press min-h-12 rounded-xl bg-white px-4 text-base font-bold text-warn-200 ring-2 ring-warn-200 disabled:opacity-50"
+        class="press min-h-11 rounded-lg border border-warn-200 bg-white px-4 text-base font-bold text-warn-200 disabled:opacity-50 lg:text-lg"
         :disabled="offline || resetting"
         :aria-busy="resetting"
         :title="offline ? '離線時不能重置' : undefined"
@@ -70,7 +70,9 @@ onBeforeUnmount(() => admin.stop())
 
       <div v-else class="flex flex-col gap-4">
         <StaleBanner :stale-at="staleAt" :now="now" />
-        <SegmentedTabs v-model="tab" :tabs="tabs" label="管理系統分頁" class="lg:max-w-2xl" />
+        <div class="border-b border-grey-400">
+          <SegmentedTabs v-model="tab" :tabs="tabs" label="管理系統分頁" class="admin-tabs lg:ml-9 lg:max-w-2xl" />
+        </div>
 
         <PageTransition variant="refresh" :page-key="version">
           <Transition name="tab-fade" mode="out-in">
@@ -93,15 +95,15 @@ onBeforeUnmount(() => admin.stop())
               :error="errors.board"
             />
 
-            <section v-else class="flex flex-col gap-3" aria-labelledby="admin-elders-title">
+            <section v-else class="flex flex-col gap-3 rounded-xl border border-grey-300 p-3 lg:p-4" aria-labelledby="admin-elders-title">
               <div class="flex flex-wrap items-center justify-between gap-2">
-                <h2 id="admin-elders-title" class="text-xl font-extrabold text-grey-900">長者名冊（{{ roster.length }}）</h2>
-                <span class="rounded-full bg-secondary-100 px-3 py-1 text-sm font-bold text-secondary-800 ring-1 ring-secondary-200">
+                <h2 id="admin-elders-title" class="mr-display rounded-lg bg-primary-700 px-4 py-1 text-xl font-extrabold text-white">長者名冊（{{ roster.length }}）</h2>
+                <span class="rounded-xl bg-secondary-200 px-3 py-1 text-sm font-bold text-secondary-900">
                   {{ SIMULATED_ONLY_TEXT }}
                 </span>
               </div>
-              <div class="grid gap-4 lg:grid-cols-5">
-                <BaseCard class="lg:col-span-2">
+              <div class="grid gap-4 lg:grid-cols-5 lg:items-start">
+                <div class="lg:col-span-2 lg:border-r lg:border-grey-200 lg:pr-4">
                   <ElderRoster
                     :elders="roster"
                     :stations="stations"
@@ -110,7 +112,7 @@ onBeforeUnmount(() => admin.stop())
                     @edit="admin.startEdit"
                     @add="admin.startNew()"
                   />
-                </BaseCard>
+                </div>
                 <ElderForm
                   v-if="wide"
                   v-model="draft"
@@ -158,3 +160,21 @@ onBeforeUnmount(() => admin.stop())
     <ToastHost />
   </AdminShell>
 </template>
+
+<style scoped>
+.admin-tabs {
+  gap: 0.25rem;
+  border-radius: 0;
+  box-shadow: none;
+}
+.admin-tabs :deep(button) {
+  border-radius: 0.75rem 0.75rem 0 0;
+}
+.admin-tabs :deep([aria-selected='false']) {
+  background: var(--color-grey-50);
+  color: var(--color-primary-900);
+}
+.admin-tabs :deep([aria-selected='true']) {
+  background: var(--color-primary-700);
+}
+</style>
