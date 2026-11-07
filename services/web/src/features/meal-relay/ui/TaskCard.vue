@@ -1,97 +1,81 @@
 <script setup lang="ts">
-/** @component MR-C40 TaskCard — 派送任務卡：長者代號、地址（可複製）、警示、要做的事、地圖（據點、這位長者、我）、過敏、要送的餐、回報 */
+/** @component MR-C40 TaskCard — 收合式任務卡：長者代號＋晶片；展開是食物、送達地點、查看位置、過敏原、主按鈕（確認已取餐／回報拜訪）、取消這份餐 */
 /**
- * 合約 v2.2 §9 MR-P05、M13：只顯示自己 assigned 任務上的這一位長者，不做導航。
- * 地圖（MR-C07）只有：任務的據點、這位長者、我的位置（企鵝，T-126）；圖例 MR-C58。
- * 我的位置來自裝置定位（useMyLocation），不送後端、不存；拒絕定位就只有據點和長者。
- * 地址只能是模擬資料（ADR-027），任務完成或釋出後後端就不再回傳；沒填就不顯示這一行。
- * 送餐：MR-C41 TaskMeal（取餐、取消）；回報要先取餐，或取消這份餐改成只做關懷（reportReady）。
+ * 設計 v2 01 右（design-v2/README.md §3.3，T-135）：MR-C65 Accordion 群組（TASK_GROUP，一次只展開一張）{
+ *   標題列：長者代號、MR-C77 TaskChips（送餐+關懷／純關懷、待取餐／配送中）
+ *   展開：MR-C41 TaskMeal（食物、取餐地點）、MR-C78 TaskAddress（送達地點＋複製地址）、
+ *         MR-C79 TaskLocation（查看位置：地圖）、過敏原紅字、A01 主按鈕、「取消這份餐」文字連結 }
+ * 主按鈕：待取餐 →「確認已取餐」（@pickup）；配送中或純關懷 →「回報拜訪」（@report）。
+ * 「取消這份餐」只發 @cancel，確認視窗由頁面開（MR-C67，V7）。
+ * M13：只顯示自己 assigned 任務上的這一位長者，不做導航。斷網、處理中、過敏原衝突時按鈕停用。
  *
  *   <TaskCard :task="task" :now="now" :busy="busyId === task.id" :offline="offline"
- *             @pickup="pickup(task)" @cancel="cancel(task)" @report="openReport(task)" />
+ *             @pickup="pickup(task)" @cancel="askCancel(task)" @report="openReport(task)" />
  */
 import { computed, ref } from 'vue'
-import { BaseButton, BaseCard, BaseTag } from '@/ui'
-import { legendOf, taskMarkers, useMyLocation } from '../logic/mapMarker'
+import { TriangleAlert } from 'lucide-vue-next'
+import { BaseButton } from '@/ui'
 import { ALLERGEN_LABEL, countdownText } from '../logic/shared'
-import { addressLine, copyAddress, reportReady, type TaskView } from '../logic/volunteer'
-import ElderStatusTag from './ElderStatusTag.vue'
-import MapLegend from './MapLegend.vue'
-import MapView from './MapView.vue'
+import { TASK_GROUP, addressLine, taskActionOf, taskChipsOf, type TaskView } from '../logic/volunteer'
+import Accordion from './Accordion.vue'
+import TaskAddress from './TaskAddress.vue'
+import TaskChips from './TaskChips.vue'
+import TaskLocation from './TaskLocation.vue'
 import TaskMeal from './TaskMeal.vue'
 
 const props = defineProps<{ task: TaskView; now: number; busy?: boolean; offline?: boolean }>()
 const emit = defineEmits<{ pickup: []; cancel: []; report: [] }>()
 
 const elder = computed(() => props.task.assignment.elder)
-const myLocation = useMyLocation()
-const markers = computed(() =>
-  taskMarkers({
-    station: props.task.station,
-    elder: elder.value,
-    me: myLocation.value ? { id: props.task.assignment.volunteer_id, location: myLocation.value } : null,
-    base: import.meta.env.BASE_URL,
-  }),
-)
-const legend = computed(() => legendOf(markers.value))
-const allergens = computed(() => elder.value.allergens.map((a) => ALLERGEN_LABEL[a]).join('、') || '沒有過敏原')
-const ready = computed(() => reportReady(props.task))
+const chips = computed(() => taskChipsOf(props.task))
+const action = computed(() => taskActionOf(props.task))
 const address = computed(() => addressLine(elder.value))
-const addressEl = ref<HTMLElement | null>(null)
+const allergens = computed(() => elder.value.allergens.map((a) => ALLERGEN_LABEL[a]).join('、'))
+/** 食物與長者過敏原有交集（MR-C16）→ 停用「確認已取餐」 */
+const conflict = ref(false)
+const mainDisabled = computed(() => !!props.offline || !!props.busy || (action.value.action === 'pickup' && conflict.value))
 
-/** 剪貼簿不能用時改成選取地址文字，讓志工長按複製 */
-async function onCopyAddress() {
-  if (!address.value) return
-  if (await copyAddress(address.value)) return
-  const el = addressEl.value
-  const selection = typeof window !== 'undefined' ? window.getSelection() : null
-  if (!el || !selection) return
-  const range = document.createRange()
-  range.selectNodeContents(el)
-  selection.removeAllRanges()
-  selection.addRange(range)
+function onMain() {
+  if (action.value.action === 'pickup') emit('pickup')
+  else emit('report')
 }
 </script>
 
 <template>
-  <BaseCard>
-    <div class="flex items-start gap-2">
-      <h3 class="min-w-0 flex-1 truncate text-lg font-semibold text-grey-900">{{ elder.alias }}</h3>
-      <span class="shrink-0 text-sm text-grey-500">{{ countdownText(task.assignment.expires_at, now) }}</span>
+  <Accordion :name="task.id" :group="TASK_GROUP" :title="elder.alias" :data-task="task.id">
+    <template #chip><TaskChips :chips="chips" /></template>
+    <div class="space-y-3">
+      <p v-if="task.note" class="text-sm text-grey-600">{{ task.note }}</p>
+      <TaskMeal v-if="task.claim" v-model:conflict="conflict" :claim="task.claim" :elder="elder" />
+      <hr v-if="task.claim" class="border-grey-100" />
+      <TaskAddress v-if="address" :address="address" />
+      <TaskLocation :task="task" />
+      <p v-if="allergens" class="flex items-center gap-2 text-base font-bold text-warn-200">
+        <TriangleAlert class="h-5 w-5 shrink-0" aria-hidden="true" />
+        過敏原：{{ allergens }}
+      </p>
+      <p v-else class="text-sm text-grey-500">沒有登記過敏原</p>
+      <p class="text-sm text-grey-500">任務期限：{{ countdownText(task.assignment.expires_at, now) }}</p>
+      <BaseButton
+        class="rounded-xl"
+        block
+        size="lg"
+        :loading="busy && action.action === 'pickup'"
+        :disabled="mainDisabled"
+        :data-action="action.action"
+        @click="onMain"
+      >
+        {{ action.label }}
+      </BaseButton>
+      <button
+        v-if="task.claim"
+        type="button"
+        class="press mx-auto block min-h-11 px-4 text-base font-semibold text-grey-600 underline underline-offset-4 disabled:opacity-40"
+        :disabled="offline || busy"
+        @click="emit('cancel')"
+      >
+        取消這份餐
+      </button>
     </div>
-    <div v-if="address" class="mt-1 flex items-center gap-2">
-      <p ref="addressEl" class="min-w-0 flex-1 text-sm break-words text-grey-700 select-text">{{ address }}</p>
-      <BaseButton class="press shrink-0" variant="outline" :aria-label="`複製地址：${address}`" @click="onCopyAddress">複製地址</BaseButton>
-    </div>
-    <ElderStatusTag class="mt-1" :elder="elder" />
-
-    <div class="mt-3 flex flex-wrap items-center gap-2">
-      <span class="text-sm text-grey-600">要做的事</span>
-      <BaseTag v-for="k in task.todo" :key="k" tone="primary">{{ k === 'meal' ? '送餐' : '關懷' }}</BaseTag>
-    </div>
-    <p v-if="task.note" class="mt-1 text-sm text-grey-600">{{ task.note }}</p>
-
-    <!-- 據點讀到後重建一次地圖，讓第一次縮放包含據點與長者 -->
-    <MapView :key="task.station ? 'with-station' : 'elder-only'" class="mt-3" :markers="markers" />
-    <MapLegend class="mt-2" :items="legend" />
-
-    <p class="mt-3 text-base text-grey-800">
-      <span class="text-sm text-grey-600">過敏</span>
-      <span class="ml-2" :class="elder.allergens.length ? 'font-semibold text-warn-200' : ''">{{ allergens }}</span>
-    </p>
-
-    <TaskMeal
-      v-if="task.claim"
-      class="mt-3"
-      :claim="task.claim"
-      :elder="elder"
-      :busy="busy"
-      :disabled="offline"
-      @pickup="emit('pickup')"
-      @cancel="emit('cancel')"
-    />
-
-    <BaseButton class="mt-3" block variant="secondary" :disabled="!ready || offline || busy" @click="emit('report')">回報拜訪</BaseButton>
-    <p v-if="!ready" class="mt-1 text-sm text-grey-500">送餐要先取餐再回報；不送了可以按「取消這份餐」，改成只做關懷</p>
-  </BaseCard>
+  </Accordion>
 </template>
