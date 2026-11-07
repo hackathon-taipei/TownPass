@@ -426,10 +426,16 @@ export function useAdmin() {
     if (offline.value || saving.value) return false
     formErrors.value = validateElderDraft(draft.value)
     if (Object.keys(formErrors.value).length) return false
+    const original = editing.value
+    const patch = original ? toElderUpdate(draft.value, original) : null
+    if (patch && !Object.keys(patch).length) {
+      toast('沒有修改任何欄位')
+      resetForm()
+      return true
+    }
     saving.value = true
     try {
-      const original = editing.value
-      const saved = original ? await updateElder(original.id, toElderUpdate(draft.value, original)) : await createElder(toElderCreate(draft.value))
+      const saved = original && patch ? await updateElder(original.id, patch) : await createElder(toElderCreate(draft.value))
       elders.value = original ? elders.value.map((e) => (e.id === saved.id ? saved : e)) : [...elders.value, saved]
       toast(original ? `已更新「${saved.alias}」` : `已新增「${saved.alias}」`)
       resetForm()
