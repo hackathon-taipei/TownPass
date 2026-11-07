@@ -1,6 +1,8 @@
 <script setup lang="ts">
 /** @component MR-C48 CheckinRow — 今天報到的一位志工：企鵝頭像、名字、報到時間 */
 /**
+ * 設計 v2 §3.5：淺灰圓角列，左邊企鵝頭像（MR-C23），中間名字，右邊時間（臺北時間 HH:mm）。
+ *
  *   <CheckinRow :checkin="c" />
  */
 import { computed } from 'vue'
@@ -13,9 +15,9 @@ const time = computed(() => checkinTimeText(props.checkin.checked_in_at))
 </script>
 
 <template>
-  <div class="flex min-h-14 items-center gap-3 py-2">
-    <VolunteerAvatar :id="checkin.volunteer_id" :size="48" />
-    <span class="min-w-0 flex-1 truncate text-lg font-medium text-grey-900">{{ checkin.volunteer_name }}</span>
-    <span class="shrink-0 text-base tabular-nums text-grey-500">{{ time }} 報到</span>
+  <div class="flex min-h-14 items-center gap-3 rounded-xl bg-grey-50 px-3 py-1.5">
+    <VolunteerAvatar :id="checkin.volunteer_id" :size="44" />
+    <span class="min-w-0 flex-1 truncate text-lg font-semibold text-grey-900">{{ checkin.volunteer_name }}</span>
+    <time class="shrink-0 text-lg tabular-nums text-grey-700" :datetime="checkin.checked_in_at" :aria-label="`${time} 報到`">{{ time }}</time>
   </div>
 </template>

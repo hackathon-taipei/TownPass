@@ -1,9 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { effectScope } from 'vue'
+import { createApp, effectScope, h, type Component } from 'vue'
+import { createMemoryHistory, createRouter } from 'vue-router'
 import type { Checkin, MyStation } from '@/features/meal-relay/data'
 
 // 鄰食轉運站據點頁（T-119，logic/station.ts）：QR 定時更新（M15）、倒數、斷網不顯示舊 QR（ADR-024）。
-// 資料層用 mock，時間用 fake timers；模擬的後端照 M15 每 QR_ROTATE_SEC（Demo 30 秒）換一次 token。
+// 設計 v2 畫面（T-137）在最後一組。資料層用 mock，時間用 fake timers；模擬的後端照 M15 每 QR_ROTATE_SEC（Demo 30 秒）換一次 token。
 
 const getMyStation = vi.fn()
 vi.mock('@/features/meal-relay/data', async (importOriginal) => {
@@ -27,6 +28,9 @@ const {
   useStation,
 } = await import('@/features/meal-relay/logic/station')
 const { MealApiError } = await import('@/features/meal-relay/data')
+const { default: StationPage } = await import('@/features/meal-relay/ui/StationPage.vue')
+const { default: QrCountdown } = await import('@/features/meal-relay/ui/QrCountdown.vue')
+const { default: CheckinList } = await import('@/features/meal-relay/ui/CheckinList.vue')
 
 const ROTATE_MS = 30_000 // §5 Demo QR_ROTATE_SEC
 const T0 = Date.parse('2026-11-07T10:00:05+08:00') // 時間窗 10:00:00～10:00:30 的第 5 秒
@@ -294,5 +298,83 @@ describe('useStation：斷網不顯示過期的 QR（ADR-024）', () => {
     getMyStation.mockClear()
     await vi.advanceTimersByTimeAsync(120_000)
     expect(getMyStation).not.toHaveBeenCalled()
+  })
+})
+
+describe('設計 v2 畫面（T-137，design-v2 README §3.5）', () => {
+  const cleanups: (() => void)[] = []
+  afterEach(() => {
+    while (cleanups.length) cleanups.pop()!()
+    document.body.innerHTML = ''
+  })
+
+  function render(comp: Component, props: Record<string, unknown> = {}) {
+    const el = document.createElement('div')
+    document.body.appendChild(el)
+    const app = createApp({ render: () => h(comp, props) })
+    app.use(createRouter({ history: createMemoryHistory(), routes: [{ path: '/', component: { render: () => null } }] }))
+    app.mount(el)
+    cleanups.push(() => app.unmount())
+    return el
+  }
+  const text = (el: Element) => (el.textContent ?? '').replace(/\s+/g, ' ')
+
+  it('QrCountdown：「N 秒後更新」與進度條（剩下的比例）', async () => {
+    const el = render(QrCountdown, { seconds: 28, fraction: 0.4 })
+    expect(text(el)).toContain('28 秒後更新')
+    const bar = el.querySelector('[role="progressbar"]')!
+    expect(bar.getAttribute('aria-valuenow')).toBe('40')
+    expect((bar.firstElementChild as HTMLElement).style.transform).toBe('scaleX(0.4)')
+    const long = render(QrCountdown, { seconds: 1799, fraction: 2 })
+    expect(text(long)).toContain('29:59 後更新')
+    expect(long.querySelector('[role="progressbar"]')!.getAttribute('aria-valuenow')).toBe('100')
+  })
+
+  it('CheckinList：標題「今天報到・N 位」，每列有企鵝頭像、名字、時間', () => {
+    const list = [checkin('b', '2026-11-07T11:25:00+08:00', '小雅'), checkin('a', '2026-11-07T11:20:00+08:00', '阿明')]
+    const el = render(CheckinList, { checkins: list })
+    expect(el.querySelector('h2')!.textContent!.replace(/\s+/g, '')).toBe('今天報到・2位')
+    const rows = el.querySelectorAll('li')
+    expect(rows).toHaveLength(2)
+    expect(rows[0].querySelector('img')).not.toBeNull()
+    expect(text(rows[0])).toContain('小雅')
+    expect(rows[0].querySelector('time')!.textContent).toBe('11:25')
+    const empty = render(CheckinList, { checkins: [] })
+    expect(empty.querySelector('h2')!.textContent!.replace(/\s+/g, '')).toBe('今天報到・0位')
+    expect(text(empty)).toContain('今天還沒有志工報到')
+  })
+
+  it('StationPage：由上而下是頁首、據點名稱、說明、QR、倒數、今天報到、頁尾小字；不顯示「示意」標籤', async () => {
+    checkins = [checkin('a', '2026-11-07T09:00:00+08:00', '王小明')]
+    const el = render(StationPage)
+    await vi.advanceTimersByTimeAsync(1_000)
+    const all = text(el)
+    const order = ['據點報到', '大安關懷據點', '請志工掃描下方 QR code 報到', '秒後更新', '今天報到・1 位', '王小明', '每次更新後，請掃描最新 QR code']
+    const at = order.map((s) => all.indexOf(s))
+    expect(at.every((i) => i >= 0)).toBe(true)
+    expect([...at].sort((a, b) => a - b)).toEqual(at)
+    expect(el.querySelector('h1')!.textContent).toBe('據點報到')
+    expect(el.querySelector('svg[role="img"] path')).not.toBeNull() // QR
+    expect(el.querySelector('[role="progressbar"]')).not.toBeNull()
+    expect(all).not.toMatch(/示意|不可掃描/)
+    // 平板或電腦寬度 QR 放大置中，最大 360px
+    expect(el.querySelector('[data-testid="station-qr"]')!.className).toMatch(/mx-auto.*sm:max-w-90/)
+  })
+
+  it('StationPage：斷網時收起 QR 與倒數，顯示斷線提示（T-119 行為不變）', async () => {
+    online = false
+    const el = render(StationPage)
+    await vi.advanceTimersByTimeAsync(1_000)
+    expect(el.querySelector('svg[role="img"]')).toBeNull()
+    expect(el.querySelector('[role="progressbar"]')).toBeNull()
+    expect(text(el)).toContain('連線中斷，QR 無法更新')
+  })
+
+  it('StationPage：權限錯誤顯示後端訊息與「重試」', async () => {
+    getMyStation.mockRejectedValue(new MealApiError('FORBIDDEN_ROLE', '只有據點帳號可以使用', 403))
+    const el = render(StationPage)
+    await vi.advanceTimersByTimeAsync(1_000)
+    expect(text(el)).toContain('只有據點帳號可以使用')
+    expect([...el.querySelectorAll('button')].some((b) => b.textContent?.includes('重試'))).toBe(true)
   })
 })
