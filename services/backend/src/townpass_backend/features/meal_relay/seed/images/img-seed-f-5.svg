@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 200" width="240" height="200">
+  <!-- 保久乳（模擬示意圖，本團隊繪製，AGPL-3.0） -->
+  <rect width="240" height="200" fill="#e6f1f8"/>
+  <g>
+    <path d="M62 60 L74 40 H118 L130 60 Z" fill="#d6e6f2" stroke="#9fbcd2" stroke-width="2"/>
+    <rect x="62" y="60" width="68" height="110" rx="4" fill="#ffffff" stroke="#9fbcd2" stroke-width="2"/>
+    <rect x="62" y="96" width="68" height="34" fill="#4a90c8"/>
+    <circle cx="96" cy="113" r="10" fill="#ffffff"/>
+  </g>
+  <g>
+    <path d="M128 72 L138 56 H174 L184 72 Z" fill="#d6e6f2" stroke="#9fbcd2" stroke-width="2"/>
+    <rect x="128" y="72" width="56" height="98" rx="4" fill="#ffffff" stroke="#9fbcd2" stroke-width="2"/>
+    <rect x="128" y="104" width="56" height="30" fill="#4a90c8"/>
+    <circle cx="156" cy="119" r="8" fill="#ffffff"/>
+  </g>
+</svg>

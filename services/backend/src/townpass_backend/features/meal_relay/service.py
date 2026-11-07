@@ -32,6 +32,7 @@ from .models import (
     MealClaim,
     MealElder,
     MealFood,
+    MealImage,
     MealPoint,
     MealStation,
     MealSupplier,
@@ -753,8 +754,26 @@ def import_seed(session: Session, at: datetime | None = None, seed_dir: Path | N
             continue
         records = json.loads(path.read_text(encoding="utf-8"))
         rows.extend(__seed_row(model, r, t) for r in records)
+    rows.extend(__seed_images(folder / "images", t))
     repo.save_all(session, rows)
     return len(rows)
+
+
+def __seed_images(folder: Path, at: datetime) -> list[MealImage]:
+    """seed/images/<image_id>.svg → meal_image：示範食物的照片（本團隊繪製的示意圖，data/SOURCES.md）。"""
+    if not folder.is_dir():
+        return []
+    return [
+        MealImage(
+            id=path.stem,
+            mime="image/svg+xml",
+            data=path.read_bytes(),
+            size=path.stat().st_size,
+            uploaded_by="seed",
+            created_at=at,
+        )
+        for path in sorted(folder.glob("*.svg"))
+    ]
 
 
 def seed(session: Session) -> None:
