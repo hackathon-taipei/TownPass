@@ -33,7 +33,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
           </div>
           <h2
             class="break-words"
-            :class="$slots['header-action'] ? 'text-[clamp(1.5rem,7.5vw,2rem)] leading-tight font-black text-primary-900' : 'text-lg font-bold text-grey-900'"
+            :class="$slots['header-action'] ? 'mr-display text-[clamp(1.5rem,7.5vw,2rem)] leading-tight font-black text-primary-900' : 'text-lg font-bold text-grey-900'"
           >
             {{ title }}
           </h2>

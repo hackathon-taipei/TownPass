@@ -461,7 +461,7 @@ describe('設計 v2 的畫面狀態（T-135）', () => {
     expect(v.taskActionOf(pickup!)).toEqual({ action: 'pickup', label: '確認已取餐' })
     expect(v.taskChipsOf(deliver!).map((c) => c.label)).toEqual(['送餐', '配送中'])
     expect(v.taskActionOf(deliver!)).toEqual({ action: 'report', label: '回報拜訪' })
-    expect(v.taskChipsOf(care!).map((c) => c.label)).toEqual(['純關懷'])
+    expect(v.taskChipsOf(care!)).toEqual([{ label: '純關懷', kind: 'todo' }])
     expect(v.taskActionOf(care!)).toEqual({ action: 'report', label: '回報拜訪' })
   })
 
