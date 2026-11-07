@@ -7,8 +7,12 @@
  * - 長者名冊：`listElders()`、`createElder()`、`updateElder()`；只有代號、座標、地址、過敏原，全部是模擬資料（ADR-024、ADR-026、ADR-027）
  * - 重置：`resetDemo()`
  * - 斷網（ADR-024）：讀取用裝置上的資料並顯示 StaleBanner，寫入一律停用
+ *
+ * 設計 v2（T-138，docs/meal-relay/design-v2/README.md §3.6）：分頁「待審核｜服務看板｜長者名冊」與網址 `?tab=` 同步（預設看板）、
+ * 重置前先確認（askReset → confirmReset）、看板統計卡圖示與地圖圖例、名冊狀態、手機上表單用底部面板（useWideLayout）。
  */
-import { computed, reactive, ref } from 'vue'
+import { computed, onBeforeUnmount, reactive, ref, type Component, type Ref } from 'vue'
+import { CalendarCheck, CircleCheck, ConciergeBell, Heart, Users } from 'lucide-vue-next'
 import {
   MealApiError,
   createElder,
@@ -39,7 +43,9 @@ import type {
   Station,
   Supplier,
 } from '../data'
-import type { Marker, MarkerStatus } from './mapMarker'
+import { useTabQuery } from './brand'
+import type { LegendItem, Marker, MarkerKind, MarkerStatus } from './mapMarker'
+import { MARKER_KIND_LABEL, legendOf } from './mapMarker'
 import { ALLERGEN_LABEL } from './mealLabels'
 import { MOTION } from './motion'
 import { toast } from './toast'
@@ -53,11 +59,25 @@ export type AdminAccess = 'loading' | 'admin' | 'denied' | 'error'
 export type AdminTab = 'review' | 'board' | 'elders'
 export type ReviewDecision = 'approved' | 'rejected'
 
+/** 分頁的顯示順序（設計 v2 02：待審核｜服務看板｜長者名冊） */
 export const ADMIN_TABS: { value: AdminTab; label: string }[] = [
-  { value: 'review', label: '審核' },
-  { value: 'board', label: '看板' },
+  { value: 'review', label: '待審核' },
+  { value: 'board', label: '服務看板' },
   { value: 'elders', label: '長者名冊' },
 ]
+
+/** `?tab=` 可用的值；第一個是預設（網址沒有或不認得 → 服務看板） */
+export const ADMIN_TAB_VALUES = ['board', 'review', 'elders'] as const satisfies readonly AdminTab[]
+
+/** 給 MR-C66 SegmentedTabs：「待審核」帶 pending 申請數的徽章（0 不顯示） */
+export function adminTabs(pendingCount: number): { value: AdminTab; label: string; badge?: number }[] {
+  return ADMIN_TABS.map((t) => (t.value === 'review' ? { ...t, badge: pendingCount } : { ...t }))
+}
+
+/** 分頁與網址 `?tab=review|board|elders` 同步（保留 `?as=` 等其他參數），App 返回鍵能退回上一個分頁。只能在元件 setup 裡呼叫 */
+export function useAdminTab(): Ref<AdminTab> {
+  return useTabQuery<AdminTab>('tab', ADMIN_TAB_VALUES)
+}
 
 /** 合約 §4 OrgType */
 export const ORG_TYPE_LABEL: Record<OrgType, string> = {
@@ -68,17 +88,26 @@ export const ORG_TYPE_LABEL: Record<OrgType, string> = {
   other: '其他',
 }
 
-/** 看板統計卡（MR-C13）的順序與名稱（工單合約） */
-export const STAT_FIELDS: { key: keyof BoardStats; label: string; tone?: 'alert' }[] = [
-  { key: 'foods_open', label: '可派送食物' },
-  { key: 'delivered_today', label: '今天送達' },
-  { key: 'seen_today', label: '今天見到' },
-  { key: 'alerts', label: '警示長者', tone: 'alert' },
-  { key: 'checkins_today', label: '今天報到' },
+/** 看板統計卡（MR-C13）的順序、名稱與圖示（設計 v2 §3.6；數字來自 Board.stats，算法見 T-113） */
+export const STAT_FIELDS: { key: keyof BoardStats; label: string; icon: Component; tone?: 'alert' }[] = [
+  { key: 'foods_open', label: '可派送食物', icon: ConciergeBell },
+  { key: 'delivered_today', label: '今日送達', icon: CircleCheck },
+  { key: 'seen_today', label: '今日見到', icon: Users },
+  { key: 'alerts', label: '需關懷長者', icon: Heart, tone: 'alert' },
+  { key: 'checkins_today', label: '今日報到', icon: CalendarCheck },
 ]
 
 /** ADR-024 隱私提示，放在長者表單旁 */
-export const PRIVACY_NOTE = '只填代號（例如「萬華-A01」），不要填真實姓名、電話、地址。Demo 只用模擬資料，位置請選路上或公共空間，不要選住家。'
+export const PRIVACY_NOTE = '稱呼只用代稱（例如「陳阿公」「萬華-A01」），不要填真實姓名、電話。地址只能填模擬地址，位置請選路上或公共空間，不要選住家。'
+
+/** 長者名冊右上的晶片（ADR-024：長者資料只能是模擬資料） */
+export const SIMULATED_ONLY_TEXT = '僅使用模擬資料'
+
+/** 看板地圖左上的標籤 */
+export const MAP_NOTE_TEXT = '位置示意・模擬資料'
+
+/** 新增長者時「代號」欄的文字：長者 id 由後端產生 */
+export const NEW_ELDER_ID_TEXT = '儲存後自動產生'
 
 /** 沒有權限時的說明（§2：admin 只用管理系統網址登入，畫面上沒有選身分的按鈕） */
 export const DENIED_TEXT = '管理系統只給管理員使用。請用管理員帳號開啟：/#/f/meal-relay/admin?as=<管理員帳號 id>'
@@ -89,7 +118,7 @@ export const REVIEW_SETTLE_MS = MOTION.emphasis + MOTION.slow
 /** 看板多久重新取得一次（志工報到、送達會即時反映到統計與地圖） */
 export const BOARD_POLL_MS = 15_000
 
-/** 代號長度上限（後端 ElderCreate.alias max_length） */
+/** 稱呼（alias）長度上限（後端 ElderCreate.alias max_length） */
 export const ALIAS_MAX = 20
 
 /** 地址長度上限（後端 ElderCreate.address max_length）；只能填模擬地址（ADR-027） */
@@ -173,13 +202,13 @@ export function draftOfElder(e: Elder): ElderDraft {
   }
 }
 
-/** 必填：代號、位置、據點（ADR-026：管理員登記，據點必填）。代號看起來像電話就擋下（ADR-024） */
+/** 必填：稱呼（alias）、位置、據點（ADR-026：管理員登記，據點必填）。稱呼看起來像電話就擋下（ADR-024） */
 export function validateElderDraft(d: ElderDraft): ElderDraftErrors {
   const errors: ElderDraftErrors = {}
   const alias = d.alias.trim()
-  if (!alias) errors.alias = '請填代號'
-  else if (alias.length > ALIAS_MAX) errors.alias = `代號最多 ${ALIAS_MAX} 個字`
-  else if (/\d{6,}/.test(alias.replace(/[\s-]/g, ''))) errors.alias = '代號看起來像電話號碼，請改用代號，不要填真實資料'
+  if (!alias) errors.alias = '請填稱呼'
+  else if (alias.length > ALIAS_MAX) errors.alias = `稱呼最多 ${ALIAS_MAX} 個字`
+  else if (/\d{6,}/.test(alias.replace(/[\s-]/g, ''))) errors.alias = '稱呼看起來像電話號碼，請改用代稱，不要填真實資料'
   if (d.address.trim().length > ADDRESS_MAX) errors.address = `地址最多 ${ADDRESS_MAX} 個字`
   if (!d.location) errors.location = '請在地圖上選位置'
   if (!d.station_id) errors.station_id = '請選據點'
@@ -248,6 +277,21 @@ export function elderSummary(e: Elder, stations: readonly Station[]): ElderSumma
   }
 }
 
+/** 名冊的狀態（設計 v2 §3.6）：需要送餐 > 需要關懷 > 近期已見到（M10 的 meal_due、care_due） */
+export type ElderStatusKey = 'meal_due' | 'care_due' | 'seen'
+
+export const ELDER_STATUS_LABEL: Record<ElderStatusKey, string> = {
+  meal_due: '需要送餐',
+  care_due: '需要關懷',
+  seen: '近期已見到',
+}
+
+export function elderStatusOf(e: Pick<Elder, 'meal_due' | 'care_due'>): ElderStatusKey {
+  if (e.meal_due) return 'meal_due'
+  if (e.care_due) return 'care_due'
+  return 'seen'
+}
+
 /** 名冊排序：警示的在前，再依代號 */
 export function sortElders(elders: readonly Elder[]): Elder[] {
   return [...elders].sort((a, b) => Number(b.alert) - Number(a.alert) || a.alias.localeCompare(b.alias, 'zh-Hant'))
@@ -292,6 +336,57 @@ export function rosterMarkers(stations: readonly Station[], elders: readonly Eld
   ]
 }
 
+/**
+ * 看板地圖的圖例（設計 v2：據點、食物點、長者）：依地圖上真的有的定位針（MR-C58 legendOf，保留 T-126 三色），
+ * 順序改成據點、食物點、長者；地圖上沒有的種類也補一項，讓三種都看得到。
+ * 同一種有兩個顏色時加上狀態，例如「食物點（還沒被派出）」。
+ */
+export function boardLegend(markers: readonly Marker[]): LegendItem[] {
+  const order: MarkerKind[] = ['station', 'point', 'elder']
+  const items = legendOf(markers).filter((i) => order.includes(i.kind))
+  for (const kind of order) {
+    if (!items.some((i) => i.kind === kind)) {
+      items.push({ key: `${kind}:default`, kind, color: kind === 'station' ? 'station' : 'primary', label: MARKER_KIND_LABEL[kind] })
+    }
+  }
+  return items
+    .map((i) => (i.kind === 'point' && i.color === 'warn' ? { ...i, label: `${MARKER_KIND_LABEL.point}（還沒被派出）` } : i))
+    .sort((a, b) => order.indexOf(a.kind) - order.indexOf(b.kind))
+}
+
+/** 「今天的服務概況｜2026 / 11 / 08」的日期（台北時間） */
+export function boardDateText(now: number): string {
+  const d = new Date(now + __TAIPEI_OFFSET_MS).toISOString()
+  return `${d.slice(0, 4)} / ${d.slice(5, 7)} / ${d.slice(8, 10)}`
+}
+
+/** 食物去向一列：「剩餘 n｜已派送 n｜已送達 n」（M1：remaining、dispatched_qty 派出中、delivered_qty） */
+export function foodFlowText(f: Pick<Food, 'remaining' | 'dispatched_qty' | 'delivered_qty'>): string {
+  return `剩餘 ${f.remaining}｜已派送 ${f.dispatched_qty}｜已送達 ${f.delivered_qty}`
+}
+
+/** 審核表的「位置」：有地址（v2.5，ADR-030）用地址，沒有就顯示座標 */
+export function supplierPlaceText(s: Pick<Supplier, 'address' | 'location'>): string {
+  const address = s.address?.trim()
+  if (address) return address
+  return `${s.location.lat.toFixed(4)}, ${s.location.lng.toFixed(4)}`
+}
+
+/* ---------------------------------------------------------------- 版面 */
+
+/** 桌面版面的寬度（設計 v2 §3.6：≥ 1024px 多欄，以下一欄） */
+export const WIDE_QUERY = '(min-width: 1024px)'
+
+/** 寬度 ≥ 1024px → true（名冊表單放右欄）；否則 false（表單改用底部面板）。沒有 matchMedia 時當成桌面。只能在元件 setup 裡呼叫 */
+export function useWideLayout(): Readonly<Ref<boolean>> {
+  const mq = typeof window !== 'undefined' && typeof window.matchMedia === 'function' ? window.matchMedia(WIDE_QUERY) : null
+  const wide = ref(mq ? mq.matches : true)
+  const onChange = (e: { matches: boolean }) => (wide.value = e.matches)
+  mq?.addEventListener?.('change', onChange)
+  onBeforeUnmount(() => mq?.removeEventListener?.('change', onChange))
+  return wide
+}
+
 /** 看板食物：可派送的在前，再依最晚食用時間 */
 export function sortFoods(foods: readonly Food[]): Food[] {
   const rank = { open: 0, claimed: 1, expired: 2, closed: 3 } as const
@@ -310,12 +405,13 @@ export function sourcesOf(items: readonly { source: string }[]): string {
  * 管理系統的狀態與動作。頁面在 onMounted 呼叫 start()、onBeforeUnmount 呼叫 stop()。
  * 寫入在 offline（顯示的是裝置上的資料）時一律不送出（ADR-024）。
  */
-export function useAdmin() {
+export function useAdmin(options: { tab?: Ref<AdminTab> } = {}) {
   const access = ref<AdminAccess>('loading')
   const accountId = ref('')
   const me = ref<Me | null>(null)
   const accessError = ref('')
-  const tab = ref<AdminTab>('review')
+  /** 頁面傳 useAdminTab()（與網址同步）；沒傳時預設服務看板 */
+  const tab = options.tab ?? ref<AdminTab>('board')
   const now = ref(Date.now())
   /** 重置次數：PageTransition（variant="refresh"）的 page-key */
   const version = ref(0)
@@ -333,6 +429,12 @@ export function useAdmin() {
   const editing = ref<Elder | null>(null)
   const formErrors = ref<ElderDraftErrors>({})
   const saving = ref(false)
+  /** 手機版的表單底部面板是否打開（桌面版表單一直在右欄） */
+  const formOpen = ref(false)
+
+  /** 重置示範資料的確認視窗（MR-C67）與重置中 */
+  const confirmingReset = ref(false)
+  const resetting = ref(false)
 
   const staleAt = computed(() => Object.values(stale).filter(Boolean).sort()[0] ?? null)
   const offline = computed(() => staleAt.value !== null)
@@ -422,10 +524,18 @@ export function useAdmin() {
     }
   }
 
+  /** 名冊點一位：表單切成修改模式（手機上打開底部面板） */
   function startEdit(elder: Elder): void {
     editing.value = elder
     draft.value = draftOfElder(elder)
     formErrors.value = {}
+    formOpen.value = true
+  }
+
+  /** 「新增長者」：空白表單（手機上打開底部面板） */
+  function startNew(): void {
+    resetForm()
+    formOpen.value = true
   }
 
   function resetForm(): void {
@@ -444,6 +554,7 @@ export function useAdmin() {
     if (patch && !Object.keys(patch).length) {
       toast('沒有修改任何欄位')
       resetForm()
+      formOpen.value = false
       return true
     }
     saving.value = true
@@ -452,6 +563,7 @@ export function useAdmin() {
       elders.value = original ? elders.value.map((e) => (e.id === saved.id ? saved : e)) : [...elders.value, saved]
       toast(original ? `已更新「${saved.alias}」` : `已新增「${saved.alias}」`)
       resetForm()
+      formOpen.value = false
       void loadBoard() // 看板的長者與警示一起更新
       return true
     } catch (e) {
@@ -462,14 +574,42 @@ export function useAdmin() {
     }
   }
 
-  /** 給 MR-C22 ResetDemoButton 的 on-reset：錯誤由按鈕提示 */
+  /** 重置：resetDemo 後重新載入，version + 1 讓內容淡出淡入（E3）。畫面上一律先經過 askReset → confirmReset */
   async function reset(): Promise<void> {
     if (offline.value) throw new MealApiError('OFFLINE', '目前離線，暫時不能重置', 0)
     await resetDemo()
     resetForm()
+    formOpen.value = false
     reviewed.value = []
     await loadAll()
     version.value++
+  }
+
+  /** 按「重置示範資料」：只打開確認視窗，不呼叫 API（離線或重置中不打開） */
+  function askReset(): void {
+    if (offline.value || resetting.value) return
+    confirmingReset.value = true
+  }
+
+  function cancelReset(): void {
+    confirmingReset.value = false
+  }
+
+  /** 確認視窗按「重置」：才真的 resetDemo；成功提示「已重置為示範資料」，失敗顯示後端的中文訊息。成功回 true */
+  async function confirmReset(): Promise<boolean> {
+    confirmingReset.value = false
+    if (resetting.value) return false
+    resetting.value = true
+    try {
+      await reset()
+      toast('已重置為示範資料')
+      return true
+    } catch (e) {
+      toast(errorMessage(e, '重置失敗，請再試一次'), 'error')
+      return false
+    } finally {
+      resetting.value = false
+    }
   }
 
   let __clock: ReturnType<typeof setInterval> | undefined
@@ -514,6 +654,9 @@ export function useAdmin() {
     editing,
     formErrors,
     saving,
+    formOpen,
+    confirmingReset,
+    resetting,
     init,
     loadAll,
     loadSuppliers,
@@ -521,9 +664,13 @@ export function useAdmin() {
     loadElders,
     review,
     startEdit,
+    startNew,
     resetForm,
     saveElder,
     reset,
+    askReset,
+    cancelReset,
+    confirmReset,
     start,
     stop,
   }
