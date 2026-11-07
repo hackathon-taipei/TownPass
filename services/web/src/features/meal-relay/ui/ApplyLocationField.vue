@@ -47,7 +47,7 @@ const locationText = computed(() => {
         <MapPin class="size-4 shrink-0" aria-hidden="true" />
         <p class="break-words tabular-nums">{{ locationText }}</p>
       </div>
-      <BaseButton class="shrink-0" variant="outline" :icon="MapPin" @click="open = true">在地圖上選位置</BaseButton>
+      <BaseButton class="min-h-11 shrink-0" variant="outline" size="sm" :icon="MapPin" @click="open = true">在地圖上選位置</BaseButton>
     </div>
     <p v-if="!showAddress" class="text-sm text-grey-500">個人提供者不用填地址，位置只用在地圖上。</p>
 
