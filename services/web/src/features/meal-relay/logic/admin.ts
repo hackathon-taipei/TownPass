@@ -325,7 +325,8 @@ export function boardMarkers(board: Pick<Board, 'stations' | 'points' | 'foods' 
 }
 
 export function elderMarkers(elders: readonly Elder[]): Marker[] {
-  return elders.map((e) => ({ id: `elder:${e.id}`, kind: 'elder', location: e.location, status: e.alert ? 'alert' : 'ok', label: e.alias }))}
+  return elders.map((e) => ({ id: `elder:${e.id}`, kind: 'elder', location: e.location, status: e.alert ? 'alert' : 'ok', label: e.alias }))
+}
 
 /** 名冊表單的參考定位針：據點＋其他長者（修改中的那位不放，避免和選點重疊） */
 export function rosterMarkers(stations: readonly Station[], elders: readonly Elder[], exceptId?: string): Marker[] {

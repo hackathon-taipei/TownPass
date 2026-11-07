@@ -3,7 +3,7 @@
 /**
  * 管理系統「服務看板」分頁，資料來自 getBoard（logic/admin.ts 每 15 秒重新取得）。設計 v2 §3.6、02-admin.webp 上半部。
  * - 統計卡：圖示＋標籤＋大數字，順序與圖示在 STAT_FIELDS；「需關懷長者」是 stats.alerts（T-113）
- * - 地圖：據點、食物點、長者（boardMarkers，T-126 三色），左上「位置示意・模擬資料」，右側圖例（boardLegend）
+ * - 地圖：據點、食物點、長者（boardMarkers，T-126 三色），左上「位置示意・模擬資料」；圖例（boardLegend）≥ 1024px 疊在右上角，以下放在地圖下方橫排
  * - 食物去向：進行中的直接列出，已過期、已下架的收合成「已結束 N 批」；照片用 MR-C55 FoodThumb（沒有照片就不畫）
  * 寬度 ≥ 1024px：左 2/3 概況、右 1/3 食物去向；以下一欄、統計卡 2～3 欄。據點與食物點是開放資料，下方放 SourceNote。
  */
@@ -44,7 +44,10 @@ const legend = computed(() => boardLegend(props.markers))
           <span class="pointer-events-none absolute top-2 left-2 z-10 rounded-full bg-white px-3 py-1 text-xs font-medium text-grey-700 shadow-card">
             {{ MAP_NOTE_TEXT }}
           </span>
-          <div class="absolute top-2 right-2 z-10 w-36 rounded-lg bg-white p-2 shadow-card [&>ul]:flex-col [&>ul]:items-start">
+          <!-- 圖例：< 1024px 放在地圖下方橫排（不蓋住地圖）；≥ 1024px 疊在地圖右上角、直排 -->
+          <div
+            class="mt-2 px-1 lg:absolute lg:top-2 lg:right-2 lg:z-10 lg:mt-0 lg:w-max lg:rounded-lg lg:bg-white lg:p-2 lg:shadow-card lg:[&_li]:whitespace-nowrap lg:[&>ul]:flex-col lg:[&>ul]:items-start"
+          >
             <MapLegend :items="legend" />
           </div>
         </div>
