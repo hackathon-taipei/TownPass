@@ -103,3 +103,23 @@ node tools/check-arch.mjs
 cd services/web && pnpm build && pnpm test
 cd services/backend && uv run ruff check . && uv run pytest -q
 ```
+
+## 7. 鄰食轉運站 HTTP 端到端驗證
+
+`tools/meal-relay-e2e.py` 會用自己的暫存 SQLite 啟動 localhost:8003，驗證申請與審核、上架與庫存、QR 報到與派送、取餐與三種回報、看板、權限和完成後的資料隔離。只使用模擬帳號，不連部署環境；若埠已占用會失敗，不操作他人的伺服器。結束會停止自己的伺服器，原始回應與結果寫入 `artifacts/e2e-2026-11-08/api-report.json`。
+
+Windows 從 repo 根目錄執行：
+
+```powershell
+. .\tools\dev-shell.ps1
+services/backend/.venv/Scripts/python.exe tools/meal-relay-e2e.py
+# 可指定 --port 8004、--output <報告資料夾>
+flutter test test/team_service_entry_test.dart
+flutter test test/team_service_entry_test.dart --dart-define=TEAM_WEB_URL=http://localhost:5173/
+```
+
+其他平台使用安裝了後端依賴的 Python 執行同一腳本。Windows 若 `uv run pytest -q` 出現 trampoline 路徑錯誤，改用 `uv run python -m pytest -q`（相同環境、相同測試）。
+
+回歸重點：非目標角色直連 MR-P04～P07，必須先確認身分，不讀專屬 API，顯示說明與回 MR-P01 的「回首頁」；送餐在確認取餐前不可回報；放門口照片必須存在，拒絕時不得改庫存、任務或長者狀態。
+
+HTTP E2E 不代替裝置驗收：過期、任務 TTL、QR 跨時間窗由固定時間的 pytest 覆蓋；Android 相機、bridge、斷網冷啟動與離線底圖仍照 §5 實測。最近一次結果、截圖與未驗證項目見 [2026-11-08 驗收報告](../meal-relay/e2e-2026-11-08.md)。
