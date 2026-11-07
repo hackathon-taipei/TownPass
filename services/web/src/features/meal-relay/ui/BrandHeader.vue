@@ -21,7 +21,7 @@ const mascot = computed(() => brandSrc('mascot', import.meta.env.BASE_URL))
 
 <template>
   <header v-if="variant === 'wordmark'" class="flex min-h-18 items-center gap-2 bg-primary-100 px-4 py-2.5">
-    <MascotBadge :size="48" />
+    <img class="size-12 shrink-0 object-contain" :src="mascot" alt="" draggable="false" />
     <div class="flex shrink-0 flex-col items-start leading-none">
       <img class="h-6 w-auto" :src="wordmark" :alt="BRAND_NAME" draggable="false" />
       <span class="mt-1 text-[10px] font-semibold text-primary-800">{{ BRAND_SUBTITLE }}</span>

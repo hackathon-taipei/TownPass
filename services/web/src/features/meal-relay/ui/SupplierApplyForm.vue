@@ -2,7 +2,7 @@
 /** @component MR-C35 SupplierApplyForm — 申請成為提供者：單位名稱、類型（MR-C92）、位置與地址（MR-C93）、店面照片（MR-C06，選填，個人不顯示）→ applySupplier */
 /**
  * 設計 v2（docs/meal-relay/design-v2/README.md §3.4，03 左）：
- *   標語＋MR-C62 MascotBadge、A04 單位名稱、MR-C92 OrgTypePicker、MR-C93 ApplyLocationField、
+ *   標語＋鄰食蜂企鵝插圖、A04 單位名稱、MR-C92 OrgTypePicker、MR-C93 ApplyLocationField、
  *   店面照片（ADR-029）、MR-C64 InfoNote「審核通過後，就能上架食物」、MR-C10「送出申請」、連結「已申請？查看審核狀態」。
  * 一般市民（citizen）用；表單狀態在 logic/supplier.ts 的 useSupplierPage()（applyForm），這裡只綁欄位、發 emit。
  * 送出鍵在必填欄位都填好前停用（D4），離線時也停用（ADR-024）。
@@ -11,19 +11,20 @@
 import { computed } from 'vue'
 import { Camera, ChevronRight } from 'lucide-vue-next'
 import { BaseInput } from '@/ui'
+import { brandSrc } from '../logic/brand'
 import { STOREFRONT_PHOTO_RULE, showsStorefrontPhoto } from '../logic/placePhoto'
 import { buildSupplierApply, setFormImage, type ApplyForm } from '../logic/supplier'
 import Accordion from './Accordion.vue'
 import ApplyLocationField from './ApplyLocationField.vue'
 import ImageInput from './ImageInput.vue'
 import InfoNote from './InfoNote.vue'
-import MascotBadge from './MascotBadge.vue'
 import OrgTypePicker from './OrgTypePicker.vue'
 import SubmitButton from './SubmitButton.vue'
 
 const props = defineProps<{ form: ApplyForm; saving?: boolean; offline?: boolean; error?: string; checking?: boolean }>()
 const emit = defineEmits<{ submit: []; recheck: [] }>()
 
+const mascot = brandSrc('mascot', import.meta.env.BASE_URL)
 const built = computed(() => buildSupplierApply(props.form))
 const addressError = computed(() => (built.value.ok ? '' : (built.value.errors.address ?? '')))
 </script>
@@ -35,7 +36,20 @@ const addressError = computed(() => (built.value.ok ? '' : (built.value.errors.a
         讓多出來的一份，<br />成為一份照顧
         <span class="mx-auto mt-2 block h-2 w-20 rotate-[-4deg] rounded-[100%] border-t-[3px] border-secondary-500" aria-hidden="true"></span>
       </h2>
-      <MascotBadge class="shrink-0" :size="104" glow />
+      <span class="relative block h-25 w-25 shrink-0 min-[375px]:w-28">
+        <img class="h-full w-full object-cover object-top" :src="mascot" alt="" draggable="false" />
+        <svg
+          class="pointer-events-none absolute top-2 -left-4 size-7 -rotate-45 text-secondary-500"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="3"
+          stroke-linecap="round"
+          aria-hidden="true"
+        >
+          <path d="M12 2.5v5M4.5 5.5l3 3.5M19.5 5.5l-3 3.5" />
+        </svg>
+      </span>
     </div>
 
     <BaseInput v-model="form.name" class="[&_label]:font-bold [&_label]:text-grey-900 [&_input]:border-grey-300" label="單位名稱" placeholder="例：萬華好味便當" />

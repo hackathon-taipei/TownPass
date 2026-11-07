@@ -5,7 +5,7 @@
  *   MR-C60 BrandHeader（「提供食物」；上架分頁是「上架食物」＋返回庫存）, MR-C05 StaleBanner,
  *   MR-C21 PageTransition {
  *     讀取失敗：M05 EmptyState＋A01「再試一次」；志工、據點、管理員：M05 EmptyState
- *     沒有申請：MR-C35 SupplierApplyForm { MR-C62, A04, MR-C92 OrgTypePicker, MR-C93 ApplyLocationField { MR-C07, MR-C09＋MR-C02 }, MR-C65 { MR-C06 }, MR-C64, MR-C10 }
+ *     沒有申請：MR-C35 SupplierApplyForm { A04, MR-C92 OrgTypePicker, MR-C93 ApplyLocationField { MR-C07, MR-C09＋MR-C02 }, MR-C65 { MR-C06 }, MR-C64, MR-C10 }
  *     審核中／未通過：MR-C86 SupplierReviewStatus { MR-C62, MR-C64（V4）, A01「重新整理」 }
  *     通過：
  *       我的庫存：MR-C57 PlacePhoto（有店面照片才顯示）＋單位名稱・「已通過」, MR-C66 SegmentedTabs, MR-C87 InventoryPanel { MR-C88 InventoryTotals, MR-C85 InventoryRow×N, MR-C64, MR-C65 Accordion（已結束）, A01「＋ 上架新食物」 }
