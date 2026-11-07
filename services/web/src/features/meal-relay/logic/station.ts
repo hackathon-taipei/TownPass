@@ -76,6 +76,11 @@ export function checkinsNewestFirst(list: readonly Checkin[]): Checkin[] {
   return [...list].sort((a, b) => (__ms(b.checked_in_at) || 0) - (__ms(a.checked_in_at) || 0))
 }
 
+/** 今天報到清單的標題「今天報到・3 位」（設計 v2 §3.5） */
+export function checkinHeading(count: number): string {
+  return `今天報到・${Math.max(0, Math.floor(count))} 位`
+}
+
 /** 報到時間「14:05」（臺北時間 +08:00，§8「今天」的判斷基準） */
 export function checkinTimeText(iso: string): string {
   const t = __ms(iso)

@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { effectScope } from 'vue'
+import { createApp, effectScope, h, nextTick } from 'vue'
+import { createMemoryHistory, createRouter } from 'vue-router'
 import type { Checkin, MyStation } from '@/features/meal-relay/data'
 
 // 鄰食轉運站據點頁（T-119，logic/station.ts）：QR 定時更新（M15）、倒數、斷網不顯示舊 QR（ADR-024）。
@@ -12,6 +13,7 @@ vi.mock('@/features/meal-relay/data', async (importOriginal) => {
 })
 
 const {
+  checkinHeading,
   checkinsNewestFirst,
   checkinTimeText,
   isRetryable,
@@ -27,6 +29,10 @@ const {
   useStation,
 } = await import('@/features/meal-relay/logic/station')
 const { MealApiError } = await import('@/features/meal-relay/data')
+const { default: StationPage } = await import('@/features/meal-relay/ui/StationPage.vue')
+const { default: StationQrCard } = await import('@/features/meal-relay/ui/StationQrCard.vue')
+const { default: CheckinList } = await import('@/features/meal-relay/ui/CheckinList.vue')
+const { default: QrCountdown } = await import('@/features/meal-relay/ui/QrCountdown.vue')
 
 const ROTATE_MS = 30_000 // §5 Demo QR_ROTATE_SEC
 const T0 = Date.parse('2026-11-07T10:00:05+08:00') // 時間窗 10:00:00～10:00:30 的第 5 秒
@@ -77,8 +83,23 @@ beforeEach(() => {
   fakeServer()
 })
 afterEach(() => {
+  while (cleanups.length) cleanups.pop()!()
+  document.body.innerHTML = ''
   vi.useRealTimers()
 })
+
+/** 把元件掛到 document.body（設計 v2 的畫面測試用）；測試結束自動卸載 */
+const cleanups: (() => void)[] = []
+function render(view: () => ReturnType<typeof h>) {
+  const el = document.createElement('div')
+  document.body.appendChild(el)
+  const app = createApp({ render: view })
+  app.use(createRouter({ history: createMemoryHistory(), routes: [{ path: '/', component: { render: () => null } }] }))
+  app.mount(el)
+  cleanups.push(() => app.unmount())
+  return el
+}
+const text = (el: Element) => (el.textContent ?? '').replace(/\s+/g, ' ').trim()
 
 describe('純函數', () => {
   it('qrSecondsLeft：無條件進位，已過或格式錯誤是 0', () => {
@@ -124,6 +145,12 @@ describe('純函數', () => {
     expect(a.path).toMatch(/^M\d+ \d+h\d+v1h-\d+z/)
     expect(qrSvg('meal-relay:checkin:code-1:abc1234567')).toEqual(a)
     expect(qrSvg('meal-relay:checkin:code-1:ffff000000').path).not.toBe(a.path)
+  })
+
+  it('checkinHeading：今天報到・N 位（設計 v2 §3.5）', () => {
+    expect(checkinHeading(3)).toBe('今天報到・3 位')
+    expect(checkinHeading(0)).toBe('今天報到・0 位')
+    expect(checkinHeading(-1)).toBe('今天報到・0 位')
   })
 
   it('isRetryable：斷網與伺服器錯誤會重試，權限錯誤不重試', () => {
@@ -294,5 +321,78 @@ describe('useStation：斷網不顯示過期的 QR（ADR-024）', () => {
     getMyStation.mockClear()
     await vi.advanceTimersByTimeAsync(120_000)
     expect(getMyStation).not.toHaveBeenCalled()
+  })
+})
+
+describe('設計 v2 版面（T-137，design-v2 README §3.5、04 左）', () => {
+  it('StationQrCard：據點名稱膠囊、說明、QR、「N 秒後更新」與進度條；不顯示設計稿的「示意 QR」標籤', () => {
+    const el = render(() => h(StationQrCard, { stationName: '大安關懷據點', qrText: 'meal-relay:checkin:code-1:abc', seconds: 28, fraction: 0.5 }))
+    expect(el.querySelector('h2')?.textContent?.trim()).toBe('大安關懷據點')
+    expect(text(el)).toContain('請志工掃描下方 QR code 報到')
+    expect(el.querySelector('svg[role="img"] path')?.getAttribute('d')).toMatch(/^M/)
+    const timer = el.querySelector('[role="timer"]')!
+    expect(text(timer)).toBe('28 秒後更新')
+    expect((timer.querySelector('[aria-hidden="true"] > div') as HTMLElement).style.transform).toBe('scaleX(0.5)')
+    expect(text(el)).not.toContain('示意')
+    expect(text(el)).not.toContain('不可掃描')
+    // 平板或電腦寬度 QR 放大置中，最大 360px（max-w-90）；手機最大 256px（max-w-64）
+    const box = el.querySelector('svg[role="img"]')!.closest('.mx-auto')!
+    expect(box.className).toContain('max-w-64')
+    expect(box.className).toContain('md:max-w-90')
+  })
+
+  it('StationQrCard：沒有可顯示的 QR（斷網）時只顯示斷線提示，不顯示 QR 與倒數', () => {
+    const el = render(() => h(StationQrCard, { stationName: '大安關懷據點', qrText: null, seconds: 0, fraction: 0 }))
+    expect(el.querySelector('svg[role="img"]')).toBeNull()
+    expect(el.querySelector('[role="timer"]')).toBeNull()
+    expect(text(el)).toContain('連線中斷，QR 無法更新')
+  })
+
+  it('QrCountdown：正式版 30 分鐘時顯示「29:59 後更新」，進度條限制在 0～1', () => {
+    const el = render(() => h(QrCountdown, { seconds: 1799, fraction: 1.4 }))
+    expect(text(el.querySelector('[role="timer"]')!)).toBe('29:59 後更新')
+    expect((el.querySelector('[aria-hidden="true"] > div') as HTMLElement).style.transform).toBe('scaleX(1)')
+  })
+
+  it('CheckinList：標題「今天報到・N 位」，每列企鵝頭像、名字、時間；沒有人時顯示提示', () => {
+    const list = checkinsNewestFirst([checkin('a', '2026-11-07T11:20:00+08:00', '阿明'), checkin('b', '2026-11-07T11:25:00+08:00', '小雅')])
+    const el = render(() => h(CheckinList, { checkins: list }))
+    expect(el.querySelector('h2')?.textContent).toBe('今天報到・2 位')
+    const rows = [...el.querySelectorAll('li')]
+    expect(rows.map((r) => [text(r.querySelector('span.truncate')!), text(r.querySelector('time')!)])).toEqual([
+      ['小雅', '11:25'],
+      ['阿明', '11:20'],
+    ])
+    expect(rows[0].querySelector('img')?.getAttribute('src')).toMatch(/penguin/)
+
+    const empty = render(() => h(CheckinList, { checkins: [] }))
+    expect(empty.querySelector('h2')?.textContent).toBe('今天報到・0 位')
+    expect(text(empty)).toContain('今天還沒有志工報到')
+  })
+
+  it('StationPage：由上而下是頁首「據點報到」、名稱、說明、QR、倒數、今天報到、頁尾提示；斷網時收起 QR', async () => {
+    checkins = [checkin('a', '2026-11-07T10:00:01+08:00', '阿明')]
+    const el = render(() => h(StationPage))
+    await vi.advanceTimersByTimeAsync(0)
+    await nextTick()
+    await vi.advanceTimersByTimeAsync(1_000)
+    const all = text(el)
+    const order = ['據點報到', '大安關懷據點', '請志工掃描下方 QR code 報到', '秒後更新', '今天報到・1 位', '阿明', '每次更新後，請掃描最新 QR code']
+    const at = order.map((s) => all.indexOf(s))
+    expect(at.every((i) => i >= 0)).toBe(true)
+    expect([...at].sort((a, b) => a - b)).toEqual(at)
+    expect(el.querySelector('header h1')?.textContent).toBe('據點報到')
+    expect(el.querySelector('svg[role="img"]')).not.toBeNull()
+    expect(all).not.toContain('示意')
+
+    // 斷網：到期前的重新取得失敗就收起 QR（T-119 行為不變）
+    online = false
+    const expires = (serverWindow(T0) + 1) * ROTATE_MS
+    await vi.advanceTimersByTimeAsync(expires - QR_REFRESH_LEAD_MS - Date.now() + 1)
+    await nextTick()
+    expect(el.querySelector('svg[role="img"]')).toBeNull()
+    expect(el.querySelector('[role="timer"]')).toBeNull()
+    expect(text(el)).toContain('連線中斷，QR 無法更新')
+    expect(text(el)).toContain('阿明') // 今天報到照樣顯示
   })
 })
