@@ -1,8 +1,20 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest'
-import { effectScope, nextTick, ref } from 'vue'
+import { createApp, effectScope, h, nextTick, ref } from 'vue'
 import type { Elder, Station } from '@/features/meal-relay/data'
 import * as data from '@/features/meal-relay/data'
 import { stationDraftError, stationElders, useStationManager } from '@/features/meal-relay/logic/stationManager'
+import StationManager from '@/features/meal-relay/ui/StationManager.vue'
+
+vi.mock('@/features/meal-relay/ui/MapView.vue', async () => {
+  const { defineComponent, h } = await import('vue')
+  return { default: defineComponent({
+    props: { markers: Array, onPick: Function, onMarkerSelect: Function },
+    setup: (props) => () => h('div', [
+      h('button', { 'data-test': 'pick', onClick: () => props.onPick?.({ lat: 25.05, lng: 121.53 }) }, '地圖選位置'),
+      h('button', { 'data-test': 'pin', onClick: () => props.onMarkerSelect?.({ id: 's2' }) }, '據點定位針'),
+    ]),
+  }) }
+})
 
 vi.mock('@/features/meal-relay/data', async (original) => ({
   ...await original<typeof import('@/features/meal-relay/data')>(),
@@ -108,5 +120,40 @@ describe('管理員據點操作', () => {
     expect(m.error.value).toBe('目前連不上伺服器')
     expect(m.busy.value).toBe(false)
     scope.stop()
+  })
+  it('畫面pin能切換所屬長者；新增表單明確選點後才可儲存', async () => {
+    const host = document.createElement('div')
+    document.body.append(host)
+    const people = elders.map(e => ({ ...e, alias: e.id, allergens: [], meal_due: false, care_due: false })) as Elder[]
+    const app = createApp({ render: () => h(StationManager, { stations: [station('s1'), station('s2')], elders: people, offline: false, onRefresh: async () => {} }) })
+    app.mount(host)
+    const click = async (selector: string) => { host.querySelector<HTMLButtonElement>(selector)!.click(); await nextTick() }
+    expect(host.textContent).toContain('e1')
+    await click('[data-test="pin"]')
+    expect(host.textContent).toContain('e2')
+    expect(host.textContent).not.toContain('e1')
+    const add = [...host.querySelectorAll('button')].find(b => b.textContent === '新增據點')!
+    add.click(); await nextTick()
+    expect(host.textContent).toContain('尚未選位置')
+    await click('[data-test="pick"]')
+    expect(host.textContent).toContain('25.050000')
+    expect(host.textContent).toContain('121.530000')
+    app.unmount(); host.remove()
+  })
+  it('初次讀取失敗即使沒有stale快取也禁止寫入，名冊不冒充零位並可重試', async () => {
+    const host = document.createElement('div')
+    document.body.append(host)
+    const refresh = vi.fn(async () => {})
+    const app = createApp({ render: () => h(StationManager, { stations: [station('s1')], elders: [], offline: false, loadError: '名冊讀取失敗', onRefresh: refresh }) })
+    app.mount(host)
+    expect(host.textContent).toContain('名冊讀取失敗')
+    expect(host.textContent).not.toContain('所屬長者（0）')
+    for (const text of ['新增據點', '修改據點', '刪除據點']) {
+      expect([...host.querySelectorAll('button')].find(b => b.textContent === text)?.disabled).toBe(true)
+    }
+    ;[...host.querySelectorAll('button')].find(b => b.textContent === '重新讀取')!.click()
+    await nextTick()
+    expect(refresh).toHaveBeenCalledOnce()
+    app.unmount(); host.remove()
   })
 })
