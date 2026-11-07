@@ -77,7 +77,7 @@ def __ordered_assignments(
     assignments: list[mr.models.MealAssignment],
     at: datetime,
 ) -> list[mr.models.MealAssignment]:
-    """依 M16 的主要志工、未見天數與距離排序，供各任務端點共用。"""
+    """依 M16 的負責志工（指定志工，沒有就最常照顧的志工）、未見天數與距離排序，供各任務端點共用。"""
     station = mr.repo.get_station(session, account.station_id or "")
     if station is None:
         raise mr.MealError("NOT_FOUND", "找不到帳號所屬據點")
@@ -90,7 +90,7 @@ def __ordered_assignments(
         elder = mr.repo.get_elder(session, assignment.elder_id)
         if elder is None:
             raise mr.MealError("NOT_FOUND", f"找不到任務 {assignment.id} 的長者")
-        primary = elder.primary_volunteer_id
+        primary = mr.effective_volunteer_id(elder)  # M16（v2.7）：指定志工 > 最常照顧的志工
         group = (
             0
             if primary == account.id
@@ -149,7 +149,8 @@ def check_in(
         flags = mr.elder_flags(session, elder, at)
         if not flags.alert:
             continue
-        primary = elder.primary_volunteer_id
+        # M16（v2.7，ADR-032）：負責志工＝指定志工，沒有就用最常照顧的志工；他今天已報到就留給他
+        primary = mr.effective_volunteer_id(elder)
         if primary and primary in checked_in_today and primary != account.id:
             continue
         group = 0 if primary == account.id else 1 if primary is None else 2
@@ -157,7 +158,8 @@ def check_in(
         candidates.append(
             (group, last_seen, mr.distance_m(station, elder), elder.id, elder, flags)
         )
-    candidates.sort(key=lambda item: item[:4])  # M16：主要志工優先、較久未見、較近據點
+    # M16：①負責志工是自己 ②沒有負責志工 ③負責志工今天沒報到；同組內較久未見、較近據點
+    candidates.sort(key=lambda item: item[:4])
 
     assignments = []
     for _, _, _, _, elder, flags in candidates[: mr.settings().DISPATCH_LIMIT]:

@@ -7,7 +7,7 @@
         CurrentAccount, MealError, meal_router, models, repo, require_roles, schemas, service,
     )
 
-共用的檢查：`ensure_assigned_elder()`（M13 志工只能處理自己任務上的長者）、`ensure_food_update()`
+共用的檢查：`ensure_assigned_elder()`（M13 志工只能處理自己任務上的長者）、`ensure_preferred_volunteer()`（ADR-032 指定志工必須是同據點志工）、`ensure_food_update()`
 （M14 改份數與到期時間）、`verify_qr_text()`（M15 據點 QR）。長者不是帳號（ADR-026）。
 
 `seed(session)` 由 main 在啟動時自動執行（冪等；已部署的資料庫會把舊的 elder 帳號改成 citizen）。
@@ -28,6 +28,7 @@ from .service import (
     CANCEL_EXPIRED,
     CANCEL_RELEASED,
     CANCEL_RETURNED,
+    CARE_RESULTS,
     DEMO_SETTINGS,
     ERROR_STATUS,
     PROD_SETTINGS,
@@ -42,9 +43,11 @@ from .service import (
     allergen_conflict,
     care_due,
     distance_m,
+    effective_volunteer_id,
     elder_flags,
     ensure_assigned_elder,
     ensure_food_update,
+    ensure_preferred_volunteer,
     food_remaining,
     food_status,
     food_unclaimed,
@@ -55,6 +58,7 @@ from .service import (
     is_auto_claim,
     local_day_start,
     meal_due,
+    most_frequent_volunteer,
     new_id,
     now,
     parse_qr_text,
@@ -79,6 +83,7 @@ from .service import (
     to_supplier,
     to_utc,
     to_visit,
+    to_volunteer,
     verify_qr_text,
 )
 
@@ -86,6 +91,7 @@ __all__ = [
     "CANCEL_EXPIRED",
     "CANCEL_RELEASED",
     "CANCEL_RETURNED",
+    "CARE_RESULTS",
     "DEMO_SETTINGS",
     "ERROR_STATUS",
     "PROD_SETTINGS",
@@ -103,9 +109,11 @@ __all__ = [
     "care_due",
     "current_account",
     "distance_m",
+    "effective_volunteer_id",
     "elder_flags",
     "ensure_assigned_elder",
     "ensure_food_update",
+    "ensure_preferred_volunteer",
     "error_response",
     "food_remaining",
     "food_status",
@@ -120,6 +128,7 @@ __all__ = [
     "meal_due",
     "meal_router",
     "models",
+    "most_frequent_volunteer",
     "new_id",
     "now",
     "parse_qr_text",
@@ -148,6 +157,7 @@ __all__ = [
     "to_supplier",
     "to_utc",
     "to_visit",
+    "to_volunteer",
     "validation_message",
     "verify_qr_text",
 ]

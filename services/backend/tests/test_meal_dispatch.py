@@ -133,7 +133,9 @@ def test_v13_checkin_assigns_primary_volunteer_first_and_respects_limit(
     elder_ids = [assignment["elder_id"] for assignment in result["assignments"]]
     assert elder_ids == ["e-4", "e-5", "e-10"]
     assert len(elder_ids) <= mr.settings().DISPATCH_LIMIT
+    # v2.7 M16：負責志工＝指定志工，沒有就最常照顧的志工；這三位都沒有指定志工
     assert all(assignment["elder"]["primary_volunteer_id"] == "u-vol-1"
+               and assignment["elder"]["preferred_volunteer_id"] is None
                for assignment in result["assignments"])
     for item in result["assignments"]:
         assigned_at = datetime.fromisoformat(item["assigned_at"])
@@ -163,6 +165,12 @@ def test_v14_does_not_assign_volunteer_one_elders_to_volunteer_two(
     assert second.status_code == 200
     assignments = second.json()["assignments"]
     assert all(item["elder"]["primary_volunteer_id"] != "u-vol-1" for item in assignments)
+    # v2.7：負責志工（指定志工優先）是今天已報到的 u-vol-1 的長者，不會派給 u-vol-2
+    assert all(
+        (item["elder"]["preferred_volunteer_id"] or item["elder"]["primary_volunteer_id"]) != "u-vol-1"
+        for item in assignments
+    )
+    assert "e-3" in {item["elder_id"] for item in assignments}  # 種子：e-3 指定 u-vol-2
     held = {item["elder_id"] for item in first.json()["assignments"]}
     assert held.isdisjoint({item["elder_id"] for item in assignments})
 

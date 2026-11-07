@@ -6,7 +6,9 @@ from townpass_backend.features.meal_relay import (
     CANCEL_RETURNED,
     MealError,
     ensure_assigned_elder,
+    ensure_preferred_volunteer,
     models,
+    most_frequent_volunteer,
     new_id,
     now,
     refresh,
@@ -27,6 +29,7 @@ def create_elder(session: Session, account: models.MealAccount, payload: schemas
     """建立模擬長者資料（ADR-024、M12）。"""
     if repo.get_station(session, payload.station_id) is None:
         raise MealError("NOT_FOUND", "找不到這個據點")
+    ensure_preferred_volunteer(session, payload.preferred_volunteer_id, payload.station_id)  # ADR-032
     at = now()
     elder = models.MealElder(
         id=new_id("e"),
@@ -40,6 +43,7 @@ def create_elder(session: Session, account: models.MealAccount, payload: schemas
         created_at=at,
         next_care_at=to_utc(payload.next_care_at) if payload.next_care_at else None,
         next_meal_at=to_utc(payload.next_meal_at) if payload.next_meal_at else None,
+        preferred_volunteer_id=payload.preferred_volunteer_id,
     )
     return to_elder(session, repo.create_elder(session, elder))
 
@@ -64,6 +68,13 @@ def update_elder(session: Session, elder_id: str, payload: schemas.ElderUpdate) 
         and repo.get_station(session, changes["station_id"]) is None
     ):
         raise MealError("NOT_FOUND", "找不到這個據點")
+    # ADR-032：改據點或改指定志工後，指定志工仍要是同據點的志工（改據點時請一起送新的值或 null）
+    if "station_id" in changes or "preferred_volunteer_id" in changes:
+        ensure_preferred_volunteer(
+            session,
+            changes.get("preferred_volunteer_id", elder.preferred_volunteer_id),
+            changes.get("station_id", elder.station_id),
+        )
     for key in ("next_care_at", "next_meal_at"):
         if changes.get(key) is not None:
             changes[key] = to_utc(changes[key])
@@ -115,7 +126,9 @@ def report_visit(
 
     elder_changes: dict[str, object] = {}
     if payload.result in ("seen", "left_at_door"):
-        elder_changes["primary_volunteer_id"] = account.id
+        # M9（v2.7，ADR-032）：主要志工＝最常照顧的志工（含這次回報；同次數取最近回報的那位）
+        history = [*repo.list_visits(session, elder_id=elder.id), visit]
+        elder_changes["primary_volunteer_id"] = most_frequent_volunteer(history)
     if payload.result == "seen":
         elder_changes["last_seen_at"] = visited_at
         elder_changes["next_care_at"] = (

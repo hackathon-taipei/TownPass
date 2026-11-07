@@ -52,6 +52,7 @@ from .schemas import (
     Station,
     Supplier,
     Visit,
+    Volunteer,
 )
 
 # ---------------------------------------------------------------- 設定值（§5）
@@ -119,6 +120,7 @@ ERROR_STATUS: dict[str, int] = {
     "FRESH_CANNOT_LEAVE": 409,
     "PHOTO_REQUIRED": 422,
     "IMAGE_TOO_LARGE": 413,
+    "VOLUNTEER_NOT_IN_STATION": 409,  # v2.7（ADR-032）：指定的志工不是長者所屬據點的志工
 }
 
 
@@ -425,6 +427,44 @@ def ensure_assigned_elder(session: Session, account: MealAccount, elder_id: str)
     return tasks[0]
 
 
+# ---------------------------------------------------------------- 指定志工與最常照顧的志工（v2.7，ADR-032）
+
+# M9：算「最常照顧」只看見到本人與放門口（returned 沒有照顧到）
+CARE_RESULTS: tuple[str, ...] = ("seen", "left_at_door")
+
+
+def effective_volunteer_id(elder: MealElder | Elder) -> str | None:
+    """M16：派送看的志工＝管理員指定的志工（preferred_volunteer_id），沒有就用最常照顧的志工（primary_volunteer_id）。"""
+    return elder.preferred_volunteer_id or elder.primary_volunteer_id
+
+
+def most_frequent_volunteer(visits: list[MealVisit]) -> str | None:
+    """M9：seen／left_at_door 回報次數最多的志工；同次數取最近回報的那位。沒有回報 → None。"""
+    counts: dict[str, int] = {}
+    latest: dict[str, tuple[datetime, str]] = {}
+    for visit in visits:
+        if visit.result not in CARE_RESULTS or not visit.volunteer_id:
+            continue
+        counts[visit.volunteer_id] = counts.get(visit.volunteer_id, 0) + 1
+        stamp = (to_utc(visit.visited_at), visit.id)
+        if visit.volunteer_id not in latest or stamp > latest[visit.volunteer_id]:
+            latest[visit.volunteer_id] = stamp
+    if not counts:
+        return None
+    return max(counts, key=lambda vid: (counts[vid], latest[vid]))
+
+
+def ensure_preferred_volunteer(session: Session, volunteer_id: str | None, station_id: str) -> None:
+    """ADR-032：指定志工必須是志工帳號（否則 NOT_FOUND），而且屬於長者的據點（否則 VOLUNTEER_NOT_IN_STATION）。"""
+    if volunteer_id is None:
+        return
+    account = repo.get_account(session, volunteer_id)
+    if account is None or account.role != "volunteer":
+        raise MealError("NOT_FOUND", "找不到這位志工")
+    if account.station_id != station_id:
+        raise MealError("VOLUNTEER_NOT_IN_STATION", "指定的志工不屬於長者的據點")
+
+
 # ---------------------------------------------------------------- M15 據點 QR（定時更新）
 
 QR_PREFIX = "meal-relay:checkin:"
@@ -614,6 +654,7 @@ def to_elder(session: Session, row: MealElder, at: datetime | None = None) -> El
         next_meal_at=to_local(row.next_meal_at),
         primary_volunteer_id=row.primary_volunteer_id,
         merged_into=None,  # ADR-026：合併長者已取消，一律 null（資料表欄位保留）
+        preferred_volunteer_id=row.preferred_volunteer_id,  # v2.7（ADR-032）
         location=to_location(row),
         care_due=flags.care_due,
         meal_due=flags.meal_due,
@@ -622,6 +663,11 @@ def to_elder(session: Session, row: MealElder, at: datetime | None = None) -> El
         days_since_meal=flags.days_since_meal,
         pending_request=flags.pending_request,
     )
+
+
+def to_volunteer(row: MealAccount) -> Volunteer:
+    """GET /volunteers（admin）：只回 id、名稱、據點（AGENTS.md 第 5 條）。"""
+    return Volunteer(id=row.id, name=row.name, station_id=row.station_id)
 
 
 def to_claim(session: Session, row: MealClaim, at: datetime | None = None) -> Claim:
@@ -772,8 +818,32 @@ def import_seed(session: Session, at: datetime | None = None, seed_dir: Path | N
             if image is not None:
                 rows.append(image)
             rows.append(__seed_row(model, record, t))
+    __check_seed_refs(rows)
     repo.save_all(session, rows)
     return len(rows)
+
+
+def __check_seed_refs(rows: list[SQLModel]) -> None:
+    """v2.7（ADR-032）：每位長者、每個志工與據點帳號都屬於一個存在的據點；指定志工必須是同據點的志工。
+
+    種子寫錯就在匯入（啟動、重置）時直接失敗，不寫進資料庫。
+    """
+    station_ids = {row.id for row in rows if isinstance(row, MealStation)}
+    accounts = {row.id: row for row in rows if isinstance(row, MealAccount)}
+    problems: list[str] = []
+    for account in accounts.values():
+        if account.role in ("volunteer", "station") and account.station_id not in station_ids:
+            problems.append(f"帳號 {account.id} 的據點 {account.station_id!r} 不存在")
+    for elder in (row for row in rows if isinstance(row, MealElder)):
+        if elder.station_id not in station_ids:
+            problems.append(f"長者 {elder.id} 的據點 {elder.station_id!r} 不存在")
+        preferred = accounts.get(elder.preferred_volunteer_id or "")
+        if elder.preferred_volunteer_id and (
+            preferred is None or preferred.role != "volunteer" or preferred.station_id != elder.station_id
+        ):
+            problems.append(f"長者 {elder.id} 的指定志工 {elder.preferred_volunteer_id} 不是同據點的志工")
+    if problems:
+        raise ValueError("種子資料錯誤：" + "；".join(problems))
 
 
 

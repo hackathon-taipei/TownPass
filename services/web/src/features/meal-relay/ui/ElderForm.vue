@@ -1,5 +1,5 @@
 <script setup lang="ts">
-/** @component MR-C53 ElderForm — 長者表單：代號（長者 id，唯讀）、稱呼、所屬據點、模擬地址、過敏原（MR-C01）、下次關懷時間；「更多設定」（MR-C65）裡是下次送餐時間與位置（MR-C02）；「儲存變更」 */
+/** @component MR-C53 ElderForm — 長者表單：代號（長者 id，唯讀）、稱呼、所屬據點、指定志工（MR-C113）、模擬地址、過敏原（MR-C01）、下次關懷時間；「更多設定」（MR-C65）裡是下次送餐時間與位置（MR-C02）；「儲存變更」 */
 /**
  * 管理系統「長者名冊」右側（設計 v2 §3.6、02-admin.webp 右下；ADR-026：名冊只有管理員維護）。
  * v-model 是 logic/admin.ts 的 ElderDraft，驗證與送出（createElder／updateElder）都在 logic；本元件只發 submit、cancel。
@@ -12,13 +12,14 @@
 import { ref, useId, watch } from 'vue'
 import { ChevronDown } from 'lucide-vue-next'
 import { BaseButton, BaseInput } from '@/ui'
-import type { ElderDraft, ElderDraftErrors, Station } from '../logic/admin'
+import type { ElderDraft, ElderDraftErrors, Station, Volunteer } from '../logic/admin'
 import { ADDRESS_MAX, NEW_ELDER_ID_TEXT, PRIVACY_NOTE } from '../logic/admin'
 import type { Marker } from '../logic/mapMarker'
 import { ALLERGEN_LABEL } from '../logic/shared'
 import Accordion from './Accordion.vue'
 import AllergenChecklist from './AllergenChecklist.vue'
 import LocationPicker from './LocationPicker.vue'
+import PreferredVolunteerField from './PreferredVolunteerField.vue'
 import SubmitButton from './SubmitButton.vue'
 
 const draft = defineModel<ElderDraft>({ required: true })
@@ -31,6 +32,12 @@ const props = defineProps<{
   saving?: boolean
   disabled?: boolean
   plain?: boolean
+  /** v2.7（ADR-032）：所選據點的志工（logic 已篩過），給 MR-C113 指定志工選單 */
+  volunteers?: Volunteer[]
+  /** 修改中的長者目前最常照顧的志工名稱（M9） */
+  caretaker?: string
+  /** 志工清單讀取失敗的訊息；有值時指定志工選單停用 */
+  volunteerError?: string
 }>()
 const emit = defineEmits<{ submit: []; cancel: [] }>()
 
@@ -72,6 +79,17 @@ const fieldBox = 'block h-11 w-full rounded-lg border bg-white px-3 text-base ou
         <p v-if="errors.station_id" class="text-sm text-warn-200">{{ errors.station_id }}</p>
         <p v-else-if="!stations.length" class="text-sm text-grey-500">還沒有據點資料</p>
       </div>
+
+      <PreferredVolunteerField
+        v-model="draft.preferred_volunteer_id"
+        class="elder-field"
+        :volunteers="volunteers ?? []"
+        :station-selected="!!draft.station_id"
+        :caretaker="caretaker"
+        :error="errors.preferred_volunteer_id"
+        :load-error="volunteerError"
+        :disabled="disabled"
+      />
 
       <BaseInput
         v-model="draft.address"

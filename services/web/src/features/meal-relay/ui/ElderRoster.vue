@@ -1,5 +1,5 @@
 <script setup lang="ts">
-/** @component MR-C54 ElderRoster — 長者名冊清單：「新增長者」、每位長者的人像圖示、稱呼、代號與據點、狀態（需要送餐／需要關懷／近期已見到）、右箭頭；點一位發 edit */
+/** @component MR-C54 ElderRoster — 長者名冊清單：「新增長者」、每位長者的人像圖示、稱呼、代號與據點、負責志工（指定志工／最常照顧）、狀態（需要送餐／需要關懷／近期已見到）、右箭頭；點一位發 edit */
 /**
  * 管理系統「長者名冊」分頁左側（設計 v2 §3.6、02-admin.webp 右下；ADR-026：名冊只在管理系統，志工畫面不能出現長者清單）。
  * 狀態由 logic/admin.ts 的 elderStatusOf 決定（M10）：需要處理的用 warn 色，近期已見到用主色（T-126 三色）。
@@ -9,10 +9,10 @@
 import { computed } from 'vue'
 import { ChevronRight, Plus, UserRound } from 'lucide-vue-next'
 import { BaseButton } from '@/ui'
-import type { Elder, Station } from '../logic/admin'
-import { ELDER_STATUS_LABEL, elderStatusOf } from '../logic/admin'
+import type { Elder, Station, Volunteer } from '../logic/admin'
+import { ELDER_STATUS_LABEL, caretakerText, elderStatusOf } from '../logic/admin'
 
-const props = defineProps<{ elders: Elder[]; stations: Station[]; activeId?: string | null; error?: string }>()
+const props = defineProps<{ elders: Elder[]; stations: Station[]; activeId?: string | null; error?: string; volunteers?: Volunteer[] }>()
 const emit = defineEmits<{ edit: [elder: Elder]; add: [] }>()
 
 const rows = computed(() =>
@@ -20,6 +20,7 @@ const rows = computed(() =>
     elder,
     status: elderStatusOf(elder),
     stationName: props.stations.find((s) => s.id === elder.station_id)?.name ?? elder.station_id,
+    caretaker: caretakerText(elder, props.volunteers ?? []), // v2.7 ADR-032
   })),
 )
 </script>
@@ -30,7 +31,7 @@ const rows = computed(() =>
     <p v-if="error" role="alert" class="text-sm text-warn-200">{{ error }}</p>
 
     <ul v-if="rows.length" class="flex flex-col gap-1 lg:max-h-96 lg:overflow-y-auto" tabindex="0" aria-label="名冊">
-      <li v-for="{ elder, status, stationName } in rows" :key="elder.id" class="border-b border-grey-200 last:border-none">
+      <li v-for="{ elder, status, stationName, caretaker } in rows" :key="elder.id" class="border-b border-grey-200 last:border-none">
         <button
           type="button"
           class="press flex min-h-12 w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left transition-colors duration-200"
@@ -42,6 +43,7 @@ const rows = computed(() =>
           <span class="min-w-0 flex-1">
             <span class="block truncate text-base font-bold text-grey-900">{{ elder.alias }}</span>
             <span class="block truncate text-xs text-grey-500">代號 {{ elder.id }}・{{ stationName }}</span>
+            <span v-if="caretaker" class="block truncate text-xs text-grey-600">{{ caretaker }}</span>
           </span>
           <span class="shrink-0 border-l border-grey-300 pl-2.5 text-sm font-medium" :class="status === 'seen' ? 'text-primary-700' : 'text-warn-200'">
             {{ ELDER_STATUS_LABEL[status] }}
