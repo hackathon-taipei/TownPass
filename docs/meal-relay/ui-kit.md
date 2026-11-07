@@ -44,6 +44,28 @@
 
 只用在**選擇分類的地方**：MR-C38 上架表單的類別選擇、MR-C35 提供者申請的類型選擇。清單與晶片（MR-C14 FoodRow、MR-C19 ReviewList、MR-C51 ReviewPanel）不加；`POINT_KIND_ICON` 給 #80 的地圖定位針共用。測試 `tests/meal-relay-shared.test.ts` 會抓合約 §4 的值有沒有遺漏。
 
+## 1.1 設計 v2 共用元件（T-132，MR-C60～C68）
+
+對應設計圖與畫面規格 [design-v2/README.md](design-v2/README.md) §1。元件都**只收 props、發 emit，不呼叫 API**，顏色只用 `style.css` 的 token，按鈕與可點的列高度至少 48px。C69 保留。素材與小函數在 `logic/brand.ts`（`brandSrc()`、`BRAND_FILES`、`useTabQuery()`、`stepStateOf()`、`clampInt()`、`parseIntInput()`、群組收合的 `openedInGroup()` 等）。
+
+| 編號 | 元件 | props | emit／插槽 | 對應設計圖 |
+|---|---|---|---|---|
+| MR-C60 | `BrandHeader` 品牌頁首 | `title`；`variant?`（`wordmark` 預設／`banner`） | 插槽 `#actions`（字標版標題右側，例如「重置示範資料」） | 03 三個畫面頁首、02 管理系統頁首（字標版）；04 左、中、右頁首（banner 版：淺青底、企鵝在左、標題置中、右邊房子與光芒） |
+| MR-C61 | `BrandHero` 首頁主視覺 | `lines?`（標語，預設「把多出來的食物，」「送到需要的人手上」） | — | 01 左最上面的標誌與標語（淺青底圓角塊） |
+| MR-C62 | `MascotBadge` 企鵝圓形頭像 | `size?`（預設 64）、`glow?`（右上光芒）、`done?`（右下角 lucide `CircleCheck`）、`alt?`（沒傳視為裝飾圖） | — | 01 中志工問候的頭像（`glow`）、04 右完成畫面（`size=160 glow done`，見下方「完成插圖」） |
+| MR-C63 | `StepIndicator` 步驟列 | `steps`（`{label, icon?}[]`）、`current`（從 0 起算） | — | 01 中「報到 → 取餐 → 回報」（每步都有 `icon` 時為圖示版）、03 右「① 拍照 → ② 填寫資訊 → ③ 上架」（沒有 `icon` 時為數字圓圈版）。已完成打勾、目前步驟加粗加底色並標 `aria-current="step"`、還沒到的變灰 |
+| MR-C64 | `InfoNote` 淺黃提醒卡 | `text?`、`detail?`（第二行小字）、`icon?`（預設 lucide `Info`） | 預設插槽（取代 `text`） | 01 左「長者不用操作 App」、03 左「審核通過後，就能上架食物」、03 中「還有食物等待派送」、03 右「上架後仍可修改份數與時間」 |
+| MR-C65 | `Accordion` 收合列 | `title`、`group?`（同名的列一次只展開一個）、`name?`（在群組裡的名字，預設自動編號）、`icon?`；`v-model` 綁開關（不綁就自己管） | 插槽：預設＝展開內容、`#chip`＝標題列右側晶片、`#icon`＝左側圖示 | 01 左「想成為志工？」、01 右任務卡與「查看位置」、03 中「已結束的食物（N）」。展開與收合有高度動畫，`prefers-reduced-motion` 時沒有動畫；收合時內容 `inert` |
+| MR-C66 | `SegmentedTabs` 分段切換 | `v-model`、`tabs`（`{value, label, badge?}[]`）、`label?`（無障礙名稱） | — | 03 中「我的庫存｜上架食物」、02 管理系統「待審核 ②｜服務看板｜長者名冊」。與網址 `?tab=` 同步用 `useTabQuery('tab', ['inventory', 'publish'] as const)`，回傳可寫的 computed 直接 `v-model`；寫入用 router push，App 返回鍵可退回上一個分頁 |
+| MR-C67 | `ConfirmDialog` 確認視窗 | `v-model`（開關）、`title`、`message?`、`confirmText?`（預設「確認」）、`cancelText?`（預設「取消」）、`danger?` | `confirm`、`cancel`（兩者都會把 `v-model` 設回 false） | 下架、取消這份餐、重置示範資料、不通過（設計圖沒有，樣式依規格）。`danger` 時確認鍵是紅色（`warn` token）；開啟時焦點在「取消」；Esc、點遮罩＝取消；Tab 只在兩顆按鈕間循環；關閉後焦點回到開啟前的元素 |
+| MR-C68 | `NumberStepper` −／數字／+ | `v-model`（數字）、`min?`（預設 1）、`max?`（預設 999）、`step?`（預設 1）、`label?`（預設「數量」，給螢幕閱讀器） | — | 03 右「份數」。到下限 − 停用、到上限 + 停用；中間可直接輸入（只收數字，全形也行；輸入中不超出範圍才先收進去，離開欄位或按 Enter 才收進上下限；空白或非數字還原）。與 MR-C11 `QtyInput`（純輸入框＋錯誤提示）不同 |
+
+另外 MR-C13 `StatCard` 新增選用 `icon`（lucide 元件）：有傳時圖示在左、文字在右（02 管理系統看板的統計卡）；沒傳時版面與原本一樣。
+
+**完成插圖**：04 右的大企鵝沒有原圖，先用 `MascotBadge`（企鵝頭像＋蜂蜜罐）加 lucide `CircleCheck` 疊在右下角，由元件畫，不另外放圖檔。**後續**：請設計者（郭畇呈）提供去背 PNG（完整標誌、站姿企鵝、完成插圖）後再換。
+
+**素材去背**：`logo.webp`、`mascot.webp`、`wordmark.webp` 由 `design-v2/05-logo.webp`（白底）用 Python Pillow ＋ numpy 去背：從圖的四邊把近白色（RGB 皆 ≥ 238）連通區域設成透明，邊緣 2px 依亮度給半透明，被深綠線條圍住的白色（帽子、房子牆面）保留。標誌為去背，但邊緣是反鋸齒後的簡單處理，放在深色底可能看到淺邊；元件都放在白色或淺青底上。`mascot.webp` 只取企鵝＋蜂蜜罐的方形範圍，蜂蜜流往右下被圓形頭像裁掉，所以只能放在圓形裡（`MascotBadge`）。
+
 ## 2. 動畫對照字詞表
 
 「用語」照[字詞表](../system/03-glossary.md)；「程式名稱」是合約的欄位、列舉值、規則或端點。
@@ -162,6 +184,7 @@
 | 素材 | 檔案 | 來源 | 授權 |
 |---|---|---|---|
 | 志工企鵝頭像 6 張 | `services/web/public/meal-relay/penguins/penguin-1～6.png`（160×160 去背 PNG） | 團隊成員郭畇呈於 2026-11-07 用 Google Gemini 以文字描述生成一張 2×3 的貼圖，再由團隊用自己的程式切割、去背。是原創的戴帽 T、綠色太陽眼鏡企鵝，**不是**既有角色（不是 Tux、Pingu 等） | 隨本 repo 以 AGPL-3.0 釋出。Google 的生成式 AI 使用條款不主張輸出內容的所有權。生成工具只在設計階段使用，執行時不呼叫任何雲端模型（比賽規則 4） |
+| 鄰食蜂標誌（完整版、企鵝頭像、字標） | `services/web/public/meal-relay/brand/logo.webp`、`mascot.webp`、`wordmark.webp`（去背 WebP） | 設計者提供的標誌原圖 `docs/meal-relay/design-v2/05-logo.webp`（白底），T-132 用 Python Pillow 去背、裁切、縮小 | 隨本 repo 以 AGPL-3.0 釋出；原圖的製作方式與授權請設計者確認後補在這裡（換圖時檔名與尺寸不變，程式不用改） |
 | 地圖底圖 | `services/web/public/maps/taipei.pmtiles` | OpenStreetMap、Protomaps | ODbL（OpenStreetMap）；地圖右下角有標示 |
 
 若主辦單位認定 AI 生成的圖不能用，就把這 6 張換成開放授權的圖，或團隊自己畫的圖：檔名和尺寸不變，程式不用改。

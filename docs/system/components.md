@@ -78,6 +78,15 @@
 | MR-C57 | PlacePhoto | 地點照片縮圖（入口、店面）：點一下用底部面板（MR-C09）放大；圖片讀不到就整個隱藏 | `features/meal-relay/ui/PlacePhoto.vue` |
 | MR-C58 | MapLegend | 地圖圖例：定位針的 icon＋文字（據點、長者、我），跟著地圖上真的有的定位針 | `features/meal-relay/ui/MapLegend.vue` |
 | MR-C59 | EndedGroup | 已結束的項目收合成一行「已結束 N 批」，點了才展開 | `features/meal-relay/ui/EndedGroup.vue` |
+| MR-C60 | BrandHeader | 品牌頁首：企鵝＋「鄰食蜂」字標＋頁面標題；banner 變體為淺青底、標題置中 | `features/meal-relay/ui/BrandHeader.vue` |
+| MR-C61 | BrandHero | 首頁主視覺：完整標誌＋兩行標語 | `features/meal-relay/ui/BrandHero.vue` |
+| MR-C62 | MascotBadge | 企鵝圓形頭像：可帶光芒，完成畫面可帶右下角打勾 | `features/meal-relay/ui/MascotBadge.vue` |
+| MR-C63 | StepIndicator | 步驟列：圖示（或數字）＋文字＋箭頭，標示目前步驟 | `features/meal-relay/ui/StepIndicator.vue` |
+| MR-C64 | InfoNote | 淺黃提醒卡：圖示＋文字，可帶第二行小字 | `features/meal-relay/ui/InfoNote.vue` |
+| MR-C65 | Accordion | 收合列：標題、右側晶片、箭頭；群組模式一次只展開一個 | `features/meal-relay/ui/Accordion.vue` |
+| MR-C66 | SegmentedTabs | 兩到三格的分段切換：v-model，可與網址 ?tab= 同步，格子可帶數字徽章 | `features/meal-relay/ui/SegmentedTabs.vue` |
+| MR-C67 | ConfirmDialog | 確認視窗：標題、說明、確認／取消；危險動作的確認鍵是紅色，開啟時焦點在「取消」，Esc 等於取消 | `features/meal-relay/ui/ConfirmDialog.vue` |
+| MR-C68 | NumberStepper | −／數字／+：有上下限，到限制時按鈕停用，中間的數字可以直接輸入 | `features/meal-relay/ui/NumberStepper.vue` |
 | MR-P01 | HomePage | 鄰食轉運站首頁：說明、社區關懷據點、志工從哪裡來、依角色進入（一般市民「我要提供食物」） | `features/meal-relay/ui/HomePage.vue` |
 | MR-P04 | VolunteerPage | 志工頁：掃描據點 QR 報到、今天的狀態、前往我的任務（沒有長者清單或地圖） | `features/meal-relay/ui/VolunteerPage.vue` |
 | MR-P05 | TaskPage | 我的任務：只有進行中的任務，取餐、取消、拜訪回報，回報後任務消失 | `features/meal-relay/ui/TaskPage.vue` |
