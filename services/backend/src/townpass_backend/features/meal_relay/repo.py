@@ -137,6 +137,20 @@ def update_station(session: Session, row: MealStation, *, commit: bool = True, *
     return __update(session, row, changes, commit)
 
 
+def station_has_references(session: Session, station_id: str) -> bool:
+    """T-140：保留所有關聯，包含已合併長者及歷史報到、任務。"""
+    for model in (MealAccount, MealElder, MealCheckin, MealAssignment):
+        if session.exec(select(model.id).where(model.station_id == station_id).limit(1)).first() is not None:
+            return True
+    return False
+
+
+def delete_station(session: Session, row: MealStation) -> None:
+    """僅刪除單一據點資料列；關聯檢查由業務層負責，不級聯刪除。"""
+    session.delete(row)
+    session.commit()
+
+
 # ---------------------------------------------------------------- meal_supplier
 
 

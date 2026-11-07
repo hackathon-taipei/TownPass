@@ -1,5 +1,9 @@
 # 鄰食轉運站 介面元件與動畫（MR-C07～MR-C23）
 
+## 據點管理追加（T-140）
+
+管理台第四分頁使用 `StationManager`，組合既有 `MapView`、表單及所屬長者清單、`ConfirmDialog`。地圖新增可選 `onMarkerSelect(marker)` 介面；定位針點擊不傳播成底圖選座標，既有 popup 仍可使用。只有進入新增／修改模式才提供 `onPick`。刪除關聯保護以API為準，不因前端長者清單為空就允許刪除。
+
 地圖、按鈕、清單與所有動畫的共用元件，給 MR-P01～P08 的頁面直接組合。對齊合約 [11-meal-relay.md](../system/11-meal-relay.md) **v2.2**（ADR-026：長者不使用 App、沒有手動申請、志工只看得到派給自己的長者）與[字詞表](../system/03-glossary.md)。
 元件都**不呼叫 API**，只吃資料；頁面用 `data/` 取資料後傳進來。ui/ 不能直接匯入 `data/`（check-arch W1），型別從 `logic/mealLabels.ts` 匯入。
 

@@ -56,7 +56,7 @@ export type { Allergen, Board, BoardStats, Elder, Food, Location, Me, OrgType, S
 /* ---------------------------------------------------------------- 常數與中文 */
 
 export type AdminAccess = 'loading' | 'admin' | 'denied' | 'error'
-export type AdminTab = 'review' | 'board' | 'elders'
+export type AdminTab = 'review' | 'board' | 'elders' | 'stations'
 export type ReviewDecision = 'approved' | 'rejected'
 
 /** 分頁的顯示順序（設計 v2 02：待審核｜服務看板｜長者名冊） */
@@ -64,10 +64,11 @@ export const ADMIN_TABS: { value: AdminTab; label: string }[] = [
   { value: 'review', label: '待審核' },
   { value: 'board', label: '服務看板' },
   { value: 'elders', label: '長者名冊' },
+  { value: 'stations', label: '據點管理' },
 ]
 
 /** `?tab=` 可用的值；第一個是預設（網址沒有或不認得 → 服務看板） */
-export const ADMIN_TAB_VALUES = ['board', 'review', 'elders'] as const satisfies readonly AdminTab[]
+export const ADMIN_TAB_VALUES = ['board', 'review', 'elders', 'stations'] as const satisfies readonly AdminTab[]
 
 /** 給 MR-C66 SegmentedTabs：「待審核」帶 pending 申請數的徽章（0 不顯示） */
 export function adminTabs(pendingCount: number): { value: AdminTab; label: string; badge?: number }[] {
@@ -421,7 +422,7 @@ export function useAdmin(options: { tab?: Ref<AdminTab> } = {}) {
   const board = ref<Board | null>(null)
   const elders = ref<Elder[]>([])
   const stations = ref<Station[]>([])
-  const errors = reactive<Record<AdminTab, string>>({ review: '', board: '', elders: '' })
+  const errors = reactive<Record<AdminTab, string>>({ review: '', board: '', elders: '', stations: '' })
   /** 各讀取的 stale_at（ADR-024）；有任何一個就是離線 */
   const stale = reactive<Record<string, string | undefined>>({})
 
@@ -504,8 +505,9 @@ export function useAdmin(options: { tab?: Ref<AdminTab> } = {}) {
   async function loadStations(): Promise<void> {
     try {
       stations.value = [...__track('stations', await listStations())]
+      errors.stations = ''
     } catch (e) {
-      __fail('elders', e, '讀取據點失敗')
+      __fail('stations', e, '讀取據點失敗')
     }
   }
 

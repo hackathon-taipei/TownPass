@@ -2,6 +2,19 @@
 import { mealGet, mealSend } from './client'
 import type { Assignment, Cached, CheckInResult, MyStation, Station } from './types'
 
+export interface StationCreate { name: string; address?: string; location: Station['location'] }
+export type StationUpdate = Partial<StationCreate>
+
+export function createStation(body: StationCreate): Promise<Station> {
+  return mealSend<Station>('POST', '/stations', body)
+}
+export function updateStation(id: string, body: StationUpdate): Promise<Station> {
+  return mealSend<Station>('PATCH', `/stations/${encodeURIComponent(id)}`, body)
+}
+export function deleteStation(id: string): Promise<void> {
+  return mealSend<void>('DELETE', `/stations/${encodeURIComponent(id)}`)
+}
+
 /** GET /stations */
 export function listStations(): Promise<Cached<Station[]>> {
   return mealGet<Station[]>('/stations')
