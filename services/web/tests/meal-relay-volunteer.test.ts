@@ -383,3 +383,37 @@ describe('拜訪回報（M9、M11、M13）', () => {
     expect(m.r.tasks.value).toHaveLength(0)
   })
 })
+
+// ---------------------------------------------------------------- T-125 長者地址（只能是模擬資料，ADR-027）
+
+describe('任務卡的長者地址', () => {
+  const addr = '臺北市萬華區西園路一段 999 號（模擬）'
+
+  it('addressLine：有地址回傳（去掉前後空白）；空字串、只有空白、舊快取沒有欄位都回 null（不顯示這一行）', () => {
+    expect(v.addressLine(elder('e-1', { address: ` ${addr} ` }))).toBe(addr)
+    expect(v.addressLine(elder('e-1', { address: '' }))).toBeNull()
+    expect(v.addressLine(elder('e-1', { address: '   ' }))).toBeNull()
+    expect(v.addressLine(elder('e-1'))).toBeNull()
+    expect(v.addressLine({ address: null })).toBeNull()
+  })
+
+  it('copyAddress 成功：寫入剪貼簿、顯示「已複製地址」、回 true', async () => {
+    const { toasts } = await import('@/features/meal-relay/logic/toast')
+    toasts.value = []
+    const writer = vi.fn(async () => {})
+    expect(await v.copyAddress(` ${addr} `, writer)).toBe(true)
+    expect(writer).toHaveBeenCalledWith(addr)
+    expect(toasts.value.map((t) => t.message)).toContain('已複製地址')
+  })
+
+  it('copyAddress 失敗（被拒、沒有剪貼簿、空字串）：回 false、不顯示成功提示，畫面改成選取文字', async () => {
+    const { toasts } = await import('@/features/meal-relay/logic/toast')
+    toasts.value = []
+    expect(await v.copyAddress(addr, vi.fn(async () => { throw new Error('denied') }))).toBe(false)
+    expect(await v.copyAddress(addr, null)).toBe(false)
+    const writer = vi.fn(async () => {})
+    expect(await v.copyAddress('  ', writer)).toBe(false)
+    expect(writer).not.toHaveBeenCalled()
+    expect(toasts.value).toHaveLength(0)
+  })
+})

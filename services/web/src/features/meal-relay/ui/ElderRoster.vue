@@ -1,5 +1,5 @@
 <script setup lang="ts">
-/** @component MR-C54 ElderRoster — 長者名冊：每位長者的代號、據點、警示標籤（MR-C04）、過敏原、最近見到與下次時間，加「修改」 */
+/** @component MR-C54 ElderRoster — 長者名冊：每位長者的代號、據點、地址、警示標籤（MR-C04）、過敏原、最近見到與下次時間，加「修改」 */
 /**
  * 管理系統「長者名冊」分頁左側（ADR-026：名冊只在管理系統，志工畫面不能出現長者清單）。
  * 每一列的文字由 logic/admin.ts 的 elderSummary 組出；按「修改」發 edit，父層把 MR-C53 ElderForm 切成修改模式。
@@ -30,6 +30,7 @@ const rows = computed(() => props.elders.map((elder) => ({ elder, summary: elder
           <p class="font-medium text-grey-900">
             {{ elder.alias }}<span class="ml-2 text-sm font-normal text-grey-500">{{ summary.stationName }}</span>
           </p>
+          <p class="text-sm break-words" :class="elder.address ? 'text-grey-700' : 'text-grey-500'">{{ summary.addressText }}</p>
           <ElderStatusTag :elder="elder" />
           <p class="text-sm text-grey-600">過敏：{{ summary.allergensText }}・{{ summary.seenText }}</p>
           <p class="text-xs text-grey-500">{{ summary.nextText }}</p>

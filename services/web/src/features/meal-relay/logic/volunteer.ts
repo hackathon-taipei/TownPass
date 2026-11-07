@@ -138,6 +138,38 @@ export function reportReady(task: Pick<TaskView, 'claim'>): boolean {
   return !task.claim || task.claim.status === 'delivering'
 }
 
+/* ---------------------------------------------------------------- 長者地址（ADR-027：只能是模擬資料） */
+
+/** 任務卡要顯示的地址；沒填（或裝置上舊快取沒有這個欄位）回 null，畫面就不顯示這一行 */
+export function addressLine(elder: { address?: string | null }): string | null {
+  const text = elder.address?.trim()
+  return text ? text : null
+}
+
+/** 寫入剪貼簿的函式（預設 navigator.clipboard.writeText；測試時可替換） */
+export type ClipboardWriter = (text: string) => Promise<void>
+
+function __defaultWriter(): ClipboardWriter | null {
+  const clip = typeof navigator !== 'undefined' ? navigator.clipboard : undefined
+  return clip?.writeText ? (text) => clip.writeText(text) : null
+}
+
+/**
+ * 複製地址：成功顯示「已複製地址」並回 true；剪貼簿不能用（WebView 沒權限、非安全連線）回 false，
+ * 畫面改成選取地址文字讓志工自己長按複製。
+ */
+export async function copyAddress(text: string, writer: ClipboardWriter | null = __defaultWriter()): Promise<boolean> {
+  const value = text.trim()
+  if (!value || !writer) return false
+  try {
+    await writer(value)
+  } catch {
+    return false
+  }
+  toast('已複製地址')
+  return true
+}
+
 /* ---------------------------------------------------------------- 拜訪回報（M9、M11） */
 
 /** M11：放門口只限送餐，生鮮蔬果不能放門口（V11 FRESH_CANNOT_LEAVE） */

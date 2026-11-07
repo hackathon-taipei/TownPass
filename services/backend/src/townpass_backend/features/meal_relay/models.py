@@ -97,7 +97,8 @@ class MealElder(SQLModel, table=True):
     __tablename__ = "meal_elder"
 
     id: str = Field(primary_key=True)  # 前綴 e
-    alias: str = ""  # 只存稱呼（例：王阿嬤），不存姓名、身分證、電話、地址
+    alias: str = ""  # 只存稱呼（例：王阿嬤），不存姓名、身分證、電話
+    address: str = ""  # 地址只能是模擬資料（ADR-027）；只給管理員與被派到的志工看（M13）
     account_id: str | None = Field(default=None, index=True)  # v2.2 起不使用（ADR-026），欄位保留不刪
     station_id: str = Field(default="", index=True)
     lat: float = 0.0

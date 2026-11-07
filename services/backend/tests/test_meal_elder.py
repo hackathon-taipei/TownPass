@@ -220,3 +220,119 @@ def test_admin_roster_hides_merged_elders(client: TestClient, session: Session) 
     assert response.status_code == 200
     assert all(row["id"] != elder.id for row in response.json())
 
+
+# ---------------------------------------------------------------- T-125：長者地址（只能是模擬資料，ADR-027）
+
+SEED_ADDRESS = "臺北市萬華區西園路一段 999 號（模擬）"
+
+
+def test_seed_elders_have_simulated_address(client: TestClient, session: Session) -> None:
+    elders = repo.list_elders(session)
+    assert elders
+    assert all(e.address.endswith("（模擬）") for e in elders)
+
+
+def test_admin_can_create_and_update_elder_address(client: TestClient, session: Session) -> None:
+    created = client.post(
+        "/meal-relay/elders",
+        headers=__headers("u-admin-1"),
+        json={
+            "alias": "測試長者",
+            "address": "臺北市萬華區西園路一段 0 號（模擬）",
+            "location": {"lat": 25.03, "lng": 121.5},
+            "station_id": "st-1",
+        },
+    )
+    assert created.status_code == 200
+    elder_id = created.json()["id"]
+    assert created.json()["address"] == "臺北市萬華區西園路一段 0 號（模擬）"
+
+    updated = client.patch(
+        f"/meal-relay/elders/{elder_id}",
+        headers=__headers("u-admin-1"),
+        json={"address": "臺北市萬華區康定路 0 號（模擬）"},
+    )
+    assert updated.status_code == 200
+    assert updated.json()["address"] == "臺北市萬華區康定路 0 號（模擬）"
+    assert updated.json()["alias"] == "測試長者"
+
+    cleared = client.patch(
+        f"/meal-relay/elders/{elder_id}", headers=__headers("u-admin-1"), json={"address": None}
+    )
+    assert cleared.status_code == 200 and cleared.json()["address"] == ""
+
+    roster = client.get("/meal-relay/elders", headers=__headers("u-admin-1")).json()
+    assert next(row for row in roster if row["id"] == "e-1")["address"] == SEED_ADDRESS
+
+
+def test_create_elder_without_address_defaults_to_empty(client: TestClient, session: Session) -> None:
+    created = client.post(
+        "/meal-relay/elders",
+        headers=__headers("u-admin-1"),
+        json={"alias": "測試長者", "location": {"lat": 25.03, "lng": 121.5}, "station_id": "st-1"},
+    )
+    assert created.status_code == 200 and created.json()["address"] == ""
+
+
+def test_non_admin_cannot_update_elder_address(client: TestClient, session: Session) -> None:
+    for account_id in ("u-vol-1", "u-st-1", "u-sup-1", "u-cit-1"):
+        response = client.patch(
+            "/meal-relay/elders/e-1",
+            headers=__headers(account_id),
+            json={"address": "臺北市萬華區西園路一段 0 號（模擬）"},
+        )
+        assert response.status_code == 403
+        assert response.json()["detail"]["code"] == "FORBIDDEN_ROLE"
+    session.expire_all()
+    elder = repo.get_elder(session, "e-1")
+    assert elder and elder.address == SEED_ADDRESS
+
+
+def test_elder_address_over_120_chars_is_validation_error(client: TestClient, session: Session) -> None:
+    long_address = "臺" * 121
+    created = client.post(
+        "/meal-relay/elders",
+        headers=__headers("u-admin-1"),
+        json={
+            "alias": "測試長者",
+            "address": long_address,
+            "location": {"lat": 25.03, "lng": 121.5},
+            "station_id": "st-1",
+        },
+    )
+    assert created.status_code == 422
+    assert created.json()["detail"]["code"] == "VALIDATION_ERROR"
+    updated = client.patch(
+        "/meal-relay/elders/e-1", headers=__headers("u-admin-1"), json={"address": long_address}
+    )
+    assert updated.status_code == 422
+    assert updated.json()["detail"]["code"] == "VALIDATION_ERROR"
+    ok = client.patch(
+        "/meal-relay/elders/e-1", headers=__headers("u-admin-1"), json={"address": "臺" * 120}
+    )
+    assert ok.status_code == 200
+
+
+def test_volunteer_sees_address_only_while_assignment_is_assigned(
+    client: TestClient, session: Session
+) -> None:
+    assignment = __assignment(session, "e-1", volunteer_id="u-vol-1")
+    mine = client.get("/meal-relay/assignments/mine", headers=__headers("u-vol-1"))
+    assert mine.status_code == 200
+    task = next(item for item in mine.json() if item["id"] == assignment.id)
+    assert task["elder"]["address"] == SEED_ADDRESS
+
+    other = client.get("/meal-relay/assignments/mine", headers=__headers("u-vol-2"))
+    assert SEED_ADDRESS not in other.text
+
+    visit = client.post(
+        "/meal-relay/visits",
+        headers=__headers("u-vol-1"),
+        json={"elder_id": "e-1", "kind": "care", "result": "seen"},
+    )
+    assert visit.status_code == 200
+    after = client.get("/meal-relay/assignments/mine", headers=__headers("u-vol-1"))
+    assert after.status_code == 200
+    assert all(item["elder_id"] != "e-1" for item in after.json())
+    assert SEED_ADDRESS not in after.text
+

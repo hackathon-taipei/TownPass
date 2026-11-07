@@ -1,17 +1,18 @@
 <script setup lang="ts">
-/** @component MR-C40 TaskCard — 派送任務卡：長者代號、警示、要做的事、位置（只有這位長者）、過敏、要送的餐、回報 */
+/** @component MR-C40 TaskCard — 派送任務卡：長者代號、地址（可複製）、警示、要做的事、位置（只有這位長者）、過敏、要送的餐、回報 */
 /**
  * 合約 v2.2 §9 MR-P05、M13：只顯示自己 assigned 任務上的這一位長者；地圖（MR-C07）只有這一根定位針，不做導航。
+ * 地址只能是模擬資料（ADR-027），任務完成或釋出後後端就不再回傳；沒填就不顯示這一行。
  * 送餐：MR-C41 TaskMeal（取餐、取消）；回報要先取餐，或取消這份餐改成只做關懷（reportReady）。
  *
  *   <TaskCard :task="task" :now="now" :busy="busyId === task.id" :offline="offline"
  *             @pickup="pickup(task)" @cancel="cancel(task)" @report="openReport(task)" />
  */
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { BaseButton, BaseCard, BaseTag } from '@/ui'
 import type { Marker } from '../logic/mapMarker'
 import { ALLERGEN_LABEL, countdownText } from '../logic/shared'
-import { reportReady, type TaskView } from '../logic/volunteer'
+import { addressLine, copyAddress, reportReady, type TaskView } from '../logic/volunteer'
 import ElderStatusTag from './ElderStatusTag.vue'
 import MapView from './MapView.vue'
 import TaskMeal from './TaskMeal.vue'
@@ -25,6 +26,21 @@ const markers = computed<Marker[]>(() => [
 ])
 const allergens = computed(() => elder.value.allergens.map((a) => ALLERGEN_LABEL[a]).join('、') || '沒有過敏原')
 const ready = computed(() => reportReady(props.task))
+const address = computed(() => addressLine(elder.value))
+const addressEl = ref<HTMLElement | null>(null)
+
+/** 剪貼簿不能用時改成選取地址文字，讓志工長按複製 */
+async function onCopyAddress() {
+  if (!address.value) return
+  if (await copyAddress(address.value)) return
+  const el = addressEl.value
+  const selection = typeof window !== 'undefined' ? window.getSelection() : null
+  if (!el || !selection) return
+  const range = document.createRange()
+  range.selectNodeContents(el)
+  selection.removeAllRanges()
+  selection.addRange(range)
+}
 </script>
 
 <template>
@@ -32,6 +48,10 @@ const ready = computed(() => reportReady(props.task))
     <div class="flex items-start gap-2">
       <h3 class="min-w-0 flex-1 truncate text-lg font-semibold text-grey-900">{{ elder.alias }}</h3>
       <span class="shrink-0 text-sm text-grey-500">{{ countdownText(task.assignment.expires_at, now) }}</span>
+    </div>
+    <div v-if="address" class="mt-1 flex items-center gap-2">
+      <p ref="addressEl" class="min-w-0 flex-1 text-sm break-words text-grey-700 select-text">{{ address }}</p>
+      <BaseButton class="press shrink-0" variant="outline" :aria-label="`複製地址：${address}`" @click="onCopyAddress">複製地址</BaseButton>
     </div>
     <ElderStatusTag class="mt-1" :elder="elder" />
 

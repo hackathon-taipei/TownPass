@@ -58,7 +58,7 @@
 | MR-C37 | PointCreateForm | 新增食物點：名稱、位置（MR-C02）→ createPoint（kind = custom） | `features/meal-relay/ui/PointCreateForm.vue` |
 | MR-C38 | FoodPublishForm | 上架食物：名稱、類別、過敏原（MR-C01）、份數（MR-C11）、最晚食用時間、圖片（MR-C06） | `features/meal-relay/ui/FoodPublishForm.vue` |
 | MR-C39 | FoodEditSheet | 修改一批食物（份數、最晚食用時間，M14、V21）或確認下架，用 MR-C09 BottomSheet | `features/meal-relay/ui/FoodEditSheet.vue` |
-| MR-C40 | TaskCard | 派送任務卡：長者代號、警示、要做的事、位置（只有這位長者）、過敏、要送的餐、回報 | `features/meal-relay/ui/TaskCard.vue` |
+| MR-C40 | TaskCard | 派送任務卡：長者代號、地址（可複製）、警示、要做的事、位置（只有這位長者）、過敏、要送的餐、回報 | `features/meal-relay/ui/TaskCard.vue` |
 | MR-C41 | TaskMeal | 任務卡的送餐區：要送的餐（申請列）、過敏原警告、取餐與取消這份餐 | `features/meal-relay/ui/TaskMeal.vue` |
 | MR-C42 | VisitReportSheet | 拜訪回報底部面板：結果三選一、放門口拍照、送出 | `features/meal-relay/ui/VisitReportSheet.vue` |
 | MR-C43 | CheckinPanel | 志工報到：App 掃描據點 QR，沒有 App 時貼上 QR 文字 | `features/meal-relay/ui/CheckinPanel.vue` |
@@ -71,8 +71,8 @@
 | MR-C50 | AdminShell | 管理系統外框：電腦瀏覽器寬度為主（最寬 6xl），手機也能用；標題列右側放重置等動作 | `features/meal-relay/ui/AdminShell.vue` |
 | MR-C51 | ReviewPanel | 提供者審核：待審核清單（MR-C19 ReviewList）＋剛審核的結果；離線時只顯示、不能審核 | `features/meal-relay/ui/ReviewPanel.vue` |
 | MR-C52 | BoardPanel | 看板：5 張統計卡（MR-C13）、據點／食物點／長者地圖（MR-C07）、食物去向（MR-C03） | `features/meal-relay/ui/BoardPanel.vue` |
-| MR-C53 | ElderForm | 登記或修改長者：代號、位置（MR-C02）、據點（必填）、過敏原（MR-C01）、下次關懷／送餐時間，附隱私提示 | `features/meal-relay/ui/ElderForm.vue` |
-| MR-C54 | ElderRoster | 長者名冊：每位長者的代號、據點、警示標籤（MR-C04）、過敏原、最近見到與下次時間，加「修改」 | `features/meal-relay/ui/ElderRoster.vue` |
+| MR-C53 | ElderForm | 登記或修改長者：代號、地址（選填，模擬）、位置（MR-C02）、據點（必填）、過敏原（MR-C01）、下次關懷／送餐時間，附隱私提示 | `features/meal-relay/ui/ElderForm.vue` |
+| MR-C54 | ElderRoster | 長者名冊：每位長者的代號、據點、地址、警示標籤（MR-C04）、過敏原、最近見到與下次時間，加「修改」 | `features/meal-relay/ui/ElderRoster.vue` |
 | MR-P01 | HomePage | 鄰食轉運站首頁：說明、社區關懷據點、志工從哪裡來、依角色進入（一般市民「我要提供食物」） | `features/meal-relay/ui/HomePage.vue` |
 | MR-P04 | VolunteerPage | 志工頁：掃描據點 QR 報到、今天的狀態、前往我的任務（沒有長者清單或地圖） | `features/meal-relay/ui/VolunteerPage.vue` |
 | MR-P05 | TaskPage | 我的任務：只有進行中的任務，取餐、取消、拜訪回報，回報後任務消失 | `features/meal-relay/ui/TaskPage.vue` |

@@ -104,6 +104,8 @@ export interface Food {
 export interface Elder {
   id: string
   alias: string
+  /** 只能是模擬資料（ADR-027）；空字串代表沒填。只有管理員與被派到的志工拿得到（M13） */
+  address: string
   account_id: string | null
   station_id: string
   allergens: Allergen[]
@@ -291,6 +293,8 @@ export interface ClaimCancel {
 
 export interface ElderCreate {
   alias: string
+  /** 最多 120 字，只能填模擬地址（ADR-027） */
+  address?: string | null
   location: Location
   allergens?: Allergen[]
   /** 管理員登記，必填（ADR-026） */
@@ -301,6 +305,8 @@ export interface ElderCreate {
 
 export interface ElderUpdate {
   alias?: string | null
+  /** 最多 120 字；送 null 或空字串代表清除 */
+  address?: string | null
   location?: Location | null
   allergens?: Allergen[] | null
   station_id?: string | null

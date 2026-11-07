@@ -31,6 +31,7 @@ def create_elder(session: Session, account: models.MealAccount, payload: schemas
     elder = models.MealElder(
         id=new_id("e"),
         alias=payload.alias,
+        address=(payload.address or "").strip(),
         station_id=payload.station_id,
         lat=payload.location.lat,
         lng=payload.location.lng,
@@ -52,6 +53,8 @@ def update_elder(session: Session, elder_id: str, payload: schemas.ElderUpdate) 
     location = changes.pop("location", None)
     if any(changes.get(key) is None for key in ("alias", "allergens", "station_id") if key in changes):
         raise MealError("VALIDATION_ERROR", "代號、過敏原與據點不可為空")
+    if "address" in changes:
+        changes["address"] = (changes["address"] or "").strip()  # null 代表清除地址
     if location is not None:
         changes["lat"] = location.lat
         changes["lng"] = location.lng

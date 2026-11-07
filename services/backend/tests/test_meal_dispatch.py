@@ -141,6 +141,17 @@ def test_v13_checkin_assigns_primary_volunteer_first_and_respects_limit(
         assert expires_at == assigned_at + timedelta(minutes=mr.settings().ASSIGNMENT_TTL_MIN)
 
 
+def test_checkin_assignments_include_simulated_elder_address(
+    client: TestClient, dispatch_session: Session
+) -> None:
+    response = __check_in(client)
+
+    assert response.status_code == 200
+    assignments = response.json()["assignments"]
+    assert assignments
+    assert all(item["elder"]["address"].endswith("（模擬）") for item in assignments)
+
+
 def test_v14_does_not_assign_volunteer_one_elders_to_volunteer_two(
     client: TestClient, dispatch_session: Session
 ) -> None:
