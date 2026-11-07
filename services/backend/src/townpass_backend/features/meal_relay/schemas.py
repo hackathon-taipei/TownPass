@@ -228,6 +228,12 @@ class ImageUploaded(BaseModel):
     size: int
 
 
+class DemoResetResult(BaseModel):
+    """POST /demo/reset 的回應：重新匯入的種子筆數。"""
+
+    imported: int
+
+
 class BoardStats(BaseModel):
     foods_open: int
     delivered_today: int
