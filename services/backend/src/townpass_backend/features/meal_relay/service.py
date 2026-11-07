@@ -89,7 +89,6 @@ ERROR_STATUS: dict[str, int] = {
     "ALLERGEN_CONFLICT": 409,
     "INVALID_STATE": 409,
     "ALREADY_APPLIED": 409,
-    "ELDER_PROFILE_REQUIRED": 409,
     "FRESH_CANNOT_LEAVE": 409,
     "PHOTO_REQUIRED": 422,
     "IMAGE_TOO_LARGE": 413,
@@ -232,10 +231,8 @@ def care_due(elder: MealElder, at: datetime | None = None) -> bool:
     return __due(elder.next_care_at, elder.last_seen_at, settings().CARE_ALERT_DAYS, at or now())
 
 
-def meal_due(elder: MealElder, at: datetime | None = None, pending_request: bool = False) -> bool:
-    """M10：同 care_due，用 next_meal_at／last_meal_at／MEAL_ALERT_DAYS；有 requested 申請一律 true。"""
-    if pending_request:
-        return True
+def meal_due(elder: MealElder, at: datetime | None = None) -> bool:
+    """M10：同 care_due，用 next_meal_at／last_meal_at／MEAL_ALERT_DAYS（ADR-025：不再看待接的申請）。"""
     return __due(elder.next_meal_at, elder.last_meal_at, settings().MEAL_ALERT_DAYS, at or now())
 
 
@@ -246,21 +243,20 @@ class ElderFlags:
     alert: bool
     days_since_seen: int | None
     days_since_meal: int | None
-    pending_request: bool
+    pending_request: bool = False  # 欄位保留，一律 false（ADR-025：長者不訂餐）
 
 
 def elder_flags(session: Session, elder: MealElder, at: datetime | None = None) -> ElderFlags:
+    """M10 警示。`session` 保留在參數裡，讓呼叫方不用改（目前的計算不需要查資料庫）。"""
     t = at or now()
-    pending = repo.has_claim_with_status(session, elder.id, "requested")
     care = care_due(elder, t)
-    meal = meal_due(elder, t, pending)
+    meal = meal_due(elder, t)
     return ElderFlags(
         care_due=care,
         meal_due=meal,
         alert=care or meal,
         days_since_seen=__days_since(elder.last_seen_at, t),
         days_since_meal=__days_since(elder.last_meal_at, t),
-        pending_request=pending,
     )
 
 
@@ -268,7 +264,7 @@ def elder_flags(session: Session, elder: MealElder, at: datetime | None = None) 
 
 CANCEL_EXPIRED = "expired"  # M6
 CANCEL_RETURNED = "returned"  # M9
-CANCEL_RELEASED = "released"  # M18：自動建立、還沒取餐的申請
+CANCEL_RELEASED = "released"  # M18：任務釋出時還沒取餐（claimed）的申請
 
 
 @dataclass
@@ -281,7 +277,8 @@ class RefreshResult:
 def is_auto_claim(claim: MealClaim, assignment: MealAssignment) -> bool:
     """M17 自動挑食物建立的申請：掛在這個任務上，且 requested_by 是這位志工。
 
-    （T-112 建立自動申請時 requested_by 必須填志工帳號 id；長者自己申請的 requested_by 是長者帳號。）
+    ADR-025 後所有申請都由派送建立，正常情況一律為 true；保留給檢查資料用。
+    （T-112 建立申請時 requested_by 必須填志工帳號 id、assignment_id 填任務 id。）
     """
     return claim.assignment_id == assignment.id and claim.requested_by == assignment.volunteer_id
 
@@ -313,22 +310,17 @@ def refresh(session: Session, at: datetime | None = None) -> RefreshResult:
             continue
         repo.update_assignment(session, a, commit=False, status="released")
         result.released_assignments += 1
-        claim = repo.get_claim(session, a.claim_id) if a.claim_id else None
-        if claim is None or claim.status != "claimed":
-            continue  # 已在 delivering（或已結束）的不動
-        if is_auto_claim(claim, a):
+        # 還沒取餐（claimed）的申請取消、份數退回（M1 自然成立）；已在 delivering 的不動
+        for claim in repo.list_claims(session, assignment_id=a.id, status="claimed"):
             repo.update_claim(session, claim, commit=False, status="cancelled", cancel_reason=CANCEL_RELEASED)
             result.cancelled_claims += 1
-        else:  # 原本是長者 requested 的申請退回 requested
+        linked = repo.get_claim(session, a.claim_id) if a.claim_id else None
+        if linked is not None and linked.status == "claimed" and linked.assignment_id != a.id:
+            # 任務的 claim_id 指到的申請沒有回填 assignment_id 時也一併處理
             repo.update_claim(
-                session,
-                claim,
-                commit=False,
-                status="requested",
-                volunteer_id=None,
-                assignment_id=None,
-                claimed_at=None,
+                session, linked, commit=False, status="cancelled", cancel_reason=CANCEL_RELEASED
             )
+            result.cancelled_claims += 1
 
     repo.commit(session)
     return result

@@ -24,8 +24,9 @@ export type OrgType = 'person' | 'school' | 'agency' | 'shop' | 'other'
 export type SupplierStatus = 'pending' | 'approved' | 'rejected'
 export type PointKind = 'station' | 'village_office' | 'school' | 'custom'
 export type FoodStatus = 'open' | 'claimed' | 'expired' | 'closed'
-export type ClaimMethod = 'pickup' | 'delivery'
-export type ClaimStatus = 'requested' | 'ready_for_pickup' | 'claimed' | 'delivering' | 'done' | 'cancelled'
+/** ADR-025：申請只由報到派送建立（M7、M17），只剩送餐 */
+export type ClaimMethod = 'delivery'
+export type ClaimStatus = 'claimed' | 'delivering' | 'done' | 'cancelled'
 export type VisitKind = 'meal' | 'care'
 export type VisitResult = 'seen' | 'left_at_door' | 'returned'
 export type AssignmentStatus = 'assigned' | 'done' | 'released'
@@ -117,7 +118,7 @@ export interface Elder {
   /** 從未見到 → null */
   days_since_seen: number | null
   days_since_meal: number | null
-  /** 有沒有 requested 申請 */
+  /** 欄位保留但一律 false（ADR-025：長者不訂餐） */
   pending_request: boolean
 }
 
@@ -280,14 +281,6 @@ export interface FoodUpdate {
 export interface ImageUpload {
   /** data:image/jpeg;base64,...（前端先壓到長邊 800px，M19） */
   data_url: string
-}
-
-export interface ClaimCreate {
-  food_id: string
-  qty?: number
-  method: ClaimMethod
-  /** 長者申請時省略（用自己的資料）；志工必填 */
-  elder_id?: string | null
 }
 
 export interface ClaimCancel {

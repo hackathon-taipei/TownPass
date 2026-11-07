@@ -17,6 +17,11 @@ export function getMyElder(): Promise<Cached<Elder | null>> {
   return mealGet<Elder | null>('/elders/me')
 }
 
+/** GET /elders/me/visits（elder）：自己最近 10 筆送餐與關懷紀錄，新的在前（路由由 T-111 實作） */
+export function listMyElderVisits(): Promise<Cached<Visit[]>> {
+  return mealGet<Visit[]>('/elders/me/visits')
+}
+
 /** PUT /elders/me（elder：location、allergens、alias?） */
 export function upsertMyElder(body: ElderMeUpsert): Promise<Elder> {
   return mealSend<Elder>('PUT', '/elders/me', body)

@@ -1,45 +1,23 @@
-/** DATA LAYER - 申請（後端 meal_claim，T-110）。 */
+/**
+ * DATA LAYER - 申請（後端 meal_claim，T-110）。
+ * ADR-025：申請只由志工報到時的自動派送建立（M7、M17），這裡沒有建立申請的函數。
+ */
 import { mealGet, mealSend } from './client'
-import type { Cached, Claim, ClaimCreate, ClaimStatus } from './types'
+import type { Cached, Claim } from './types'
 
 const __path = (id: string, action: string) => `/claims/${encodeURIComponent(id)}/${action}`
 
-/** POST /claims（elder 自己、volunteer 自己據點的長者） */
-export function createClaim(body: ClaimCreate): Promise<Claim> {
-  return mealSend<Claim>('POST', '/claims', body)
-}
-
-/** GET /claims/mine（elder、volunteer） */
+/** GET /claims/mine（volunteer：派給自己的申請） */
 export function listMyClaims(): Promise<Cached<Claim[]>> {
   return mealGet<Claim[]>('/claims/mine')
 }
 
-/** GET /claims?status=requested（volunteer，自己據點） */
-export function listStationClaims(status: ClaimStatus = 'requested'): Promise<Cached<Claim[]>> {
-  return mealGet<Claim[]>('/claims', { status })
-}
-
-/** GET /claims/pickup（supplier，自己的食物、ready_for_pickup） */
-export function listPickupClaims(): Promise<Cached<Claim[]>> {
-  return mealGet<Claim[]>('/claims/pickup')
-}
-
-/** POST /claims/{id}/accept（volunteer） */
-export function acceptClaim(id: string): Promise<Claim> {
-  return mealSend<Claim>('POST', __path(id, 'accept'))
-}
-
-/** POST /claims/{id}/pickup（volunteer，自己的） */
+/** POST /claims/{id}/pickup（volunteer，自己的）：claimed → delivering（M8） */
 export function pickupClaim(id: string): Promise<Claim> {
   return mealSend<Claim>('POST', __path(id, 'pickup'))
 }
 
-/** POST /claims/{id}/confirm-pickup（supplier，自己的食物） */
-export function confirmPickup(id: string): Promise<Claim> {
-  return mealSend<Claim>('POST', __path(id, 'confirm-pickup'))
-}
-
-/** POST /claims/{id}/cancel（申請人、該志工、該提供者） */
+/** POST /claims/{id}/cancel（volunteer，自己的）：claimed、delivering → cancelled，份數退回（M8） */
 export function cancelClaim(id: string, reason?: string): Promise<Claim> {
   return mealSend<Claim>('POST', __path(id, 'cancel'), reason ? { reason } : {})
 }

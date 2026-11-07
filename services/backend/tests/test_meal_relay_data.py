@@ -2,7 +2,7 @@
 
 from collections.abc import Iterator
 from datetime import timedelta
-from typing import Annotated
+from typing import Annotated, get_args
 
 import pytest
 from fastapi import Depends, FastAPI
@@ -56,8 +56,7 @@ def test_seed_meets_contract_minimums(session: Session) -> None:
     assert len(repo.list_elders(session, primary_volunteer_id="u-vol-1")) == 4
     assert sum(e.last_seen_at is None for e in elders) >= 2
     assert sum(bool(e.allergens) for e in elders) >= 2
-    statuses = [c.status for c in repo.list_claims(session)]
-    assert "requested" in statuses and "ready_for_pickup" in statuses
+    assert repo.list_claims(session) == []  # ADR-025：申請只由派送產生，種子沒有申請
     # 種子相對時間：以 T0 換算
     f1 = repo.get_food(session, "f-1")
     assert f1 and f1.expires_at == T0 + timedelta(hours=3)
@@ -123,25 +122,48 @@ def test_new_id_format() -> None:
 # ---------------------------------------------------------------- M1 / M4 / M5
 
 
+def __claim(
+    session: Session,
+    claim_id: str,
+    food_id: str,
+    elder_id: str,
+    *,
+    qty: int = 1,
+    status: str = "claimed",
+    assignment_id: str | None = None,
+    requested_by: str = "u-vol-1",
+) -> m.MealClaim:
+    """M7、M17：派送建立的送餐申請（method 一律 delivery，requested_by 是志工）。"""
+    row = m.MealClaim(id=claim_id, food_id=food_id, elder_id=elder_id, qty=qty, method="delivery", status=status,
+                      requested_by=requested_by, volunteer_id="u-vol-1", assignment_id=assignment_id,
+                      created_at=T0, claimed_at=T0)  # fmt: skip
+    return repo.create_claim(session, row)
+
+
+def test_claim_enums_follow_adr_025() -> None:
+    assert get_args(schemas.ClaimStatus) == ("claimed", "delivering", "done", "cancelled")
+    assert get_args(schemas.ClaimMethod) == ("delivery",)
+    assert repo.ACTIVE_CLAIM_STATUSES == ("claimed", "delivering")
+    assert not hasattr(schemas, "ClaimCreate")  # 沒有手動申請的入口（M7）
+    assert m.MealClaim(id="c-x").method == "delivery" and m.MealClaim(id="c-x").status == "claimed"
+
+
 def test_m1_remaining_and_status_priority(session: Session) -> None:
     f1 = repo.get_food(session, "f-1")
     assert f1
     food = mr.to_food(session, f1, T0)
-    assert food.remaining == 4  # 5 − c-1 的 1 份
+    assert food.remaining == 5  # 種子沒有申請
     assert food.status == "open" and food.location.lat == pytest.approx(25.0368)
     assert food.point_name and food.supplier_name
 
     # 全數申請 → claimed
-    e2 = repo.get_elder(session, "e-2")
-    assert e2
-    repo.create_claim(session, m.MealClaim(id="c-t1", food_id="f-1", elder_id="e-2", qty=4, method="pickup",
-                                           status="ready_for_pickup", requested_by="x", created_at=T0))  # fmt: skip
+    __claim(session, "c-t1", "f-1", "e-2", qty=5)
     assert mr.to_food(session, f1, T0).status == "claimed"
     # 取消就退回（M1 自然成立，V7）
     c = repo.get_claim(session, "c-t1")
     assert c
     repo.update_claim(session, c, status="cancelled")
-    assert mr.to_food(session, f1, T0).remaining == 4
+    assert mr.to_food(session, f1, T0).remaining == 5
     # 過期優先於 claimed；下架優先於過期
     later = f1.expires_at + timedelta(seconds=1)
     assert mr.food_status(f1, 0, later) == "expired"
@@ -213,11 +235,13 @@ def test_m10_next_time_overrides_last_seen(session: Session) -> None:
     assert e.care_due and e.meal_due  # now ≥ next_*_at
 
 
-def test_m10_pending_request_forces_meal_due(session: Session) -> None:
-    e1 = repo.get_elder(session, "e-1")  # 最近才見過，但有 c-1 requested
+def test_m10_pending_request_is_always_false(session: Session) -> None:  # ADR-025
+    e1 = repo.get_elder(session, "e-1")  # 最近才見過、最近才送過餐
     assert e1
+    __claim(session, "c-t1", "f-1", "e-1")  # 有進行中的派送申請也不影響警示
     e = mr.to_elder(session, e1, T0)
-    assert e.pending_request and e.meal_due and not e.care_due and e.alert
+    assert not e.pending_request and not e.meal_due and not e.care_due and not e.alert
+    assert not any(mr.to_elder(session, x, T0).pending_request for x in repo.list_elders(session))
 
 
 def test_seed_alerts_match_scenarios(session: Session) -> None:
@@ -232,14 +256,21 @@ def test_seed_alerts_match_scenarios(session: Session) -> None:
 def test_m6_refresh_cancels_claims_of_expired_food(session: Session) -> None:  # V9
     f1 = repo.get_food(session, "f-1")
     assert f1
+    __claim(session, "c-1", "f-1", "e-2")
+    __claim(session, "c-2", "f-1", "e-4", status="delivering")
+    __claim(session, "c-3", "f-1", "e-5", status="done")
+    __claim(session, "c-4", "f-3", "e-6")  # 別的食物
     repo.update_food(session, f1, expires_at=T0 - timedelta(minutes=1))
     result = mr.refresh(session, T0)
-    assert result.cancelled_claims == 1
-    c1 = repo.get_claim(session, "c-1")
-    assert c1 and c1.status == "cancelled" and c1.cancel_reason == "expired"
+    assert result.cancelled_claims == 2  # claimed、delivering 都取消（M6）
+    for cid in ("c-1", "c-2"):
+        c = repo.get_claim(session, cid)
+        assert c and c.status == "cancelled" and c.cancel_reason == "expired"
+    c3 = repo.get_claim(session, "c-3")  # 已完成的不動
+    assert c3 and c3.status == "done"
     assert mr.to_food(session, f1, T0).status == "expired"
-    c2 = repo.get_claim(session, "c-2")  # 別的食物不受影響
-    assert c2 and c2.status == "ready_for_pickup"
+    c4 = repo.get_claim(session, "c-4")  # 別的食物不受影響
+    assert c4 and c4.status == "claimed"
     assert mr.refresh(session, T0).cancelled_claims == 0  # 再跑一次不重複
 
 
@@ -252,39 +283,34 @@ def __assignment(
     return repo.create_assignment(session, row)
 
 
-def test_m18_release_cancels_auto_claim_and_returns_elder_request(session: Session) -> None:  # V16
+def test_m18_release_cancels_claimed_claim_and_returns_stock(session: Session) -> None:  # V16
     f6 = repo.get_food(session, "f-6")
     assert f6
     before = mr.food_remaining(session, f6)
-    auto = repo.create_claim(session, m.MealClaim(id="c-auto", food_id="f-6", elder_id="e-4", qty=1,
-                                                  method="delivery", status="claimed", requested_by="u-vol-1",
-                                                  volunteer_id="u-vol-1", created_at=T0, claimed_at=T0))  # fmt: skip
+    auto = __claim(session, "c-auto", "f-6", "e-4")
     a_auto = __assignment(session, "e-4", "c-auto", timedelta(minutes=-1))
     repo.update_claim(session, auto, assignment_id=a_auto.id)
-    c1 = repo.get_claim(session, "c-1")
-    assert c1
-    a_req = __assignment(session, "e-1", "c-1", timedelta(minutes=-1))
-    repo.update_claim(
-        session, c1, status="claimed", volunteer_id="u-vol-1", assignment_id=a_req.id, claimed_at=T0
-    )
-    assert mr.food_remaining(session, f6) == before - 1
+    assert mr.is_auto_claim(auto, a_auto)
+    # 任務的 claim_id 有值但申請沒回填 assignment_id、requested_by 也不同：仍一律取消（沒有退回待接單）
+    __claim(session, "c-odd", "f-6", "e-5", requested_by="someone-else")
+    a_odd = __assignment(session, "e-5", "c-odd", timedelta(minutes=-1))
+    assert mr.food_remaining(session, f6) == before - 2
 
     result = mr.refresh(session, T0)
-    assert result.released_assignments == 2
-    a_auto2, a_req2 = repo.get_assignment(session, a_auto.id), repo.get_assignment(session, a_req.id)
-    assert a_auto2 and a_auto2.status == "released" and a_req2 and a_req2.status == "released"
-    auto2 = repo.get_claim(session, "c-auto")
-    assert auto2 and auto2.status == "cancelled" and auto2.cancel_reason == "released"
+    assert result.released_assignments == 2 and result.cancelled_claims == 2
+    for aid in (a_auto.id, a_odd.id):
+        a = repo.get_assignment(session, aid)
+        assert a and a.status == "released"
+    for cid in ("c-auto", "c-odd"):
+        c = repo.get_claim(session, cid)
+        assert c and c.status == "cancelled" and c.cancel_reason == "released"
     assert mr.food_remaining(session, f6) == before  # 份數退回
-    c1b = repo.get_claim(session, "c-1")
-    assert c1b and c1b.status == "requested" and c1b.volunteer_id is None and c1b.assignment_id is None
+    assert mr.refresh(session, T0).cancelled_claims == 0  # 再跑一次不重複
 
 
 def test_m18_delivering_claim_is_untouched(session: Session) -> None:
-    c1 = repo.get_claim(session, "c-1")
-    assert c1
     a = __assignment(session, "e-1", "c-1", timedelta(minutes=-1))
-    repo.update_claim(session, c1, status="delivering", volunteer_id="u-vol-1", assignment_id=a.id)
+    __claim(session, "c-1", "f-1", "e-1", status="delivering", assignment_id=a.id)
     mr.refresh(session, T0)
     a2, c1b = repo.get_assignment(session, a.id), repo.get_claim(session, "c-1")
     assert a2 and a2.status == "released" and c1b and c1b.status == "delivering"
@@ -371,6 +397,7 @@ def test_deps_auth_roles_and_error_format(session: Session) -> None:
 def test_current_account_runs_refresh_first(session: Session) -> None:  # V9 經過 API
     f1 = repo.get_food(session, "f-1")
     assert f1
+    __claim(session, "c-1", "f-1", "e-2")
     repo.update_food(session, f1, expires_at=mr.now() - timedelta(minutes=1))
     with TestClient(__probe_app()) as c:
         assert c.get("/meal-relay/probe/me", headers={"X-Demo-User": "u-eld-1"}).status_code == 200
@@ -384,7 +411,7 @@ def test_current_account_runs_refresh_first(session: Session) -> None:  # V9 經
 
 def test_request_models_forbid_extra_fields() -> None:
     with pytest.raises(ValidationError):
-        schemas.ClaimCreate.model_validate({"food_id": "f-1", "method": "pickup", "phone": "x"})
+        schemas.ClaimCancel.model_validate({"reason": "x", "phone": "x"})
     with pytest.raises(ValidationError):
         schemas.FoodCreate.model_validate({"point_id": "p-1", "name": "x", "category": "pizza", "qty": 1,
                                            "expires_at": "2026-11-07T12:00:00+08:00"})  # fmt: skip

@@ -26,8 +26,8 @@ from .models import (
     MealVisit,
 )
 
-# 「未完成」的申請狀態（M6、M8）
-ACTIVE_CLAIM_STATUSES = ("requested", "ready_for_pickup", "claimed", "delivering")
+# 「未完成」的申請狀態（M6、M8；ADR-025 後只剩這兩種）
+ACTIVE_CLAIM_STATUSES = ("claimed", "delivering")
 
 
 # ---------------------------------------------------------------- 共用寫入
@@ -307,7 +307,6 @@ def list_claims(
     volunteer_id: str | None = None,
     requested_by: str | None = None,
     assignment_id: str | None = None,
-    method: str | None = None,
 ) -> list[MealClaim]:
     stmt = select(MealClaim).order_by(col(MealClaim.created_at), col(MealClaim.id))
     if status:
@@ -330,40 +329,7 @@ def list_claims(
         stmt = stmt.where(MealClaim.requested_by == requested_by)
     if assignment_id:
         stmt = stmt.where(MealClaim.assignment_id == assignment_id)
-    if method:
-        stmt = stmt.where(MealClaim.method == method)
     return list(session.exec(stmt))
-
-
-def list_station_claims(session: Session, station_id: str, status: str | None = None) -> list[MealClaim]:
-    """某據點長者的申請（M13：志工只看自己據點）。"""
-    stmt = (
-        select(MealClaim)
-        .join(MealElder, col(MealElder.id) == col(MealClaim.elder_id))
-        .where(MealElder.station_id == station_id)
-        .order_by(col(MealClaim.created_at), col(MealClaim.id))
-    )
-    if status:
-        stmt = stmt.where(MealClaim.status == status)
-    return list(session.exec(stmt))
-
-
-def list_supplier_claims(session: Session, supplier_id: str, status: str | None = None) -> list[MealClaim]:
-    """某提供者食物的申請（待領取清單用）。"""
-    stmt = (
-        select(MealClaim)
-        .join(MealFood, col(MealFood.id) == col(MealClaim.food_id))
-        .where(MealFood.supplier_id == supplier_id)
-        .order_by(col(MealClaim.created_at), col(MealClaim.id))
-    )
-    if status:
-        stmt = stmt.where(MealClaim.status == status)
-    return list(session.exec(stmt))
-
-
-def has_claim_with_status(session: Session, elder_id: str, status: str) -> bool:
-    stmt = select(MealClaim.id).where(MealClaim.elder_id == elder_id, MealClaim.status == status).limit(1)
-    return session.exec(stmt).first() is not None
 
 
 def create_claim(session: Session, row: MealClaim, *, commit: bool = True) -> MealClaim:

@@ -47,11 +47,23 @@ describe('meal-relay data layer', () => {
   })
 
   it('turns the backend error detail into MealApiError', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(json({ detail: { code: 'QTY_EXCEEDED', message: '申請份數超過剩餘份數' } }, 409)))
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(json({ detail: { code: 'INVALID_STATE', message: '這筆申請已經取消' } }, 409)))
     const d = await freshData()
-    const err = await d.createClaim({ food_id: 'f-1', qty: 2, method: 'pickup' }).catch((e: unknown) => e)
+    const err = await d.pickupClaim('c-1').catch((e: unknown) => e)
     expect(err).toBeInstanceOf(d.MealApiError)
-    expect(err).toMatchObject({ code: 'QTY_EXCEEDED', message: '申請份數超過剩餘份數', status: 409 })
+    expect(err).toMatchObject({ code: 'INVALID_STATE', message: '這筆申請已經取消', status: 409 })
+  })
+
+  it('exposes only the dispatch-era claim functions and the elder visit list (ADR-025)', async () => {
+    const fetchMock = vi.fn().mockImplementation(() => Promise.resolve(json([])))
+    vi.stubGlobal('fetch', fetchMock)
+    const d = (await freshData()) as Record<string, unknown>
+    for (const removed of ['createClaim', 'listStationClaims', 'listPickupClaims', 'acceptClaim', 'confirmPickup']) {
+      expect(d[removed]).toBeUndefined()
+    }
+    const visits = await (d.listMyElderVisits as () => Promise<unknown[]>)()
+    expect(visits).toEqual([])
+    expect(String(fetchMock.mock.calls[0]![0])).toMatch(/\/meal-relay\/elders\/me\/visits$/)
   })
 
   it('HttpError carries the JSON detail (platform/http)', async () => {
