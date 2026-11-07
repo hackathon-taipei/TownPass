@@ -185,7 +185,7 @@ describe('志工從哪裡來（§1）', () => {
     expect(VOLUNTEER_LINKS.map((l) => l.url)).toEqual([
       'https://newcv101.gov.taipei/',
       'https://elearning.taipei/mpage/',
-      'https://laws.gov.taipei/law/LawSearch/LawExport/FL101070?type=0',
+      'https://laws.gov.taipei/law/LawSearch/LawPrint/FL101070?type=0',
     ])
   })
 
