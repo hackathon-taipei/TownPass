@@ -9,10 +9,10 @@ import pytest
 from fastapi import Depends, FastAPI
 from fastapi.testclient import TestClient
 from pydantic import ValidationError
-from sqlalchemy import inspect
+from sqlalchemy import inspect, text
 from sqlmodel import Session
 
-from townpass_backend.db import SessionDep, engine
+from townpass_backend.db import SessionDep, engine, sync_schema
 from townpass_backend.features import meal_relay as mr
 from townpass_backend.features.meal_relay import models as m
 from townpass_backend.features.meal_relay import repo, schemas
@@ -551,3 +551,96 @@ def test_m13_ensure_assigned_elder(session: Session) -> None:  # V20
 def test_new_error_codes_are_409() -> None:
     assert mr.MealError("QTY_BELOW_USED", "x").status == 409
     assert mr.MealError("QR_EXPIRED", "x").status == 409
+
+
+# ---------------------------------------------------------------- 地址（T-133、ADR-030）
+
+# T-115 §2 的原始地址（開放資料）。據點與食物點共用同一組地址；p-5、p-6 的原文沒有行政區
+T115_ADDRESSES = {
+    "st-1": "臺北市萬華區福音里康定路229號6樓",
+    "st-2": "臺北市萬華區凌霄里中華路2段504巷43號1樓",
+    "p-1": "臺北市萬華區福音里康定路229號6樓",
+    "p-2": "臺北市萬華區凌霄里中華路2段504巷43號1樓",
+    "p-3": "臺北市萬華區福音里昆明街284號1樓",
+    "p-4": "臺北市萬華區福音里桂林路64號",
+    "p-5": "大理街106號1樓",
+    "p-6": "內江街55巷9號",
+}
+SIMULATED_SUPPLIER_ADDRESSES = {
+    "s-1": "臺北市萬華區西園路一段999號（模擬）",
+    "s-2": "臺北市萬華區桂林路999號（模擬）",
+    "s-3": "臺北市萬華區西園路一段998號（模擬）",
+}
+
+
+def test_address_columns_exist_after_startup(client: TestClient) -> None:
+    """資料表只增不減：啟動時（sync_schema）補上 address 欄位（ADR-030）。"""
+    tables = inspect(engine)
+    for table in ("meal_station", "meal_point", "meal_supplier"):
+        assert "address" in {c["name"] for c in tables.get_columns(table)}
+
+
+def test_seed_station_address_equals_t115(session: Session) -> None:
+    for station_id in ("st-1", "st-2"):
+        station = repo.get_station(session, station_id)
+        assert station is not None and station.address == T115_ADDRESSES[station_id]
+
+
+def test_seed_point_address_equals_t115(session: Session) -> None:
+    for point_id in ("p-1", "p-2", "p-3", "p-4", "p-5", "p-6"):
+        point = repo.get_point(session, point_id)
+        assert point is not None and point.address == T115_ADDRESSES[point_id]
+
+
+def test_seed_supplier_addresses_are_simulated(session: Session) -> None:
+    suppliers = {s.id: s for s in repo.list_suppliers(session)}
+    assert set(suppliers) == set(SIMULATED_SUPPLIER_ADDRESSES)
+    for supplier_id, address in SIMULATED_SUPPLIER_ADDRESSES.items():
+        assert suppliers[supplier_id].address == address
+        assert address.endswith("（模擬）") and "99" in address  # 門牌是不存在的號碼，不對應真實住家
+
+
+def test_address_defaults_to_empty_string() -> None:
+    """沒填地址的列是空字串，不是 NULL（舊資料庫補上的欄位也是空字串）。"""
+    assert m.MealStation(id="st-x").address == ""
+    assert m.MealPoint(id="p-x").address == ""
+    assert m.MealSupplier(id="s-x").address == ""
+
+
+def test_old_database_gets_empty_address_until_reset(session: Session) -> None:
+    """已部署的舊資料庫（T-133 前沒有 address）：啟動時補欄位、值是空字串；種子地址要管理員重置後才寫入。"""
+    session.close()
+    tables = ("meal_station", "meal_point", "meal_supplier")
+    try:
+        with engine.begin() as conn:
+            for table in tables:
+                conn.execute(text(f"ALTER TABLE {table} DROP COLUMN address"))
+        assert {f"{t}.address" for t in tables} <= set(sync_schema())
+        with engine.connect() as conn:
+            stations = conn.execute(text("SELECT address FROM meal_station")).all()
+        assert stations and all(row[0] == "" for row in stations)
+        mr.seed(session)  # 啟動時的 seed()：已有帳號，不重新匯入
+        session.expire_all()
+        station = repo.get_station(session, "st-1")
+        assert station is not None and station.address == ""
+        mr.reset_demo(session, T0)  # 管理員按「重置示範資料」
+        session.expire_all()
+        station = repo.get_station(session, "st-1")
+        assert station is not None and station.address == T115_ADDRESSES["st-1"]
+    finally:
+        sync_schema()
+        mr.reset_demo(session, T0)
+
+
+def test_read_routes_carry_address(client: TestClient, session: Session) -> None:
+    """GET /stations、/points、/foods、/suppliers 的回應都有 address，值和種子一致。"""
+    stations = client.get("/meal-relay/stations", headers={"X-Demo-User": "u-cit-1"}).json()
+    assert {s["id"]: s["address"] for s in stations} == {k: T115_ADDRESSES[k] for k in ("st-1", "st-2")}
+    points = client.get("/meal-relay/points", headers={"X-Demo-User": "u-sup-1"}).json()
+    point_addresses = {k: v for k, v in T115_ADDRESSES.items() if k.startswith("p-")}
+    assert {p["id"]: p["address"] for p in points} == point_addresses
+    foods = client.get("/meal-relay/foods", headers={"X-Demo-User": "u-sup-1"}).json()
+    f1 = next(f for f in foods if f["id"] == "f-1")
+    assert f1["point_address"] == T115_ADDRESSES["p-1"]
+    suppliers = client.get("/meal-relay/suppliers", headers={"X-Demo-User": "u-admin-1"}).json()
+    assert {s["id"]: s["address"] for s in suppliers} == SIMULATED_SUPPLIER_ADDRESSES

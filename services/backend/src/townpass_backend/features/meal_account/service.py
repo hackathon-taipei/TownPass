@@ -54,6 +54,7 @@ def apply_supplier(session: Session, account: MealAccount, body: SupplierApply) 
     已有申請（任何狀態，含 rejected）→ ALREADY_APPLIED。帳號會記下 `supplier_id`（同種子的 u-sup-3）；
     沒匯入的一般市民在這時寫進 meal_account（role 仍是 citizen），審核通過時才有帳號可改。
     店面照片 `image_id` 選填；個人提供者（`person`）忽略、存 null（ADR-029）。
+    單位地址 `address` 選填；個人提供者存空字串（ADR-030）。
     """
     if get_my_supplier(session, account) is not None:
         raise MealError("ALREADY_APPLIED", "這個帳號已經申請過提供者")
@@ -67,6 +68,8 @@ def apply_supplier(session: Session, account: MealAccount, body: SupplierApply) 
         status="pending",
         created_at=now(),
         image_id=supplier_image_id(body.org_type, body.image_id),
+        # ADR-030：單位地址選填、前後空白去掉；個人提供者（person）是自家住址，一律不存（AGENTS.md 第 5 條）
+        address="" if body.org_type == "person" else (body.address or "").strip(),
     )
     repo.create_supplier(session, supplier, commit=False)
     __save_account(session, account.id, commit=False, supplier_id=supplier.id)

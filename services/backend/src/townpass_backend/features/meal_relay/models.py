@@ -38,6 +38,7 @@ class MealStation(SQLModel, table=True):
     checkin_code: str = Field(default="", index=True)  # M15：QR 內容用，不等於據點 id
     source: str = "模擬"
     image_id: str | None = None  # 入口照片（ADR-028）：只拍入口或建築外觀，不能有人臉、車牌、門牌
+    address: str = ""  # 據點地址（v2.5，ADR-030）：開放資料的機構地址，空字串代表沒填
 
 
 class MealSupplier(SQLModel, table=True):
@@ -54,6 +55,8 @@ class MealSupplier(SQLModel, table=True):
     reviewed_at: datetime | None = None
     # 店面照片（ADR-029）：只拍招牌或店門口，不能有人臉、車牌、個資；個人提供者（person）一律 None
     image_id: str | None = None
+    # 單位地址（v2.5，ADR-030）：只存機構地址；個人提供者（person）一律空字串（AGENTS.md 第 5 條）
+    address: str = ""
 
 
 class MealPoint(SQLModel, table=True):
@@ -67,6 +70,7 @@ class MealPoint(SQLModel, table=True):
     source: str = "模擬"
     created_by: str | None = None
     image_id: str | None = None  # 入口照片（ADR-028）：只拍入口或建築外觀，不能有人臉、車牌、門牌
+    address: str = ""  # 食物點地址（v2.5，ADR-030）：取餐地點的公開地址（機構或店面），空字串代表沒填
 
 
 class MealFood(SQLModel, table=True):
