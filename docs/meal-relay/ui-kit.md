@@ -120,17 +120,17 @@
 ### 地圖定位針（icon＋顏色，不只靠顏色）
 | 定位針 | 圓頭裡的 icon（白色 14px） | 顏色 |
 |---|---|---|
-| 據點 | `lucide-vue-next` `HeartHandshake` | 深灰 `grey-700`（是「地點」不是狀態，`pinColorOf(undefined) = 'station'`） |
+| 據點 | `lucide-vue-next` `HeartHandshake` | 深灰 `grey-700`（是「地點」不是狀態，`pinColorOf(undefined) = 'station'`）。**志工任務卡（`taskMarkers`）例外**：畫成圓形品牌企鵝頭像 `brand/mascot.webp`（`brandSrc('mascot')`），白底 `grey-700` 細邊（決策 32） |
 | 長者 | `lucide-vue-next` `User` | 有任何警示標籤（需要送餐、需要關懷、從未見到）→ `warn`；正常 → `primary` |
 | 食物點（只在選點時當參考） | 餐盒小圖示 | `open` → `primary`、`unclaimed` → `warn`；已全數派出、已過期、已下架**不畫** |
 | 我的位置 | 圓形企鵝頭像（MR-C23 的圖，`penguinSrc`），白底主色細邊 | 不上狀態色；沒有滑行、跳躍動畫 |
 
-圖例（MR-C58）用同樣的 icon＋文字，只列地圖上真的有的定位針，不再列六種顏色的說明。
+圖例（MR-C58）用同樣的 icon＋文字，只列地圖上真的有的定位針，不再列六種顏色的說明。定位針有頭像（`Marker.avatar`）時，圖例也放同一張小圓形頭像：「我」主色細邊、任務卡的據點 `grey-700` 細邊。
 
 ### 各角色的地圖內容（T-126）
 | 角色 | 地圖上有什麼 | 什麼時候出現 |
 |---|---|---|
-| 志工（任務卡 MR-C40） | 任務的據點（`station_id`）＋這張任務的長者（M13）＋我（企鵝） | 只在任務卡裡；拒絕定位時只有據點和長者 |
+| 志工（任務卡 MR-C40） | 任務的據點（`station_id`，品牌企鵝頭像）＋這張任務的長者（M13）＋我（企鵝） | 只在任務卡裡；拒絕定位時只有據點和長者 |
 | 提供者（MR-P06） | 只有選位置的 LocationPicker | 新增食物點（MR-C37）、提供者申請時；庫存頁、上架的食物點清單都不放地圖 |
 | 管理員（MR-P08） | 看板沒有總覽地圖，改用統計卡與清單 | 只在登記或修改長者位置時（MR-C53 的 LocationPicker） |
 | 據點（MR-P07） | 不需要地圖 | — |
@@ -182,6 +182,7 @@
 | 29 | 定位針用 icon＋顏色（據點 HeartHandshake、長者 User、我＝企鵝），圖例也是 icon＋文字 | 不只靠顏色區分；這是地圖定位針，不違反「清單、晶片不加 icon」 |
 | 30 | icon 只放在當下這一步的主要動作按鈕；拿掉首頁說明的 IconBadge、據點清單列的 MapPin、志工資訊外部連結按鈕的 ExternalLink、據點 QR 斷網提示的 WifiOff | T-126 第 4 點；EmptyState（M05）的 icon 是共用元件內建，`ui/**` 不在本工單範圍，保留 |
 | 31 | 任務卡要畫據點，所以 `useMyTasks` 另外讀一次公開的 `listStations`（志工頁本來就會讀），`TaskView` 多一個 `station` | 合約的 `Assignment` 只有 `station_id`、沒有位置；讀不到就不畫據點，不影響任務 |
+| 32 | 志工任務卡「查看位置」（MR-C79）的據點改成圓形品牌企鵝頭像 `brand/mascot.webp`（`grey-700` 細邊），圖例的「據點」也用同一張小頭像；長者定位針、「我」的企鵝不變；看板、名冊、首頁、提供者等其他地圖的據點仍是深灰 HeartHandshake 定位針 | 任務卡上據點是志工要去的地方，用鄰食蜂的企鵝比較好認；品牌企鵝（企鵝＋蜂蜜罐）和志工自己的企鵝（`penguins/penguin-N.png`）一眼分得出來。規則：MapView／MapLegend 對任何有 `avatar` 的定位針都畫頭像，只有 `taskMarkers` 給據點 `avatar` |
 
 ## 5. 素材來源與授權
 
