@@ -1,51 +1,103 @@
 /**
- * LOGIC LAYER - 鄰食轉運站首頁 MR-P01（T-116）。合約 docs/system/11-meal-relay.md v2.2 §1、§2、§8、§9。
- *   讀身分（getMe）與據點清單（listStations），決定首頁「進入」按鈕要去哪裡。
- *   - volunteer → volunteer、supplier → supplier、station → station（shared.ts 的 homeRouteOf）
- *   - citizen 留在首頁，顯示「我要提供食物」→ supplier（申請表在提供者頁）
- *   - admin 只用管理系統網址，首頁不放連結；首頁沒有選角色的按鈕（§2）
+ * LOGIC LAYER - 鄰食轉運站首頁 MR-P01（T-116，設計 v2 由 T-134 重構）。
+ * 合約 docs/system/11-meal-relay.md v2.5 §1、§2、§8、§9；畫面規格 docs/meal-relay/design-v2/README.md §2、§3.1。
+ *   讀身分（getMe）與據點清單（listStations），決定首頁主按鈕的文字與去向；不呼叫其他 API。
+ *   - citizen「我要提供食物」→ supplier、supplier「管理我的食物」→ supplier
+ *   - volunteer「進入志工頁」→ volunteer、station「打開報到 QR」→ station
+ *   - admin 沒有按鈕，只用管理系統網址，首頁不放連結；首頁沒有選角色的按鈕（§2）
+ *   - 點附近關懷據點的一列 → 底部面板：地址＋只有這個據點的地圖（useStationSheet）
  */
-import { computed, onScopeDispose, ref, shallowRef } from 'vue'
+import { computed, nextTick, onScopeDispose, ref, shallowRef } from 'vue'
 import type { RouteLocationRaw } from 'vue-router'
 import { featureRoute } from '@/framework'
 // 平台能力：modules/env 目前沒有 openLink()，先在這裡包成 openLink（docs/meal-relay/T-116.md 決策 3）
 import { isInApp, send } from '@/platform/bridge'
 import { getMe, listStations, MealApiError } from '../data'
 import type { Cached, Me, Role, Station } from '../data'
+import type { Marker } from './mapMarker'
 import { homeRouteOf, type HomeRoute } from './shared'
 
 export type { Me, Role, Station }
 
-/* ---------------------------------------------------------------- 依角色進入（§9） */
+/* ---------------------------------------------------------------- 依角色進入（§9、設計 v2 §2） */
+
+/** 有主按鈕的角色（admin 沒有按鈕） */
+export type EntryRole = Exclude<Role, 'admin'>
 
 export interface HomeEntry {
-  /** enter：進到自己的頁面；offer_food：一般市民申請成為提供者 */
-  kind: 'enter' | 'offer_food'
+  /** 依角色選圖示用 */
+  role: EntryRole
   route: HomeRoute
   label: string
-  description: string
   to: RouteLocationRaw
 }
 
-const __ENTRY_TEXT: Record<HomeRoute, { label: string; description: string }> = {
-  volunteer: { label: '進入志工頁', description: '到據點掃 QR code 報到，系統會把今天要送餐、關懷的長者派給你' },
-  supplier: { label: '進入提供者頁', description: '上架多出來的食物，看每批的剩餘、派出中與已送達份數' },
-  station: { label: '進入據點頁', description: '顯示會定時更新的報到 QR code，看今天報到的志工' },
+/** 設計 v2 README §2 的按鈕文字 */
+const __ENTRY_LABEL: Record<EntryRole, string> = {
+  citizen: '我要提供食物',
+  supplier: '管理我的食物',
+  volunteer: '進入志工頁',
+  station: '打開報到 QR',
 }
 
-/** 首頁的主要按鈕：志工、提供者、據點進到自己的頁面；一般市民是「我要提供食物」；管理員沒有按鈕（null） */
+/**
+ * 首頁的主按鈕：citizen「我要提供食物」→ supplier（申請表在提供者頁）、supplier「管理我的食物」→ supplier、
+ * volunteer「進入志工頁」→ volunteer、station「打開報到 QR」→ station；admin 沒有按鈕（null）
+ */
 export function homeEntryOf(role: Role): HomeEntry | null {
-  const route = homeRouteOf(role)
-  if (route) return { kind: 'enter', route, ...__ENTRY_TEXT[route], to: featureRoute('meal-relay', route) }
-  if (role === 'citizen')
-    return {
-      kind: 'offer_food',
-      route: 'supplier',
-      label: '我要提供食物',
-      description: '店家、學校、機關或個人都可以申請成為提供者，管理員審核通過後就能上架多出來的食物',
-      to: featureRoute('meal-relay', 'supplier'),
-    }
-  return null // admin：只用管理系統網址 /#/f/meal-relay/admin（§9）
+  if (role === 'admin' || !(role in __ENTRY_LABEL)) return null // admin：只用管理系統網址（§9），首頁不放連結
+  const route = homeRouteOf(role) ?? 'supplier'
+  return { role, route, label: __ENTRY_LABEL[role], to: featureRoute('meal-relay', route) }
+}
+
+/* ---------------------------------------------------------------- 附近關懷據點（設計 v2 §3.1） */
+
+/** 據點列與面板上的地址；沒填（空字串，ADR-030）時顯示「地址未提供」 */
+export function stationAddressText(station: Pick<Station, 'address'>): string {
+  return station.address?.trim() || '地址未提供'
+}
+
+/** 據點面板的地圖：只有這個據點一根定位針 */
+export function stationMarkersOf(station: Pick<Station, 'id' | 'name' | 'location'>): Marker[] {
+  return [{ id: station.id, kind: 'station', location: station.location, label: station.name }]
+}
+
+/**
+ * 據點底部面板（MR-C70）的開關。打開時記下捲動位置與目前的焦點，關閉後捲回原位、焦點回到點的那一列。
+ *   station：最後點的據點（關閉動畫期間仍保留，面板內容不會消失）
+ *   open：v-model 給 BottomSheet；設成 false（點遮罩、Esc、關閉鍵）就關閉並回到原位
+ */
+export function useStationSheet() {
+  const station = shallowRef<Station | null>(null)
+  const shown = ref(false)
+  let scrollY = 0
+  let focused: HTMLElement | null = null
+
+  function openStation(s: Station): void {
+    scrollY = typeof window === 'undefined' ? 0 : window.scrollY
+    focused = typeof document === 'undefined' ? null : (document.activeElement as HTMLElement | null)
+    station.value = s
+    shown.value = true
+  }
+
+  function closeStation(): void {
+    if (!shown.value) return
+    shown.value = false
+    const y = scrollY
+    const el = focused
+    focused = null
+    void nextTick(() => {
+      el?.focus?.({ preventScroll: true })
+      if (typeof window !== 'undefined') window.scrollTo({ top: y })
+    })
+  }
+
+  const open = computed({
+    get: () => shown.value,
+    set: (v: boolean) => (v ? (shown.value = true) : closeStation()),
+  })
+
+  return { station, open, openStation, closeStation }
 }
 
 /* ---------------------------------------------------------------- 志工從哪裡來（§1） */
@@ -93,6 +145,7 @@ export function homeErrorText(e: unknown, fallback: string): string {
  *   me：undefined = 讀取中，null = 讀不到身分
  */
 export function useHome() {
+  const sheet = useStationSheet()
   const me = shallowRef<Cached<Me> | null>()
   const meError = ref('')
   const stations = shallowRef<Cached<Station[]> | null>()
@@ -130,5 +183,22 @@ export function useHome() {
   onScopeDispose(() => clearInterval(timer))
   const ready = load()
 
-  return { me, meError, stations, stationsError, now, entry, staleAt, stationSource, load, ready, openLink, volunteerLinks: VOLUNTEER_LINKS }
+  return {
+    me,
+    meError,
+    stations,
+    stationsError,
+    now,
+    entry,
+    staleAt,
+    stationSource,
+    load,
+    ready,
+    openLink,
+    volunteerLinks: VOLUNTEER_LINKS,
+    sheetStation: sheet.station,
+    sheetOpen: sheet.open,
+    openStation: sheet.openStation,
+    closeStation: sheet.closeStation,
+  }
 }
