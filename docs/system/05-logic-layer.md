@@ -1,5 +1,9 @@
 # 邏輯層
 
+## 據點管理介面（T-140）
+
+`meal-relay/logic/stationManager.ts` 提供 `useStationManager()` 狀態與動作、`stationElders()` 所屬長者篩選及 `stationDraftError()` 表單驗證。資料層提供 `createStation()`、`updateStation()`、`deleteStation()`，由邏輯層呼叫；顯示層不直接取資料。`MapView` 可選 `onMarkerSelect(Marker)` 通知父層選據點，與 `onPick(Location)` 選座標分開；既有用法不變。
+
 > 原則：**模組提供功能介面；介面內用到的工具函數以 `__` 開頭、鎖在內部、不給別人用。**
 
 ## 1. 位置

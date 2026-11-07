@@ -106,6 +106,9 @@
 | MR-C92 | OrgTypePicker | 提供者類型 5 格：店家、學校、機關、個人、其他（合約 §4 OrgType），圖示＋文字，選中時有勾 | `features/meal-relay/ui/OrgTypePicker.vue` |
 | MR-C93 | ApplyLocationField | 申請表的單位位置：小地圖預覽（MR-C07）、地址文字（選填）、「在地圖上選位置」開底部面板（MR-C09）裡的 MR-C02 LocationPicker | `features/meal-relay/ui/ApplyLocationField.vue` |
 | MR-C95 | StationNamePill | 據點報到頁的據點名稱膠囊：淺青底、粗體大字 | `features/meal-relay/ui/StationNamePill.vue` |
+| MR-C110 | StationManager | 據點管理：地圖／清單選據點、新增修改位置、刪除確認及所屬長者 | `features/meal-relay/ui/StationManager.vue` |
+| MR-C111 | StationManageForm | 據點名稱、地址、地圖選取座標與儲存／取消 | `features/meal-relay/ui/StationManageForm.vue` |
+| MR-C112 | StationElderList | 所選據點長者清單（僅管理員）：代稱、過敏原、送餐及關懷狀態 | `features/meal-relay/ui/StationElderList.vue` |
 | MR-P01 | HomePage | 鄰食蜂首頁：主視覺、依角色的主按鈕、長者不用操作 App、附近關懷據點（點開看位置）、想成為志工？ | `features/meal-relay/ui/HomePage.vue` |
 | MR-P04 | VolunteerPage | 志工首頁「今天的服務」：問候、報到卡（據點、報到時間、N 件待完成）、掃碼報到、步驟列（沒有長者清單或地圖） | `features/meal-relay/ui/VolunteerPage.vue` |
 | MR-P05 | TaskPage | 我的任務：收合式任務卡（一次展開一張）、確認已取餐、取消這份餐（先確認）、回報拜訪；最後一張回報完顯示完成畫面 | `features/meal-relay/ui/TaskPage.vue` |
