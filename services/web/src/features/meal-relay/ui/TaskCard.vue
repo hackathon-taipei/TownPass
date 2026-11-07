@@ -42,22 +42,27 @@ function onMain() {
 </script>
 
 <template>
-  <Accordion :name="task.id" :group="TASK_GROUP" :title="elder.alias" :data-task="task.id">
-    <template #chip><TaskChips :chips="chips" /></template>
-    <div class="space-y-3">
+  <Accordion class="bg-grey-50/40!" :name="task.id" :group="TASK_GROUP" :title="elder.alias" :data-task="task.id">
+    <template #title>
+      <span class="min-w-0 truncate text-[clamp(1rem,5.5vw,1.375rem)] leading-tight font-black text-primary-900">{{ elder.alias }}</span>
+    </template>
+    <template #chip><TaskChips class="mr-auto" :chips="chips" /></template>
+    <div class="space-y-2.5 border-t border-grey-100 pt-2.5">
       <p v-if="task.note" class="text-sm text-grey-600">{{ task.note }}</p>
       <TaskMeal v-if="task.claim" v-model:conflict="conflict" :claim="task.claim" :elder="elder" />
       <hr v-if="task.claim" class="border-grey-100" />
       <TaskAddress v-if="address" :address="address" />
       <TaskLocation :task="task" />
-      <p v-if="allergens" class="flex items-center gap-2 text-base font-bold text-warn-200">
-        <TriangleAlert class="h-5 w-5 shrink-0" aria-hidden="true" />
-        過敏原：{{ allergens }}
-      </p>
-      <p v-else class="text-sm text-grey-500">沒有登記過敏原</p>
-      <p class="text-sm text-grey-500">任務期限：{{ countdownText(task.assignment.expires_at, now) }}</p>
+      <div class="flex flex-wrap items-center justify-between gap-x-2 gap-y-0.5">
+        <p v-if="allergens" class="flex items-center gap-1.5 text-base font-bold text-warn-200">
+          <TriangleAlert class="size-5 shrink-0" aria-hidden="true" />
+          過敏原：{{ allergens }}
+        </p>
+        <p v-else class="text-sm text-grey-600">沒有登記過敏原</p>
+        <p class="text-xs text-grey-600">任務期限：{{ countdownText(task.assignment.expires_at, now) }}</p>
+      </div>
       <BaseButton
-        class="rounded-xl"
+        class="h-12! rounded-xl! bg-linear-to-br from-primary-600 to-primary-700 text-xl! font-extrabold!"
         block
         size="lg"
         :loading="busy && action.action === 'pickup'"
@@ -70,7 +75,7 @@ function onMain() {
       <button
         v-if="task.claim"
         type="button"
-        class="press mx-auto block min-h-11 px-4 text-base font-semibold text-grey-600 underline underline-offset-4 disabled:opacity-40"
+        class="press mx-auto block min-h-10 px-4 text-base font-semibold text-grey-600 underline underline-offset-4 disabled:opacity-40"
         :disabled="offline || busy"
         @click="emit('cancel')"
       >

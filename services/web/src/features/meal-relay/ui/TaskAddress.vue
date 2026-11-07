@@ -27,15 +27,15 @@ async function onCopy() {
 </script>
 
 <template>
-  <div class="flex items-center gap-3">
-    <MapPin class="h-6 w-6 shrink-0 text-primary-700" aria-hidden="true" />
+  <div class="flex items-center gap-2">
+    <MapPin class="size-6 shrink-0 fill-primary-700 text-primary-700 [&_circle]:fill-white [&_circle]:stroke-white" aria-hidden="true" />
     <div class="min-w-0 flex-1">
       <p class="text-base font-bold text-grey-900">送達地點</p>
       <p ref="addressEl" class="text-sm break-words text-grey-700 select-text">{{ address }}</p>
     </div>
     <button
       type="button"
-      class="press inline-flex min-h-11 shrink-0 items-center gap-1 rounded-lg bg-white px-3 text-sm font-bold text-primary-700 ring-1 ring-primary-500"
+      class="press inline-flex min-h-9 shrink-0 items-center gap-1 rounded-lg border border-primary-600 bg-white px-2.5 text-sm font-bold text-primary-800"
       :aria-label="`複製地址：${address}`"
       @click="onCopy"
     >

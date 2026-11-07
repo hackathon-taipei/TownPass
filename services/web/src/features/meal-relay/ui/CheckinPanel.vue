@@ -22,7 +22,8 @@ const emit = defineEmits<{ scan: []; submitPasted: [] }>()
     <p v-if="!checkedIn" class="text-base text-grey-700">到據點後，掃描據點畫面上的 QR code 報到，系統會把要送餐或關懷的長者派給你。</p>
     <BaseButton
       v-if="scannable"
-      class="rounded-xl"
+      class="rounded-xl! text-xl! font-extrabold! [&_svg]:size-6"
+      :class="checkedIn ? 'border-primary-700! text-primary-800!' : 'bg-linear-to-br from-primary-600 to-primary-700'"
       block
       size="lg"
       :variant="checkedIn ? 'outline' : 'primary'"
@@ -52,7 +53,7 @@ const emit = defineEmits<{ scan: []; submitPasted: [] }>()
         {{ checkedIn ? '重新報到' : '報到' }}
       </BaseButton>
     </form>
-    <p v-if="checkedIn" class="text-center text-sm text-grey-500">重複報到不會重複派送</p>
+    <p v-if="checkedIn" class="text-center text-sm text-grey-700">重複報到不會重複派送</p>
     <Transition name="fade-up">
       <p v-if="error" class="text-sm text-warn-200" role="alert">{{ error }}</p>
     </Transition>

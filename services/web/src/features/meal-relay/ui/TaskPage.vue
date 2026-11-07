@@ -61,11 +61,12 @@ const {
         <TasksDone :count="reportedCount" :home-to="volunteerRoute" />
       </div>
 
-      <div v-else key="list" class="space-y-4 pt-4">
-        <header>
-          <h1 class="text-3xl font-extrabold text-grey-900">我的任務</h1>
-          <p v-if="tasks.length" class="mt-1 text-lg font-semibold text-grey-700" aria-live="polite">
-            還有 <span class="text-3xl font-extrabold text-secondary-500 tabular-nums">{{ tasks.length }}</span> 件需要你
+      <div v-else key="list" class="flex min-h-[calc(100dvh-1.5rem)] flex-col gap-3.5">
+        <BrandHeader v-if="reportOpen" class="-mx-4" title="我的任務" variant="banner" />
+        <header v-else class="px-1 pt-4">
+          <h1 class="text-4xl leading-tight font-black text-primary-800">我的任務</h1>
+          <p v-if="tasks.length" class="mt-0.5 text-xl leading-tight font-semibold text-grey-700" aria-live="polite">
+            還有 <span class="text-2xl font-black text-secondary-600 tabular-nums">{{ tasks.length }}</span> 件需要你
           </p>
         </header>
         <StaleBanner :stale-at="staleAt" :now="now" />
@@ -104,8 +105,10 @@ const {
         </TransitionGroup>
 
         <template v-if="!loading && tasks.length">
-          <p class="text-center text-sm text-grey-500">只顯示派給你的進行中任務</p>
-          <SourceNote :source="TASK_SOURCE_TEXT" />
+          <div class="mt-auto space-y-1 pt-4 text-center">
+            <p class="text-sm text-grey-600">只顯示派給你的進行中任務</p>
+            <SourceNote :source="TASK_SOURCE_TEXT" />
+          </div>
         </template>
       </div>
     </Transition>

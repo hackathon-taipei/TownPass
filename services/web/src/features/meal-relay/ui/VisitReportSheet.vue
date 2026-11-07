@@ -35,20 +35,19 @@ const emit = defineEmits<{ photo: [file: File]; submit: [] }>()
 
 <template>
   <BottomSheet v-model="open" :title="task ? `回報：${task.assignment.elder.alias}` : '回報拜訪'">
+    <template #header-action>
+      <button
+        type="button"
+        class="press -mt-2 inline-flex min-h-9 items-center gap-1 rounded-full border border-grey-200 bg-grey-50/50 px-3 text-sm font-bold text-grey-800"
+        @click="open = false"
+      >
+        <X class="size-4" aria-hidden="true" />
+        關閉
+      </button>
+    </template>
     <form v-if="task" class="space-y-3" @submit.prevent="emit('submit')">
-      <!-- 標題列右邊的「關閉」（BottomSheet 是 kit 元件，沒有關閉鍵；這裡往上移到標題那一列） -->
-      <div class="-mt-12 flex justify-end">
-        <button
-          type="button"
-          class="press inline-flex min-h-11 items-center gap-1 rounded-full bg-white px-3 text-sm font-bold text-grey-700 ring-1 ring-grey-200"
-          @click="open = false"
-        >
-          <X class="h-4 w-4" aria-hidden="true" />
-          關閉
-        </button>
-      </div>
-      <p class="flex items-center gap-2 rounded-xl bg-grey-50 px-3 py-2 text-base font-semibold text-grey-800">
-        <ShoppingBag class="h-5 w-5 shrink-0 text-grey-600" aria-hidden="true" />
+      <p class="flex min-h-9 items-center gap-2 rounded-xl bg-linear-to-r from-grey-50 to-grey-100 px-4 text-base font-bold text-grey-900">
+        <ShoppingBag class="size-6 shrink-0 text-grey-700" aria-hidden="true" />
         {{ task.kind === 'meal' && task.claim ? `${task.claim.food.name}・${task.claim.qty} 份` : '這次只做關懷' }}
       </p>
       <VisitResultOptions v-model="result" :kind="task.kind" :category="task.claim?.food.category" />
@@ -65,7 +64,7 @@ const emit = defineEmits<{ photo: [file: File]; submit: [] }>()
         <p v-if="error" class="text-sm text-warn-200" role="alert">{{ error }}</p>
       </Transition>
       <p v-if="blockReason && !error" class="text-sm text-grey-500">{{ blockReason }}</p>
-      <SubmitButton class="min-h-13 rounded-xl text-lg" :loading="submitting" :disabled="!!blockReason">送出回報</SubmitButton>
+      <SubmitButton class="min-h-14 rounded-xl text-2xl font-extrabold! enabled:bg-linear-to-br enabled:from-primary-600 enabled:to-primary-700" :loading="submitting" :disabled="!!blockReason">送出回報</SubmitButton>
     </form>
   </BottomSheet>
 </template>

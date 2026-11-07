@@ -688,6 +688,13 @@ describe('設計 v2 畫面（T-135）', () => {
     expect(door.querySelector('input')!.disabled).toBe(true)
     expect(door.textContent).toContain('生鮮蔬果不能放門口')
     expect(sheet.textContent).toContain('放門口需要拍照；生鮮蔬果不適用')
+    const close = sheet.querySelector<HTMLButtonElement>('button')
+    expect(close?.textContent?.trim()).toBe('關閉')
+    expect(sheet.querySelector('h2')?.textContent?.trim()).toBe('回報：長者e-as-1')
+    close!.click()
+    await flush()
+    expect(document.querySelector('[role="dialog"]')).toBeNull()
+    expect(d.reportVisit).not.toHaveBeenCalled()
   })
 
   it('最後一張回報後顯示完成畫面，「回到志工首頁」→ volunteer', async () => {
