@@ -48,7 +48,7 @@ const {
 <template>
   <PageContainer>
     <div class="space-y-4 pt-4">
-      <h1 class="px-1 text-4xl leading-tight font-black text-primary-800">今天的服務</h1>
+      <h1 class="mr-display px-1 text-4xl leading-tight font-black text-primary-800">今天的服務</h1>
       <StaleBanner :stale-at="staleAt" :now="now" />
 
       <SkeletonBlock v-if="loading" :lines="5" />

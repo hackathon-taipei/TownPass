@@ -21,7 +21,7 @@ defineProps<{ count: number; homeTo: RouteLocationRaw }>()
   <section class="flex flex-col items-center gap-5 pt-9 text-center" aria-labelledby="mr-tasks-done-title">
     <img class="h-auto w-48" :src="mascot" alt="" draggable="false" />
     <div>
-      <h2 id="mr-tasks-done-title" class="text-[clamp(1.5rem,8.1vw,2.125rem)] leading-tight font-black text-primary-800">今天的任務都完成了</h2>
+      <h2 id="mr-tasks-done-title" class="mr-display text-[clamp(1.5rem,8.1vw,2.125rem)] leading-tight font-black text-primary-800">今天的任務都完成了</h2>
       <p class="mt-2 text-lg font-medium text-grey-700">謝謝你，把餐點與關懷送到。</p>
     </div>
     <p class="flex w-full items-center justify-center gap-3 rounded-2xl bg-linear-to-r from-primary-50 to-primary-100 px-3 py-4 text-2xl font-black text-primary-800">

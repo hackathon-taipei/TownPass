@@ -19,7 +19,7 @@ const logo = computed(() => brandSrc('logo', import.meta.env.BASE_URL))
   <section class="flex flex-col items-center text-center">
     <img class="relative z-10 -mb-5 h-44 w-auto max-w-full" :src="logo" :alt="`${BRAND_NAME}（${BRAND_SUBTITLE}）`" draggable="false" />
     <div class="w-full rounded-[2.5rem_2.5rem_1.5rem_1.5rem] bg-linear-to-br from-primary-50 to-primary-100 px-3 pt-7 pb-3">
-      <p class="text-[clamp(1.5rem,8vw,2.125rem)] leading-[1.18] font-black text-primary-800">
+      <p class="mr-display text-[clamp(1.5rem,8vw,2.125rem)] leading-[1.18] font-black text-primary-800">
         <template v-for="(line, i) in lines" :key="i">
           <br v-if="i > 0" />
           {{ line }}

@@ -64,7 +64,7 @@ const {
       <div v-else key="list" class="flex min-h-[calc(100dvh-1.5rem)] flex-col gap-3.5">
         <BrandHeader v-if="reportOpen" class="-mx-4" title="我的任務" variant="banner" />
         <header v-else class="px-1 pt-4">
-          <h1 class="text-4xl leading-tight font-black text-primary-800">我的任務</h1>
+          <h1 class="mr-display text-4xl leading-tight font-black text-primary-800">我的任務</h1>
           <p v-if="tasks.length" class="mt-0.5 text-xl leading-tight font-semibold text-grey-700" aria-live="polite">
             還有 <span class="text-2xl font-black text-secondary-600 tabular-nums">{{ tasks.length }}</span> 件需要你
           </p>
