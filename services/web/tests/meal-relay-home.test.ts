@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
-import { effectScope } from 'vue'
+import { createApp, defineComponent, effectScope, nextTick } from 'vue'
+import { createMemoryHistory, createRouter } from 'vue-router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 // 鄰食轉運站首頁 MR-P01（T-116，logic/home.ts）。資料層 getMe／listStations 用 mock；
@@ -38,6 +39,7 @@ vi.mock('@/features/meal-relay/data', async (importOriginal) => {
 })
 
 import * as data from '@/features/meal-relay/data'
+import HomePage from '@/features/meal-relay/ui/HomePage.vue'
 import { homeEntryOf, openLink, stationSourceText, STATION_SOURCE_DEFAULT, useHome, VOLUNTEER_LINKS } from '@/features/meal-relay/logic/home'
 
 function startHome(as: string) {
@@ -211,5 +213,81 @@ describe('讀取失敗與離線（§7、ADR-024）', () => {
     await home.load()
     expect(home.entry.value?.route).toBe('supplier')
     stop()
+  })
+})
+
+describe('畫面 MR-P01（實際渲染 HomePage）', () => {
+  const Stub = defineComponent({ render: () => null })
+  const ROUTES = ['volunteer', 'supplier', 'station', 'admin'] as const
+
+  /** 用 ?as= 帳號渲染首頁，等 getMe／listStations 與轉場結束 */
+  async function renderHome(as: string) {
+    window.location.hash = `#/f/meal-relay?as=${as}`
+    const router = createRouter({
+      history: createMemoryHistory(),
+      routes: [
+        { path: '/f/meal-relay', name: 'meal-relay.home', component: Stub },
+        ...ROUTES.map((r) => ({ path: `/f/meal-relay/${r}`, name: `meal-relay.${r}`, component: Stub })),
+      ],
+    })
+    await router.push('/f/meal-relay')
+    const el = document.createElement('div')
+    document.body.appendChild(el)
+    const app = createApp(HomePage).use(router)
+    app.mount(el)
+    for (let i = 0; i < 20 && el.querySelector('[aria-label="載入中"]'); i++) {
+      await new Promise((r) => setTimeout(r, 10))
+      await nextTick()
+    }
+    const links = [...el.querySelectorAll('a')].map((a) => ({ text: a.textContent?.trim() ?? '', href: a.getAttribute('href') ?? '' }))
+    const buttons = [...el.querySelectorAll('button')].map((b) => b.textContent?.trim() ?? '')
+    return { el, links, buttons, unmount: () => (app.unmount(), el.remove()) }
+  }
+
+  const VOLUNTEER_LABELS = VOLUNTEER_LINKS.map((l) => l.label)
+
+  it.each([
+    ['u-vol-1', '進入志工頁', '/f/meal-relay/volunteer'],
+    ['u-sup-1', '進入提供者頁', '/f/meal-relay/supplier'],
+    ['u-st-1', '進入據點頁', '/f/meal-relay/station'],
+    ['u-cit-1', '我要提供食物', '/f/meal-relay/supplier'],
+  ])('%s 只有一個進入連結「%s」→ %s', async (as, text, href) => {
+    const { links, unmount } = await renderHome(as)
+    expect(links).toEqual([{ text, href }])
+    unmount()
+  })
+
+  it('u-admin-1：沒有任何進入連結，也沒有管理系統連結', async () => {
+    const { el, links, unmount } = await renderHome('u-admin-1')
+    expect(el.textContent).toContain('社區關懷據點')
+    expect(links).toEqual([])
+    expect(el.innerHTML).not.toContain('/admin')
+    unmount()
+  })
+
+  it.each(['u-cit-1', 'u-vol-1', 'u-admin-1'])('%s：按鈕只有志工管道，沒有選角色或切換身分', async (as) => {
+    const { el, buttons, unmount } = await renderHome(as)
+    expect(buttons).toEqual(VOLUNTEER_LABELS)
+    expect(el.textContent).not.toMatch(/切換|選擇身分|選角色|管理系統/)
+    unmount()
+  })
+
+  it('顯示長者不用操作的說明、據點名稱與資料來源', async () => {
+    const { el, unmount } = await renderHome('u-cit-1')
+    const text = el.textContent ?? ''
+    expect(text).toContain('長者不用操作 App')
+    expect(text).toContain('請洽里長或最近的社區關懷據點')
+    for (const s of STATIONS) expect(text).toContain(s.name)
+    expect(text).toContain('資料來源：臺北市銀髮族服務_社區照顧關懷據點、臺北市門牌位置數值資料')
+    unmount()
+  })
+
+  it('志工管道按鈕在 App 裡用 bridge open_link 開啟', async () => {
+    bridge.inApp = true
+    const { el, unmount } = await renderHome('u-cit-1')
+    const btn = [...el.querySelectorAll('button')].find((b) => b.textContent?.includes('臺北 E 大'))!
+    btn.click()
+    expect(bridge.send).toHaveBeenCalledWith('open_link', 'https://elearning.taipei/mpage/')
+    unmount()
   })
 })

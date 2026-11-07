@@ -59,10 +59,8 @@ export interface VolunteerLink {
 export const VOLUNTEER_LINKS: readonly VolunteerLink[] = [
   { label: '臺北市志工管理整合平臺', url: 'https://newcv101.gov.taipei/' },
   { label: '臺北 E 大', url: 'https://elearning.taipei/mpage/' },
-  {
-    label: '臺北市政府所屬各機關志願服務管理及運用原則',
-    url: 'https://laws.gov.taipei/law/LawSearch/LawExport/FL101070?type=0',
-  },
+  // 全名「臺北市政府所屬各機關志願服務管理及運用原則」放在 MR-C32 的說明文字；按鈕 375px 寬只放得下約 15 字
+  { label: '志願服務管理及運用原則', url: 'https://laws.gov.taipei/law/LawSearch/LawExport/FL101070?type=0' },
 ]
 
 /** 在 App 裡用 bridge open_link 交給外部瀏覽器；一般瀏覽器開新分頁 */

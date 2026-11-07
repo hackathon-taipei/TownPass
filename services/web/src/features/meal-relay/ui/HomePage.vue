@@ -3,13 +3,13 @@
 /**
  * MR-P01 = T01 PageContainer {
  *   MR-C05 StaleBanner, MR-C30 HomeIntro,
- *   MR-C21 PageTransition { MR-C33 HomeEntryCard | M05 EmptyState（讀不到身分）＋ A01 重試 },
+ *   MR-C21 PageTransition { #skeleton M01＋A05, MR-C33 HomeEntryCard | M05 EmptyState（讀不到身分）＋ A01 重試 },
  *   MR-C31 HomeStationList { M03, M01, M02×n, A07 SourceNote }, MR-C32 HomeVolunteerInfo { A01×3 }
  * }
  * 沒有選角色的按鈕，也沒有管理系統連結（§2、§9）。
  */
 import { RefreshCw, UserX } from 'lucide-vue-next'
-import { BaseButton, EmptyState, PageContainer } from '@/ui'
+import { BaseButton, BaseCard, EmptyState, PageContainer, SkeletonBlock } from '@/ui'
 import { useHome } from '../logic/home'
 import HomeEntryCard from './HomeEntryCard.vue'
 import HomeIntro from './HomeIntro.vue'
@@ -27,6 +27,9 @@ const { me, meError, stations, stationsError, now, entry, staleAt, stationSource
       <StaleBanner :stale-at="staleAt" :now="now" />
       <HomeIntro />
       <PageTransition :loading="me === undefined" :page-key="me?.role ?? 'none'">
+        <template #skeleton>
+          <BaseCard><SkeletonBlock :lines="3" /></BaseCard>
+        </template>
         <HomeEntryCard v-if="entry" :entry="entry" :name="me?.name" />
         <EmptyState v-else-if="me === null" title="讀不到你的身分" :description="meError" :icon="UserX">
           <BaseButton variant="outline" :icon="RefreshCw" @click="load">重新讀取</BaseButton>
