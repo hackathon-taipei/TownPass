@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 200" width="240" height="200">
+  <!-- 當季青菜一袋（模擬示意圖，本團隊繪製，AGPL-3.0） -->
+  <rect width="240" height="200" fill="#eef7ea"/>
+  <path d="M84 40 C70 70 66 110 74 150 L118 150 C110 110 104 70 84 40 Z" fill="#3f8f3a"/>
+  <path d="M120 30 C100 70 100 120 112 154 L152 154 C150 110 142 64 120 30 Z" fill="#5fb04a"/>
+  <path d="M160 44 C146 76 144 116 150 152 L186 152 C184 112 178 76 160 44 Z" fill="#3f8f3a"/>
+  <path d="M60 120 H180 L170 176 H70 Z" fill="#f3e7c9" stroke="#c9b48a" stroke-width="3"/>
+  <rect x="96" y="138" width="48" height="18" rx="4" fill="#ffffff" stroke="#c9b48a" stroke-width="2"/>
+</svg>
