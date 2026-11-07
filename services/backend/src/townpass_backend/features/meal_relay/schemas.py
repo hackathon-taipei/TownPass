@@ -8,7 +8,7 @@
 from datetime import datetime
 from typing import Literal, get_args
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 # ---------------------------------------------------------------- 列舉值（§4）
 
@@ -76,6 +76,34 @@ class Station(BaseModel):
     source: str
     image_url: str | None = None  # 入口照片 /meal-relay/images/{image_id}，沒有 → null（ADR-028）
     address: str  # 據點地址（v2.5，ADR-030）；沒填 → ""
+
+
+class StationCreate(MealRequest):
+    """T-140：管理員建立據點；報到密碼與資料來源由伺服器產生。"""
+
+    name: str = Field(min_length=1, max_length=100)
+    address: str = Field(default="", max_length=120)
+    location: Location
+
+    @field_validator("name", "address", mode="before")
+    @classmethod
+    def trim_text(cls, value: object) -> object:
+        return value.strip() if isinstance(value, str) else value
+
+
+class StationUpdate(MealRequest):
+    """T-140：只修改傳入欄位；省略與顯式 null 不同，null 不允許。"""
+
+    name: str | None = Field(default=None, min_length=1, max_length=100)
+    address: str | None = Field(default=None, max_length=120)
+    location: Location | None = None
+
+    @field_validator("name", "address", "location", mode="before")
+    @classmethod
+    def non_null_value(cls, value: object) -> object:
+        if value is None:
+            raise ValueError("欄位不能為 null")
+        return value.strip() if isinstance(value, str) else value
 
 
 class Point(BaseModel):

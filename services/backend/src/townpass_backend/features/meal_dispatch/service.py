@@ -1,6 +1,7 @@
 """鄰食轉運站據點、報到與自動派送邏輯（M13、M15–M18）。"""
 
 from datetime import datetime, timedelta
+from secrets import token_hex
 
 from sqlmodel import Session
 
@@ -9,6 +10,43 @@ import townpass_backend.features.meal_relay as mr
 
 def list_stations(session: Session) -> list[mr.schemas.Station]:
     return [mr.to_station(row) for row in mr.repo.list_stations(session)]
+
+
+def create_station(session: Session, body: mr.schemas.StationCreate) -> mr.schemas.Station:
+    """T-140：後台新增據點，不建立帳號，也不接受客戶端報到密碼。"""
+    row = mr.repo.create_station(
+        session,
+        mr.models.MealStation(
+            id=mr.new_id("st"), name=body.name, address=body.address,
+            lat=body.location.lat, lng=body.location.lng,
+            source="管理員新增（模擬）", checkin_code=token_hex(16),
+        ),
+    )
+    return mr.to_station(row)
+
+
+def update_station(
+    session: Session, station_id: str, body: mr.schemas.StationUpdate,
+) -> mr.schemas.Station:
+    row = mr.repo.get_station(session, station_id)
+    if row is None:
+        raise mr.MealError("NOT_FOUND", "找不到據點")
+    changes = body.model_dump(exclude_unset=True)
+    location = changes.pop("location", None)
+    if location is not None:
+        changes.update(lat=location["lat"], lng=location["lng"])
+    return mr.to_station(mr.repo.update_station(session, row, **changes))
+
+
+def delete_station(session: Session, station_id: str) -> None:
+    row = mr.repo.get_station(session, station_id)
+    if row is None:
+        raise mr.MealError("NOT_FOUND", "找不到據點")
+    if mr.repo.station_has_references(session, station_id):
+        raise mr.MealError(
+            "STATION_IN_USE", "據點仍有長者、帳號、報到或任務紀錄，無法刪除", status=409,
+        )
+    mr.repo.delete_station(session, row)
 
 
 def get_my_station(session: Session, account: mr.models.MealAccount) -> mr.schemas.MyStation:
