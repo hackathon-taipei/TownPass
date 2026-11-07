@@ -644,3 +644,14 @@ def test_read_routes_carry_address(client: TestClient, session: Session) -> None
     assert f1["point_address"] == T115_ADDRESSES["p-1"]
     suppliers = client.get("/meal-relay/suppliers", headers={"X-Demo-User": "u-admin-1"}).json()
     assert {s["id"]: s["address"] for s in suppliers} == SIMULATED_SUPPLIER_ADDRESSES
+
+
+def test_seed_food_photos(session: Session) -> None:  # Demo：種子食物附照片，重置後照片也回來
+    for food_id in ("f-1", "f-2", "f-3", "f-4"):
+        food = repo.get_food(session, food_id)
+        assert food and food.image_id == f"img-seed-{food_id}"
+        image = repo.get_image(session, food.image_id)
+        assert image and image.mime == "image/jpeg" and 0 < image.size <= mr.settings().IMAGE_MAX_BYTES
+        assert mr.to_food(session, food).image_url == f"/meal-relay/images/{food.image_id}"
+    no_photo = repo.get_food(session, "f-5")
+    assert no_photo and no_photo.image_id is None
